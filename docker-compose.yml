@@ -1,0 +1,48 @@
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    ports:
+      - "192.168.3.2:9000:9000"  # Portainer UI (internal access only)
+      - "192.168.3.2:8000:8000" #Edge agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    networks:
+      - traefik_network #Not needed for portainer, added if needed
+
+  traefik:
+    image: traefik:v2.10
+    restart: unless-stopped
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "192.168.3.2:8080:8080"  # Traefik dashboard (internal access only)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
+    networks:
+      - traefik_network
+  
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml
+      - cloudflared-data:/etc/cloudflared # Persist credentials
+    env_file:
+      - ../.env
+    networks:
+      - traefik_network
+    depends_on:
+      - traefik
+
+volumes:
+  cloudflared-data:
+  portainer_data:
+
+networks:
+  traefik_network:
+    external: true
