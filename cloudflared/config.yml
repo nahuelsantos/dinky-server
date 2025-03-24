@@ -1,0 +1,18 @@
+# dinky-server/cloudflared/config.yml
+tunnel: ${TUNNEL_ID}
+credentials-file: /etc/cloudflared/credentials.json
+logfile: /var/log/cloudflared.log
+loglevel: info
+
+ingress:
+  - hostname: nahuelsantos.com
+    service: http://traefik:80
+  - hostname: cv.nahuelsantos.com
+	  service: http://localhost:80
+  - hostname: www.nahuelsantos.com
+	  service: http://localhost:80
+  - hostname: loopingbyte.com
+    service: http://traefik:80
+  - hostname: www.loopingbyte.com
+	  service: http://localhost:80
+  - service: http_status:404 #Default

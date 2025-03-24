@@ -1,0 +1,22 @@
+# dinky-server/cloudflared/docker-compose.yml
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml
+      - cloudflared-data:/etc/cloudflared # Persist credentials
+    env_file:
+      - ../.env
+    networks:
+      - traefik_network
+    depends_on:
+      - traefik
+
+volumes:
+  cloudflared-data:
+
+networks:
+  traefik_network:
+    external: true

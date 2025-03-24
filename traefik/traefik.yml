@@ -1,0 +1,26 @@
+# dinky-server/traefik/traefik.yml
+api:
+  dashboard: true
+  insecure: true  # Enable the dashboard (we'll access it via internal IP)
+
+entryPoints:
+  web:
+    address: :80
+    #http: #Commented because we are not going to forward to https in traefik, cloudflare will take care of that
+      #redirections:
+        #entryPoint:
+          #to: websecure
+          #scheme: https
+  #websecure:
+    #address: :443
+
+providers:
+  docker:
+    exposedByDefault: false  # Only expose services with explicit labels
+    network: traefik_network
+  file:
+    filename: /etc/traefik/dynamic_conf.yml
+    watch: true
+
+log:
+  level: INFO
