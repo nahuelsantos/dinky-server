@@ -4,8 +4,23 @@ services:
     container_name: looping-byte
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.looopingbyte.rule=Host(`loopingbyte.com`) || Host(`www.loopingbyte.com`)"
-      - "traefik.http.services.loopingbyte.loadbalancer.server.port=80" 
+      
+      # Main router configuration
+      - "traefik.http.routers.loopingbyte.rule=Host(`loopingbyte.com`) || Host(`www.loopingbyte.com`)"
+      - "traefik.http.routers.loopingbyte.entrypoints=websecure"
+      - "traefik.http.routers.loopingbyte.tls.certresolver=myresolver"
+      
+      # SPA middleware configuration
+      - "traefik.http.middlewares.spa-headers.headers.customrequestheaders.X-Forwarded-Prefix=/"
+      - "traefik.http.middlewares.spa-rewrite.redirectregex.regex=^/(.+)/?$$"
+      - "traefik.http.middlewares.spa-rewrite.redirectregex.replacement=/$${1}"
+      - "traefik.http.middlewares.spa-combined.chain.middlewares=spa-headers,spa-rewrite"
+      
+      # Apply middleware to router
+      - "traefik.http.routers.loopingbyte.middlewares=spa-combined@docker"
+      
+      # Service configuration
+      - "traefik.http.services.loopingbyte.loadbalancer.server.port=80"
     networks:
       - traefik_network
     restart: unless-stopped
