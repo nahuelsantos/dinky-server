@@ -17,7 +17,7 @@ services:
       - "traefik.http.routers.loopingbyte.middlewares=spa-combined@docker"
       
       # Service configuration
-      - "traefik.http.services.loopingbyte.loadbalancer.server.port=80"
+      - "traefik.http.services.loopingbyte.loadbalancer.server.port=3000"
     networks:
       - traefik_network
     restart: unless-stopped
