@@ -4,11 +4,8 @@ services:
     container_name: looping-byte
     labels:
       - "traefik.enable=true"
-      
-      # Main router configuration
+# Main router configuration
       - "traefik.http.routers.loopingbyte.rule=Host(`loopingbyte.com`) || Host(`www.loopingbyte.com`)"
-      - "traefik.http.routers.loopingbyte.entrypoints=websecure"
-      - "traefik.http.routers.loopingbyte.tls.certresolver=myresolver"
       
       # SPA middleware configuration
       - "traefik.http.middlewares.spa-headers.headers.customrequestheaders.X-Forwarded-Prefix=/"
