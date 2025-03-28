@@ -6,21 +6,15 @@ api:
   insecure: true  # Enable the dashboard (we'll access it via internal IP)
 
 certificatesresolvers:
-  myresolver:
+  letsencrypt:
       acme:
         email: hello@loopingbyte.com
         storage: /letsencrypt/acme.json
         httpChallenge:
-          # used during the challenge
           entryPoint: web
 entryPoints:
   web:
     address: :80
-    #http: #Commented because we are not going to forward to https in traefik, cloudflare will take care of that
-      #redirections:
-        #entryPoint:
-          #to: websecure
-          #scheme: https
   websecure:
     address: :443
 
