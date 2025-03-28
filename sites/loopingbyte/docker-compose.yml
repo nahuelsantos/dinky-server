@@ -5,7 +5,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.looopingbyte.rule=Host(`loopingbyte.com`) || Host(`www.loopingbyte.com`)"
-      - "traefik.http.services.loopingbyte.loadbalancer.server.port=80" #Change to your app port
+      - "traefik.http.routers.looopingbyte.entrypoints=web,websecure"
+      - "traefik.http.routers.looopingbyte.tls=true"
+      - "traefik.http.routers.looopingbyte.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.looopingbyte.middlewares=https-redirect"
+      - "traefik.http.services.loopingbyte.loadbalancer.server.port=80"
     networks:
       - traefik_network
     restart: unless-stopped
