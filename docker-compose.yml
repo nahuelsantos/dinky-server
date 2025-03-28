@@ -20,6 +20,7 @@ services:
       - "192.168.3.2:8080:8080"  # Traefik dashboard (internal access only)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
     networks:
