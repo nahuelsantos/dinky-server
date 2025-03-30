@@ -3,14 +3,6 @@ api:
   dashboard: true
   insecure: true  # Enable the dashboard (we'll access it via internal IP)
 
-# certificatesresolvers:
-#   letsencrypt:
-#       acme:
-#         email: hello@loopingbyte.com
-#         storage: /letsencrypt/acme.json
-#         httpChallenge:
-#           entryPoint: web
-
 entryPoints:
   web:
     address: :80
