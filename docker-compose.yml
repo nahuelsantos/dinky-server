@@ -1,7 +1,7 @@
 services:
   portainer:
     image: portainer/portainer-ce:latest
-    restart: unless-stopped
+    restart: always
     ports:
       - "192.168.3.2:9000:9000"  # Portainer UI (internal access only)
       - "192.168.3.2:8000:8000" #Edge agent
@@ -10,10 +10,20 @@ services:
       - portainer_data:/data
     networks:
       - traefik_network #Not needed for portainer, added if needed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   traefik:
     image: traefik:v2.10
-    restart: unless-stopped
+    restart: always
     command:
       - --configFile=/etc/traefik/traefik.yml
     ports:
@@ -24,10 +34,21 @@ services:
       - ./traefik/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
     networks:
       - traefik_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
   
   cloudflared:
     image: cloudflare/cloudflared:latest
-    restart: unless-stopped
+    restart: always
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
       - ./cloudflared/config.yml:/etc/cloudflared/config.yml
