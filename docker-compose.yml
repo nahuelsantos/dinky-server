@@ -16,11 +16,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
   traefik:
     image: traefik:v2.10
@@ -41,11 +36,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
   
   cloudflared:
     image: cloudflare/cloudflared:latest
