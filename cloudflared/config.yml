@@ -11,6 +11,8 @@ ingress:
     service: http://traefik:80
   - hostname: www.nahuelsantos.com
     service: http://traefik:80
+  - hostname: ssh.loopingbyte.com
+    service: ssh://traefik:22
   - hostname: loopingbyte.com
     service: http://traefik:80
   - hostname: www.loopingbyte.com
