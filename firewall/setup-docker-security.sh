@@ -99,6 +99,7 @@ cat > /etc/docker/daemon.json << EOF
     "max-file": "3"
   },
   "storage-driver": "overlay2",
+  "dns": ["1.1.1.1", "8.8.8.8"],
   "default-ulimits": {
     "nofile": {
       "name": "nofile",
