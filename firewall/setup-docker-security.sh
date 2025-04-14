@@ -93,7 +93,6 @@ cat > /etc/docker/daemon.json << EOF
   "live-restore": true,
   "userland-proxy": false,
   "no-new-privileges": true,
-  "userns-remap": "default",
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "10m",
@@ -153,7 +152,16 @@ chmod +x /opt/docker-security/docker-security-audit.sh
 
 # Start Docker socket proxy
 echo "Starting Docker socket proxy..."
-cd /opt/docker-security && docker-compose -f docker-socket-proxy.yml up -d
+# Check which docker compose command is available
+if command -v docker compose &> /dev/null; then
+  cd /opt/docker-security && docker compose -f docker-socket-proxy.yml up -d
+elif command -v docker-compose &> /dev/null; then
+  cd /opt/docker-security && docker-compose -f docker-socket-proxy.yml up -d
+else
+  echo "WARNING: Neither 'docker compose' nor 'docker-compose' command found."
+  echo "Please install Docker Compose and then start the Docker socket proxy manually with:"
+  echo "cd /opt/docker-security && docker compose -f docker-socket-proxy.yml up -d"
+fi
 
 # Restart Docker to apply daemon settings
 echo "Restarting Docker to apply security changes..."

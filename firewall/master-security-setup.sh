@@ -26,14 +26,44 @@ section() {
   echo -e "${BLUE}============================================================${NC}\n"
 }
 
+# Function to check network connectivity
+check_network() {
+  section "Checking Network Connectivity"
+  echo "Testing network connection..."
+  
+  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+    echo -e "${GREEN}Network connectivity confirmed.${NC}"
+    return 0
+  else
+    echo -e "${YELLOW}Warning: Network connectivity issues detected.${NC}"
+    echo -e "${YELLOW}Some components that require package installation may have limited functionality.${NC}"
+    echo -e "${YELLOW}These components can be reinstalled later when network connectivity is restored.${NC}"
+    
+    read -p "Do you want to continue with potentially limited functionality? (y/n): " continue_offline
+    if [[ "$continue_offline" != "y" && "$continue_offline" != "Y" ]]; then
+      echo -e "${RED}Setup aborted. Please try again when network connectivity is available.${NC}"
+      exit 1
+    fi
+    
+    return 1
+  fi
+}
+
 # Function to run a component script with proper error handling
 run_component() {
   local script=$1
   local description=$2
+  local requires_network=$3
   
   if [ ! -f "$script" ]; then
     echo -e "${RED}ERROR: Script $script not found!${NC}"
     return 1
+  fi
+  
+  # Check if component requires network and network is down
+  if [ "$requires_network" = "true" ] && [ "$NETWORK_AVAILABLE" = "false" ]; then
+    echo -e "${YELLOW}Warning: $description may have limited functionality due to network issues.${NC}"
+    echo -e "${YELLOW}You can run it again later with: sudo bash $script${NC}"
   fi
   
   # Make script executable
@@ -68,14 +98,22 @@ echo -e "${YELLOW}Please monitor the process and provide input when requested${N
 echo ""
 read -p "Press Enter to begin the security setup process..."
 
+# Check network connectivity
+check_network
+if [ $? -eq 0 ]; then
+  NETWORK_AVAILABLE=true
+else
+  NETWORK_AVAILABLE=false
+fi
+
 # Ensure all scripts are executable
 chmod +x ./*.sh
 
-# Setup base firewall
-run_component "./setup-firewall.sh" "Setting up base firewall rules"
+# Setup base firewall (doesn't require network)
+run_component "./setup-firewall.sh" "Setting up base firewall rules" "false"
 
-# Setup Fail2Ban for intrusion detection and prevention
-run_component "./setup-fail2ban.sh" "Installing and configuring Fail2Ban"
+# Setup Fail2Ban for intrusion detection and prevention (requires network)
+run_component "./setup-fail2ban.sh" "Installing and configuring Fail2Ban" "true"
 
 # Warning for SSH key setup
 section "IMPORTANT: SSH Key Setup"
@@ -89,42 +127,62 @@ read -p "Do you have SSH key access set up? (y/n): " ssh_ready
 if [[ "$ssh_ready" != "y" && "$ssh_ready" != "Y" ]]; then
   echo "Skipping SSH hardening. Set up your SSH keys and run this script later."
 else
-  run_component "./setup-ssh-keys.sh" "Securing SSH access"
+  run_component "./setup-ssh-keys.sh" "Securing SSH access" "false"
 fi
 
-# Setup Docker security
-run_component "./setup-docker-security.sh" "Enhancing Docker security"
+# Setup Docker security (doesn't require network for basic functionality)
+run_component "./setup-docker-security.sh" "Enhancing Docker security" "false"
 
-# Setup log monitoring
-run_component "./setup-logwatch.sh" "Setting up log monitoring with Logwatch"
+# Setup log monitoring (requires network for full installation)
+run_component "./setup-logwatch.sh" "Setting up log monitoring with Logwatch" "true"
 
-# Setup automated security checks
-run_component "./setup-cron.sh" "Setting up automated security checks"
+# Setup automated security checks (doesn't require network)
+run_component "./setup-cron.sh" "Setting up automated security checks" "false"
 
-# Setup automatic updates
-run_component "./setup-auto-updates.sh" "Configuring automatic security updates"
+# Setup automatic updates (requires network for full functionality)
+run_component "./setup-auto-updates.sh" "Configuring automatic security updates" "true"
 
 # Final message
 section "Security Setup Complete"
-echo -e "${GREEN}All security measures have been installed and configured.${NC}"
+echo -e "${GREEN}Security measures have been installed and configured.${NC}"
 echo ""
 echo "The following security enhancements are now active:"
 echo "  ✓ UFW Firewall with restrictive rules"
-echo "  ✓ Fail2Ban intrusion prevention"
+if [ "$NETWORK_AVAILABLE" = "true" ]; then
+  echo "  ✓ Fail2Ban intrusion prevention"
+else
+  echo "  ⚠ Fail2Ban may have limited functionality (run setup again when network is available)"
+fi
 if [[ "$ssh_ready" == "y" || "$ssh_ready" == "Y" ]]; then
   echo "  ✓ SSH hardening with key-based authentication"
 else
   echo "  ✗ SSH hardening was skipped (run setup-ssh-keys.sh manually after setting up keys)"
 fi
 echo "  ✓ Docker security enhancements"
-echo "  ✓ Logwatch monitoring"
+if [ "$NETWORK_AVAILABLE" = "true" ]; then
+  echo "  ✓ Logwatch monitoring"
+  echo "  ✓ Automatic security updates"
+else
+  echo "  ⚠ Logwatch may have limited functionality (run setup again when network is available)"
+  echo "  ⚠ Automatic updates may have limited functionality (run setup again when network is available)"
+fi
 echo "  ✓ Automated security checks (runs daily)"
-echo "  ✓ Automatic security updates"
 echo ""
 echo -e "${YELLOW}Important Notes:${NC}"
 echo " - Review the logs in /var/log/security-check.log regularly"
-echo " - Check for failed intrusion attempts with: sudo fail2ban-client status"
+if [ "$NETWORK_AVAILABLE" = "true" ]; then
+  echo " - Check for failed intrusion attempts with: sudo fail2ban-client status"
+fi
 echo " - Run manual security audit: sudo bash firewall/security-check.sh"
 echo " - Run system updates: sudo system-update"
+if [ "$NETWORK_AVAILABLE" = "false" ]; then
+  echo ""
+  echo -e "${YELLOW}Network Issues Detected:${NC}"
+  echo " - Run the following when network connectivity is restored to complete setup:"
+  echo "   sudo apt update && sudo apt install -y fail2ban logwatch"
+  echo "   sudo bash firewall/setup-fail2ban.sh"
+  echo "   sudo bash firewall/setup-logwatch.sh"
+  echo "   sudo bash firewall/setup-auto-updates.sh"
+fi
 echo ""
 echo -e "${GREEN}Your server is now significantly more secure!${NC}" 

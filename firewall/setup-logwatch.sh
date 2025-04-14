@@ -7,12 +7,92 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "Installing Logwatch..."
-apt update
-apt install -y logwatch
+# Function to retry commands with network connectivity checks
+retry_with_network_check() {
+  local max_attempts=5
+  local attempt=1
+  local delay=10
+  local command="$@"
+  
+  while [ $attempt -le $max_attempts ]; do
+    echo "Attempt $attempt of $max_attempts: $command"
+    
+    # Check network connectivity to a reliable server
+    if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+      echo "Network connectivity confirmed."
+      
+      # Execute the command
+      if eval "$command"; then
+        return 0
+      else
+        echo "Command failed. Retrying in $delay seconds..."
+      fi
+    else
+      echo "Network connectivity issue detected. Retrying in $delay seconds..."
+    fi
+    
+    sleep $delay
+    attempt=$((attempt + 1))
+  done
+  
+  echo "Maximum attempts reached. Moving on with limited functionality."
+  return 1
+}
 
-# Create a directory for custom configuration
+# Create minimal Logwatch configuration without installation
+setup_minimal_logwatch() {
+  echo "Setting up minimal Logwatch configuration without package installation..."
+  
+  # Create required directories
+  mkdir -p /etc/logwatch/conf
+  mkdir -p /etc/logwatch/conf/services
+  mkdir -p /etc/logwatch/conf/logfiles
+  mkdir -p /etc/logwatch/scripts/services
+  mkdir -p /var/cache/logwatch
+  
+  # Set up basic configuration
+  cat > /etc/logwatch/conf/logwatch.conf << EOF
+# Logwatch Configuration - Minimal Setup
+
+# Output format (mail, stdout, or file)
+Output = stdout
+# Output format detail level
+Detail = High
+# Range (Yesterday, Today, All)
+Range = Yesterday
+# Format of report (text, html)
+Format = text
+# Whether to display the help text
+Help = No
+EOF
+
+  # Create a simple wrapper script
+  cat > /usr/local/bin/run-logwatch << EOF
+#!/bin/bash
+echo "Minimal Logwatch setup. Full functionality requires package installation."
+echo "Run 'apt install -y logwatch' when network connectivity is restored."
+cat /etc/logwatch/conf/logwatch.conf
+echo "System log summary:"
+grep -E 'error|warning|fail' /var/log/syslog | tail -20
+EOF
+
+  chmod +x /usr/local/bin/run-logwatch
+
+  echo "Minimal Logwatch setup complete. To install full functionality later, run:"
+  echo "  sudo apt update && sudo apt install -y logwatch"
+}
+
+echo "Installing Logwatch..."
+if ! retry_with_network_check "apt update && apt install -y logwatch"; then
+  echo "Network issues detected. Setting up minimal Logwatch configuration."
+  setup_minimal_logwatch
+else
+  echo "Logwatch installation successful."
+fi
+
+# Create directories in case they weren't created during installation
 mkdir -p /etc/logwatch/conf/services
+mkdir -p /etc/logwatch/scripts/services
 
 # Configure Logwatch
 echo "Configuring Logwatch..."
@@ -47,9 +127,14 @@ EOF
 
 # Create daily cron job to run Logwatch
 echo "Setting up Logwatch daily run via cron..."
+mkdir -p /etc/cron.daily
 cat > /etc/cron.daily/00logwatch << EOF
 #!/bin/bash
-/usr/sbin/logwatch --output mail --mailto root@localhost --detail high
+if command -v logwatch >/dev/null 2>&1; then
+  /usr/sbin/logwatch --output mail --mailto root@localhost --detail high
+else
+  echo "Logwatch not installed. Please install with: apt install -y logwatch"
+fi
 EOF
 
 # Make the cron job executable
@@ -60,6 +145,13 @@ echo "Creating convenience script for manual Logwatch runs..."
 cat > /usr/local/bin/run-logwatch << EOF
 #!/bin/bash
 # Script to run Logwatch manually
+
+if ! command -v logwatch >/dev/null 2>&1; then
+  echo "Logwatch not installed. Please install with: apt install -y logwatch"
+  echo "Running minimal log check instead:"
+  grep -E 'error|warning|fail' /var/log/syslog | tail -20
+  exit 1
+fi
 
 # Default values
 DETAIL="High"
@@ -95,6 +187,7 @@ EOF
 chmod +x /usr/local/bin/run-logwatch
 
 echo "Creating Docker service definition for Logwatch..."
+mkdir -p /etc/logwatch/conf/services
 cat > /etc/logwatch/conf/services/docker.conf << EOF
 # Docker Log Configuration
 Title = "Docker Logs"
@@ -102,6 +195,7 @@ LogFile = daemon
 EOF
 
 echo "Creating Docker service filter..."
+mkdir -p /etc/logwatch/scripts/services
 cat > /etc/logwatch/scripts/services/docker << EOF
 #!/usr/bin/perl -w
 # Process Docker logs
@@ -152,7 +246,13 @@ EOF
 # Make the Docker service script executable
 chmod +x /etc/logwatch/scripts/services/docker
 
-echo "Logwatch installation and configuration complete."
+echo "Logwatch configuration complete."
+if command -v logwatch >/dev/null 2>&1; then
+  echo "Full Logwatch installation is available."
+else
+  echo "Minimal Logwatch configuration is in place."
+  echo "Install the full package later with: sudo apt update && sudo apt install -y logwatch"
+fi
 echo "To run Logwatch manually: sudo run-logwatch"
-echo "Daily reports will be emailed to root@localhost"
+echo "Daily reports will be emailed to root@localhost if mail is configured"
 echo "To change email recipient, edit /etc/cron.daily/00logwatch" 
