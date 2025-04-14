@@ -38,10 +38,40 @@ services:
       - traefik_network
     depends_on:
       - traefik
+      
+  pihole:
+    image: pihole/pihole:latest
+    restart: always
+    ports:
+      - "192.168.3.2:53:53/tcp"
+      - "192.168.3.2:53:53/udp"
+      - "192.168.3.2:8081:80/tcp"  # Web interface (changed to 8081 to avoid conflicts)
+    env_file:
+      - .env
+    environment:
+      TZ: 'Europe/Madrid'  # Timezone for Madrid
+      WEBPASSWORD: '${PIHOLE_PASSWORD}' 
+      ServerIP: '192.168.3.2'  # Server's IP address
+      DNS1: '1.1.1.1'  # Upstream DNS 1
+      DNS2: '1.0.0.1'  # Upstream DNS 2
+      # Add this to use Cloudflared for DNS-over-HTTPS if needed
+      # PIHOLE_DNS_: 127.0.0.1#5053
+    volumes:
+      - pihole_data:/etc/pihole
+      - pihole_dnsmasq:/etc/dnsmasq.d
+    networks:
+      - traefik_network
+    cap_add:
+      - NET_ADMIN  # Required for Pi-hole to function correctly
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
 
 volumes:
   cloudflared-data:
   portainer_data:
+  pihole_data:
+  pihole_dnsmasq:
 
 networks:
   traefik_network:
