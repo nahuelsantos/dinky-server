@@ -43,15 +43,16 @@ services:
     image: pihole/pihole:latest
     restart: always
     ports:
-      - "192.168.3.2:53:53/tcp"
-      - "192.168.3.2:53:53/udp"
+      - "53:53/tcp"
+      - "53:53/udp"
       - "192.168.3.2:8081:80/tcp"  # Web interface (changed to 8081 to avoid conflicts)
     env_file:
       - .env
     environment:
       TZ: 'Europe/Madrid'  # Timezone for Madrid
-      WEBPASSWORD: '${PIHOLE_PASSWORD}' 
-      ServerIP: '192.168.3.2'  # Server's IP address
+      WEBPASSWORD: '${PIHOLE_PASSWORD}'  # Get password from environment variable
+      ServerIP: '192.168.3.2'  # Your server's IP address
+      DNSMASQ_LISTENING: 'all'  # Listen on all interfaces
       DNS1: '1.1.1.1'  # Upstream DNS 1
       DNS2: '1.0.0.1'  # Upstream DNS 2
       # Add this to use Cloudflared for DNS-over-HTTPS if needed
