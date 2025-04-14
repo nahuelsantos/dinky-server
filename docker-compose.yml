@@ -45,28 +45,26 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "192.168.3.2:8081:80/tcp"  # Web interface (changed to 8081 to avoid conflicts)
+      - "192.168.3.2:8081:80/tcp"  # Web interface
     env_file:
       - .env
     environment:
-      TZ: 'Europe/Madrid'  # Timezone for Madrid
-      WEBPASSWORD: '${PIHOLE_PASSWORD}'  # Get password from environment variable
-      ServerIP: '192.168.3.2'  # Your server's IP address
-      DNSMASQ_LISTENING: 'all'  # Listen on all interfaces
-      DNS1: '1.1.1.1'  # Upstream DNS 1
-      DNS2: '1.0.0.1'  # Upstream DNS 2
-      # Add this to use Cloudflared for DNS-over-HTTPS if needed
-      # PIHOLE_DNS_: 127.0.0.1#5053
+      TZ: 'Europe/Madrid'
+      WEBPASSWORD: '${PIHOLE_PASSWORD}'
+      ServerIP: '192.168.3.2'
+      DNSMASQ_LISTENING: 'all'
+      DNS1: '1.1.1.1'  # Cloudflare DNS
+      DNS2: '8.8.8.8'  # Google DNS
     volumes:
       - pihole_data:/etc/pihole
       - pihole_dnsmasq:/etc/dnsmasq.d
     networks:
       - traefik_network
     cap_add:
-      - NET_ADMIN  # Required for Pi-hole to function correctly
+      - NET_ADMIN
     dns:
-      - 127.0.0.1
-      - 1.1.1.1
+      - 1.1.1.1  # Use Cloudflare DNS directly
+      - 8.8.8.8  # Use Google DNS as backup
 
 volumes:
   cloudflared-data:
