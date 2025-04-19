@@ -104,7 +104,13 @@ Before proceeding with installation, ensure you have:
 sudo apt install neovim git zsh
 ```
 
-2. Set up shell environment (optional but recommended):
+2. Install Powerlevel10k (optional but recommended):
+```bash
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+```
+Open ~/.zshrc, find the line that sets ZSH_THEME, and change its value to "powerlevel10k/powerlevel10k".
+
+3. Set up shell environment (optional but recommended):
 ```bash
 # Make zsh the default shell
 sudo chsh -s "$(command -v zsh)" "${USER}"
@@ -119,7 +125,7 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/p
 # Edit .zshrc and set: plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 ```
 
-3. Install Docker:
+4. Install Docker:
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
@@ -127,13 +133,13 @@ sudo usermod -aG docker $USER # Log out and back in after this
 sudo apt install -y libffi-dev libssl-dev python3-pip
 ```
 
-4. Set up the firewall:
+5. Set up the firewall:
 ```bash
 sudo apt install ufw
 sudo bash firewall/setup-firewall.sh
 ```
 
-5. Create Docker network:
+6. Create Docker network:
 ```bash
 docker network create traefik_network
 ```
