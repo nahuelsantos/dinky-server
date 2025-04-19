@@ -1,0 +1,32 @@
+# Environment variables
+.env
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker volumes data
+**/volumes/
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.cache/
+tmp/
+
+# Sensitive configuration files
+*credentials*
+*secret*
+*key
+
+# Cached packages
+node_modules/
