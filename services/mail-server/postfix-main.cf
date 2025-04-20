@@ -1,6 +1,6 @@
 # Basic configuration
-myhostname = mail.dinky.local
-mydomain = dinky.local
+myhostname = ${MAIL_HOSTNAME}
+mydomain = ${MAIL_DOMAIN}
 myorigin = $mydomain
 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
 mynetworks = 127.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8
@@ -17,10 +17,16 @@ smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_u
 submission_recipient_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
 submission_sender_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
 
-# TLS parameters
-smtp_tls_security_level = none
+# TLS parameters for outgoing mail - Enhanced for Gmail compatibility
+smtp_tls_security_level = may  # Use TLS when available
+smtp_tls_CApath = /etc/ssl/certs
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+smtp_use_tls = yes
+smtp_tls_wrappermode = no
+smtp_tls_loglevel = 1        # Log TLS activity for debugging
+smtp_tls_note_starttls_offer = yes
 
-# SASL authentication
+# SASL authentication for server
 smtpd_sasl_auth_enable = yes
 smtpd_sasl_security_options = noanonymous
 smtpd_sasl_type = cyrus
@@ -30,4 +36,12 @@ broken_sasl_auth_clients = yes
 # General - use btree instead of hash for better Alpine compatibility
 alias_maps = btree:/etc/aliases
 alias_database = btree:/etc/aliases
-readme_directory = no 
+readme_directory = no
+
+# External SMTP relay configuration
+# These will be uncommented by the start script if RELAY_HOST is set
+# relayhost = [${RELAY_HOST}]:${RELAY_PORT}
+# smtp_sasl_auth_enable = yes
+# smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
+# smtp_sasl_security_options = noanonymous
+# smtp_tls_note_starttls_offer = yes

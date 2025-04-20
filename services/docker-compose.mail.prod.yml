@@ -1,0 +1,77 @@
+# Production docker-compose file for mail services on Dinky
+
+services:
+  mail-server:
+    build:
+      context: ./mail-server
+      dockerfile: Dockerfile
+    container_name: mail-server
+    hostname: mail.dinky.local
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    ports:
+      - "25:25"   # SMTP
+      - "587:587" # Submission
+    volumes:
+      - mail-data:/var/spool/postfix
+      - mail-logs:/var/log
+    environment:
+      - TZ=${TZ:-UTC}
+      - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
+      - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
+      - RELAY_HOST=${RELAY_HOST:-}
+      - RELAY_PORT=${RELAY_PORT:-587}  # Changed default to 587 for Gmail
+      - RELAY_USER=${RELAY_USER:-}
+      - RELAY_PASSWORD=${RELAY_PASSWORD:-}
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+    # Added logging configuration to make it easier to debug mail issues
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mail-api:
+    build:
+      context: ../apis/mail-api
+      dockerfile: Dockerfile
+    container_name: mail-api
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    depends_on:
+      - mail-server
+    # No Traefik labels - service only accessible internally
+    environment:
+      - SMTP_HOST=mail-server
+      - SMTP_PORT=25
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - PORT=8080
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-loopingbyte.com,nahuelsantos.com}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Added logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mail-data:
+    driver: local
+  mail-logs:
+    driver: local
+
+networks:
+  traefik_network:
+    external: true
+  mail-internal:
+    # Internal network for secure communication between mail services
+    internal: true 

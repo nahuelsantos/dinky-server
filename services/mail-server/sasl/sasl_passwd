@@ -1,9 +1,16 @@
-# This file is used for SMTP authentication
-# If the file is empty, postmap might fail, so we add a comment and a sample entry that is commented out
+# This file is used for SMTP authentication with external relays
+# If using Gmail SMTP relay, the start.sh script will update this file automatically
+# based on your environment variables (RELAY_HOST, RELAY_PORT, RELAY_USER, RELAY_PASSWORD)
 
 # Format: [mail_server]:port username:password
-# Example: smtp.example.com:587 user@example.com:password
+# Example for Gmail: 
+# [smtp.gmail.com]:587 yourusername@gmail.com:your-app-password
 
-# mail.example.com:587 username:password
+# IMPORTANT: 
+# 1. After changing this file manually, run: postmap hash:/etc/postfix/sasl/sasl_passwd
+# 2. Restart the mail-server container
+
+# For Gmail, you MUST use an App Password if you have 2-Step Verification enabled
+# Get an App Password at: https://myaccount.google.com/apppasswords
 
 # For local mail only, this file can be empty 

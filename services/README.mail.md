@@ -14,17 +14,62 @@ This service provides a simple self-hosted email solution specifically designed 
    cd services
    ```
 
-2. Set up firewall rules (requires sudo):
+2. Copy the environment file and edit it:
+   ```
+   cp .env.mail .env.mail.prod
+   nano .env.mail.prod  # or use your preferred editor
+   ```
+
+3. Set up firewall rules (requires sudo):
    ```
    sudo ./mail-server/ufw-setup.sh
    ```
 
-3. Start the services:
+4. Start the services:
    ```
-   docker-compose -f docker-compose.mail.yml up -d
+   docker-compose -f docker-compose.mail.prod.yml --env-file .env.mail.prod up -d
    ```
 
-4. The mail API will be available at `http://mail-api.dinky.local` through Traefik
+5. The mail API will be available at `http://mail-api.dinky.local` through Traefik
+
+## Using Gmail as SMTP Relay (Recommended)
+
+Direct mail delivery is often blocked by ISPs and cloud providers. Using Gmail as an SMTP relay significantly improves deliverability.
+
+### Why use Gmail SMTP relay?
+
+- **Improved Deliverability**: Emails sent through Gmail are less likely to be marked as spam
+- **ISP Port Blocking**: Many ISPs and cloud providers block outgoing port 25, making direct mail delivery unreliable
+- **Reputation**: Gmail has a good sending reputation, which helps your emails reach inboxes
+
+### Setting up Gmail SMTP Relay
+
+1. **Create an App Password in Gmail**:
+   - Go to https://myaccount.google.com/security
+   - Enable 2-Step Verification if not already enabled
+   - Go to https://myaccount.google.com/apppasswords
+   - Select "Mail" and "Other (Custom name)" - enter "Dinky Server"
+   - Copy the 16-character password
+
+2. **Configure your .env.mail.prod file**:
+   ```
+   RELAY_HOST=smtp.gmail.com
+   RELAY_PORT=587
+   RELAY_USER=your-gmail-address@gmail.com
+   RELAY_PASSWORD=your-16-character-app-password
+   ```
+
+3. **Restart the mail services**:
+   ```
+   docker-compose -f docker-compose.mail.prod.yml --env-file .env.mail.prod down
+   docker-compose -f docker-compose.mail.prod.yml --env-file .env.mail.prod up -d
+   ```
+
+4. **Verify SMTP Relay Configuration**:
+   ```
+   docker logs mail-server
+   ```
+   Look for messages containing "relay=smtp.gmail.com"
 
 ## Network Configuration
 
@@ -150,6 +195,45 @@ To test if emails can be sent through the mail server:
 ```
 echo "Subject: Test Email" | sendmail -v recipient@example.com
 ```
+
+### Troubleshooting Gmail SMTP Relay
+
+If you're having issues with Gmail SMTP relay:
+
+1. **Check Authentication**: Verify your Gmail username and App Password:
+   ```
+   docker exec -it mail-server cat /etc/postfix/sasl/sasl_passwd
+   ```
+
+2. **Check Gmail Settings**: Make sure:
+   - 2-Step Verification is enabled
+   - The App Password was generated correctly (for "Mail" app)
+   - Your account doesn't have any security blocks (check Gmail security alerts)
+
+3. **Test Authentication**: Try manually connecting to Gmail SMTP:
+   ```
+   docker exec -it mail-server openssl s_client -starttls smtp -crlf -connect smtp.gmail.com:587
+   ```
+   Then enter these commands one by one:
+   ```
+   EHLO localhost
+   AUTH LOGIN
+   [enter base64-encoded username]
+   [enter base64-encoded password]
+   ```
+   You should get a "235 2.7.0 Authentication successful" message.
+
+4. **View Detailed Logs**: Enable verbose logging and check for authentication errors:
+   ```
+   docker exec -it mail-server postconf -e "debug_peer_list=smtp.gmail.com"
+   docker exec -it mail-server postfix reload
+   docker logs mail-server
+   ```
+
+5. **Common Error Messages**:
+   - "530 5.7.0 Authentication Required": Gmail requires authentication
+   - "535 5.7.8 Authentication failed": Wrong username or password
+   - "454 4.7.0 Too many login attempts": Too many failed logins, try again later
 
 ### Checking Firewall Rules
 

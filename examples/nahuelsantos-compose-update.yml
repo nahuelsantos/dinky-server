@@ -1,0 +1,25 @@
+# Example update for nahuelsantos.com docker-compose.yml
+# Add these sections to your existing configuration
+
+services:
+  nahuelsantos-website:
+    # Your existing configuration...
+    
+    # Add these networks:
+    networks:
+      - default
+      - traefik_network  # For Traefik to route external traffic
+      - mail-internal    # To access mail-api internally
+    
+    # Add this environment variable:
+    environment:
+      - MAIL_API_URL=http://mail-api:8080/send
+      # Your other environment variables...
+
+# Add these network definitions:
+networks:
+  traefik_network:
+    external: true
+  mail-internal:
+    external: true
+    name: services_mail-internal 

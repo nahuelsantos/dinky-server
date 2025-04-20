@@ -1,8 +1,8 @@
 FROM alpine:3.18
 
 # Install packages with corrected package names that work on ARM architectures
-RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain || \
-    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5
+RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain openssl || \
+    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5 openssl
 
 # Create necessary directories
 RUN mkdir -p /etc/postfix/sasl /var/spool/mail
@@ -16,6 +16,7 @@ COPY ./start.sh /start.sh
 RUN chmod +x /start.sh && \
     chmod 600 /etc/postfix/sasl/sasl_passwd && \
     touch /var/log/mail.log && \
+    update-ca-certificates && \
     postmap /etc/postfix/sasl/sasl_passwd && \
     chmod 600 /etc/postfix/sasl/sasl_passwd.db || true
 
