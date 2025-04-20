@@ -1,0 +1,28 @@
+services:
+  mail-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mail-server
+    hostname: mail.dinky.local
+    restart: unless-stopped
+    networks:
+      - dinky-network
+    ports:
+      - "127.0.0.1:25:25"   # SMTP (only accessible locally)
+      - "127.0.0.1:587:587" # Submission port (only accessible locally)
+    volumes:
+      - mail-data:/var/spool/postfix
+      - mail-logs:/var/log
+    environment:
+      - TZ=UTC
+
+volumes:
+  mail-data:
+    driver: local
+  mail-logs:
+    driver: local
+
+networks:
+  dinky-network:
+    external: true 

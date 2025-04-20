@@ -1,0 +1,33 @@
+# Basic configuration
+myhostname = mail.dinky.local
+mydomain = dinky.local
+myorigin = $mydomain
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mynetworks = 127.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8
+inet_interfaces = all
+inet_protocols = ipv4
+
+# Enable SMTP for sending mail
+smtpd_banner = $myhostname ESMTP $mail_name
+smtpd_tls_security_level = none
+smtpd_tls_auth_only = no
+smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
+
+# Enable submission port
+submission_recipient_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
+submission_sender_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
+
+# TLS parameters
+smtp_tls_security_level = none
+
+# SASL authentication
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_type = cyrus
+smtpd_sasl_path = smtpd
+broken_sasl_auth_clients = yes
+
+# General - use btree instead of hash for better Alpine compatibility
+alias_maps = btree:/etc/aliases
+alias_database = btree:/etc/aliases
+readme_directory = no 

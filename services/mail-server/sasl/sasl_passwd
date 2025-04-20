@@ -1,0 +1,9 @@
+# This file is used for SMTP authentication
+# If the file is empty, postmap might fail, so we add a comment and a sample entry that is commented out
+
+# Format: [mail_server]:port username:password
+# Example: smtp.example.com:587 user@example.com:password
+
+# mail.example.com:587 username:password
+
+# For local mail only, this file can be empty 

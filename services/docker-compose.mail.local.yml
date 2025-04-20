@@ -1,0 +1,45 @@
+# Local development override file
+# This file is used with docker-compose.mail.yml to run services locally
+# without relying on Traefik or external networking
+
+services:
+  mail-server:
+    # Platform-specific settings for Apple Silicon Macs
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
+    environment:
+      - DOCKER_PLATFORM=${DOCKER_PLATFORM:-linux/arm64}
+      - TZ=UTC
+    # Use alternative ports for local testing to avoid conflicts
+    ports:
+      - "127.0.0.1:2525:25"    # Use port 2525 instead of 25
+      - "127.0.0.1:5587:587"   # Use port 5587 instead of 587
+    # Mount extra volume for logs to make debugging easier
+    volumes:
+      - type: bind
+        source: ./mail-server-logs
+        target: /var/log
+        consistency: cached
+
+  mail-api:
+    # Platform-specific settings for Apple Silicon Macs
+    platform: ${DOCKER_PLATFORM:-linux/arm64}
+    environment:
+      - DOCKER_PLATFORM=${DOCKER_PLATFORM:-linux/arm64}
+      - SMTP_HOST=mail-server
+      - SMTP_PORT=25  # Inside Docker network, still use standard port
+      - DEFAULT_FROM=noreply@dinky.local
+    # Override Traefik labels for local testing
+    labels:
+      - "traefik.enable=false"  # Disable Traefik routing
+    # Expose port directly for local testing
+    ports:
+      - "127.0.0.1:8080:8080"  # Expose directly on localhost
+    # Make sure mail-api depends on mail-server
+    depends_on:
+      - mail-server
+    # Add a different hostname for local testing
+    extra_hosts:
+      - "mail-api.local:127.0.0.1"
+      # Removed mail-server entry to use Docker DNS resolution
+
+# All other configurations from the base compose file remain unchanged 
