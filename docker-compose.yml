@@ -1,3 +1,5 @@
+version: '3'
+
 services:
   portainer:
     image: portainer/portainer-ce:latest
@@ -12,25 +14,40 @@ services:
       - traefik_network #Not needed for portainer, added if needed
 
   traefik:
-    image: traefik:v2.10
-    restart: always
-    command:
-      - --configFile=/etc/traefik/traefik.yml
-    ports:
-      - "192.168.3.2:8080:8080"  # Traefik dashboard (internal access only)
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
+    image: traefik:v2.10.4
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     networks:
       - traefik_network
-  
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/traefik/traefik.yml:/traefik.yml:ro
+      - ./data/traefik/config.yml:/config.yml:ro
+      - ./data/traefik/acme.json:/acme.json
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${DOMAIN:-dinky.local}`)"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.http.routers.traefik-secure.middlewares=basic-auth@file"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: always
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
-      - ./cloudflared/config.yml:/etc/cloudflared/config.yml
+      - ./infrastructure/cloudflared/config.yml:/etc/cloudflared/config.yml
       - cloudflared-data:/etc/cloudflared # Persist credentials
     env_file:
       - .env
@@ -40,38 +57,237 @@ services:
       - traefik
       
   pihole:
-    image: pihole/pihole:latest
-    restart: always
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "192.168.3.2:8081:80/tcp"  # Web interface
-    env_file:
-      - .env
-    environment:
-      TZ: 'Europe/Madrid'
-      WEBPASSWORD: '${PIHOLE_PASSWORD}'
-      ServerIP: '192.168.3.2'
-      DNSMASQ_LISTENING: 'all'
-      DNS1: '1.1.1.1'  # Cloudflare DNS
-      DNS2: '8.8.8.8'  # Google DNS
-    volumes:
-      - pihole_data:/etc/pihole
-      - pihole_dnsmasq:/etc/dnsmasq.d
+    container_name: pihole
+    image: pihole/pihole:2023.11.0
+    restart: unless-stopped
     networks:
       - traefik_network
+    environment:
+      TZ: 'America/Argentina/Buenos_Aires'
+      WEBPASSWORD: ${PIHOLE_PASSWORD:-changeme}
+      FTLCONF_LOCAL_IPV4: 0.0.0.0
     cap_add:
       - NET_ADMIN
+    volumes:
+      - './data/pihole/etc:/etc/pihole'
+      - './data/pihole/dnsmasq:/etc/dnsmasq.d'
     dns:
-      - 1.1.1.1  # Use Cloudflare DNS directly
-      - 8.8.8.8  # Use Google DNS as backup
+      - 127.0.0.1
+      - 1.1.1.1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole-secure.entrypoints=https"
+      - "traefik.http.routers.pihole-secure.rule=Host(`pihole.${DOMAIN:-dinky.local}`)"
+      - "traefik.http.routers.pihole-secure.service=pihole"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Mail Services
+  mail-server:
+    build:
+      context: ./services/mail-server
+      dockerfile: Dockerfile
+    container_name: mail-server
+    hostname: ${MAIL_HOSTNAME:-mail.dinky.local}
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    ports:
+      - "25:25"   # SMTP
+      - "587:587" # Submission
+    volumes:
+      - mail-data:/var/mail
+      - mail-logs:/var/log/mail
+    environment:
+      - TZ=America/Argentina/Buenos_Aires
+      - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
+      - RELAY_HOST=${RELAY_HOST:-smtp.gmail.com}
+      - RELAY_PORT=${RELAY_PORT:-587}
+      - RELAY_USER=${RELAY_USER:-your-gmail-username@gmail.com}
+      - RELAY_PASSWORD=${RELAY_PASSWORD:-your-gmail-app-password}
+      - USE_TLS=${USE_TLS:-yes}
+      - TLS_VERIFY=${TLS_VERIFY:-yes}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mail-api:
+    build:
+      context: ./apis/mail-api
+      dockerfile: Dockerfile
+    container_name: mail-api
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    depends_on:
+      - mail-server
+    environment:
+      - SMTP_HOST=mail-server
+      - SMTP_PORT=25
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-dinky.local}
+      - PORT=20001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:20001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mail-api-secure.entrypoints=https"
+      - "traefik.http.routers.mail-api-secure.rule=Host(`mail-api.${DOMAIN:-dinky.local}`)"
+      - "traefik.http.routers.mail-api-secure.service=mail-api"
+      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # LGTM Stack Components
+
+  # Prometheus - Metrics collection and storage
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    restart: always
+    ports:
+      - "192.168.3.2:9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.enable-lifecycle
+    networks:
+      - traefik_network
+    depends_on:
+      - traefik
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:2.9.0
+    restart: always
+    ports:
+      - "192.168.3.2:3100:3100"
+    volumes:
+      - ./monitoring/loki:/etc/loki
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    networks:
+      - traefik_network
+
+  # Promtail - Log collector for Loki
+  promtail:
+    image: grafana/promtail:2.9.0
+    restart: always
+    volumes:
+      - ./monitoring/promtail:/etc/promtail
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - traefik_network
+    depends_on:
+      - loki
+
+  # Tempo - Distributed tracing
+  tempo:
+    image: grafana/tempo:2.2.3
+    restart: always
+    ports:
+      - "192.168.3.2:3200:3200"  # Tempo receiver
+      - "192.168.3.2:4317:4317"  # OTLP gRPC receiver
+      - "192.168.3.2:4318:4318"  # OTLP HTTP receiver
+    volumes:
+      - ./monitoring/tempo:/etc/tempo
+      - tempo_data:/tmp/tempo
+    command: -config.file=/etc/tempo/tempo-config.yml
+    networks:
+      - traefik_network
+
+  # Pyroscope - Continuous profiling
+  pyroscope:
+    image: grafana/pyroscope:1.1.0
+    restart: always
+    ports:
+      - "192.168.3.2:4040:4040"
+    volumes:
+      - ./monitoring/pyroscope:/etc/pyroscope
+      - pyroscope_data:/var/lib/pyroscope
+    command: server -config=/etc/pyroscope/pyroscope-config.yml
+    networks:
+      - traefik_network
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:10.2.0
+    restart: always
+    ports:
+      - "192.168.3.2:3000:3000"
+    volumes:
+      - ./monitoring/grafana:/etc/grafana
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    networks:
+      - traefik_network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - pyroscope
+    env_file:
+      - .env
+
+  # OpenTelemetry Collector - Telemetry collection and processing
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.82.0
+    restart: always
+    ports:
+      - "192.168.3.2:4316:4316"  # OTLP gRPC legacy
+      - "192.168.3.2:4319:4319"  # OTLP HTTP legacy
+      - "192.168.3.2:8888:8888"  # Metrics endpoint
+    volumes:
+      - ./monitoring/otel-collector:/etc/otel-collector
+    command: --config=/etc/otel-collector/otel-collector-config.yml
+    networks:
+      - traefik_network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - pyroscope
 
 volumes:
   cloudflared-data:
-  portainer_data:
+  grafana_data:
   pihole_data:
   pihole_dnsmasq:
+  portainer_data:
+  prometheus_data:
+  loki_data:
+  tempo_data:
+  pyroscope_data:
+  mail-data:
+  mail-logs:
 
 networks:
   traefik_network:
-    external: true
+    driver: bridge
+  mail-internal:
+    driver: bridge

@@ -1,0 +1,30 @@
+services:
+  looping-byte:
+    image: ghcr.io/nahuelsantos/cv:latest
+    container_name: cv
+    labels:
+      - "traefik.enable=true"
+      # Main router configuration
+      - "traefik.http.routers.nahuelsantos.rule=Host(`nahuelsantos.com`) || Host(`www.nahuelsantos.com`) || Host(`cv.nahuelsantos.com`)"
+      
+      # SPA middleware configuration
+      - "traefik.http.middlewares.spa-headers.headers.customrequestheaders.X-Forwarded-Prefix=/"
+      - "traefik.http.middlewares.spa-rewrite.redirectregex.regex=^/(.+)/?$$"
+      - "traefik.http.middlewares.spa-rewrite.redirectregex.replacement=/$${1}"
+      - "traefik.http.middlewares.spa-combined.chain.middlewares=spa-headers,spa-rewrite"
+      
+      # Apply middleware to router
+      - "traefik.http.routers.nahuelsantos.middlewares=spa-combined@docker"
+      
+      # Service configuration
+      - "traefik.http.services.nahuelsantos.loadbalancer.server.port=20002"
+    networks:
+      - traefik_network
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=20002
+
+networks:
+  traefik_network:
+    external: true

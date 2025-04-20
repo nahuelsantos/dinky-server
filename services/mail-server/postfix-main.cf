@@ -1,47 +1,50 @@
-# Basic configuration
+# See /usr/share/postfix/main.cf.dist for a commented, more complete version
+
+# Hostname and domain settings (set via environment variables)
 myhostname = ${MAIL_HOSTNAME}
 mydomain = ${MAIL_DOMAIN}
 myorigin = $mydomain
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
-mynetworks = 127.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8
+
+# Network settings
 inet_interfaces = all
-inet_protocols = ipv4
+inet_protocols = all
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
 
-# Enable SMTP for sending mail
+# Basic SMTP parameters
 smtpd_banner = $myhostname ESMTP $mail_name
-smtpd_tls_security_level = none
-smtpd_tls_auth_only = no
-smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
-
-# Enable submission port
-submission_recipient_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
-submission_sender_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
-
-# TLS parameters for outgoing mail - Enhanced for Gmail compatibility
-smtp_tls_security_level = may  # Use TLS when available
-smtp_tls_CApath = /etc/ssl/certs
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
-smtp_use_tls = yes
-smtp_tls_wrappermode = no
-smtp_tls_loglevel = 1        # Log TLS activity for debugging
-smtp_tls_note_starttls_offer = yes
-
-# SASL authentication for server
-smtpd_sasl_auth_enable = yes
-smtpd_sasl_security_options = noanonymous
-smtpd_sasl_type = cyrus
-smtpd_sasl_path = smtpd
-broken_sasl_auth_clients = yes
-
-# General - use btree instead of hash for better Alpine compatibility
-alias_maps = btree:/etc/aliases
-alias_database = btree:/etc/aliases
+biff = no
+append_dot_mydomain = no
 readme_directory = no
+compatibility_level = 2
 
-# External SMTP relay configuration
-# These will be uncommented by the start script if RELAY_HOST is set
-# relayhost = [${RELAY_HOST}]:${RELAY_PORT}
-# smtp_sasl_auth_enable = yes
-# smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
-# smtp_sasl_security_options = noanonymous
-# smtp_tls_note_starttls_offer = yes
+# TLS parameters for incoming connections
+smtpd_tls_security_level = may
+smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
+smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+
+# TLS parameters for outgoing connections
+smtp_tls_security_level = encrypt
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+
+# SASL authentication settings
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_security_options = noanonymous
+
+# External SMTP Relay configuration via Gmail
+relayhost = [${RELAY_HOST}]:${RELAY_PORT}
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_sasl_tls_security_options = noanonymous
+
+# Policy settings
+smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
+mailbox_size_limit = 0
+recipient_delimiter = +
+home_mailbox = Maildir/
+mail_spool_directory = /var/mail

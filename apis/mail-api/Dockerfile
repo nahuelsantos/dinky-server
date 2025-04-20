@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/mail-api /app/mail-api
 
 # Expose the application port
-EXPOSE 8080
+EXPOSE 20001
 
 # Run the application
 CMD ["/app/mail-api"] 

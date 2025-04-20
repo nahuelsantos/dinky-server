@@ -1,0 +1,38 @@
+log-level: info
+server:
+  http-listen-addr: ":4040"
+
+analytics:
+  disable-telemetry: true
+
+database:
+  path: /var/lib/pyroscope/data
+
+retention:
+  # Keep profiles for 7 days
+  profile-retention: 168h
+
+scrape-configs:
+  - job-name: pyroscope
+    scrape-interval: 10s
+    enabled-profiles: [cpu, mem, goroutines, mutex, block]
+    static-configs:
+      - application: pyroscope
+        spy-name: gospy
+        targets:
+          - localhost:4040
+        labels:
+          service: pyroscope
+          host: localhost
+
+  - job-name: otel-collector
+    scrape-interval: 10s
+    enabled-profiles: [cpu, mem, goroutines, mutex, block]
+    static-configs:
+      - application: otel-collector
+        spy-name: gospy
+        targets:
+          - otel-collector:4040
+        labels:
+          service: otel-collector
+          host: otel-collector 

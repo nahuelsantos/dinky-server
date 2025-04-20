@@ -18,7 +18,7 @@ echo "Subject: $SUBJECT"
 echo "Message: $MESSAGE"
 
 # Send test email using curl
-curl -X POST http://mail-api.local:8080/send \
+curl -X POST http://mail-api.local:20001/send \
   -H "Content-Type: application/json" \
   -d "{
     \"to\": \"$RECIPIENT\",

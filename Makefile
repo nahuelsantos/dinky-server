@@ -1,4 +1,4 @@
-.PHONY: help run-local-mail stop-local-mail test-mail-api test-mail-server clean-local-mail logs-mail setup-local-mail restart-local-mail deploy-mail-services
+.PHONY: help run-local-mail stop-local-mail test-mail-api test-mail-server clean-local-mail logs-mail setup-local-mail restart-local-mail
 
 # Get architecture
 ARCH := $(shell uname -m)
@@ -24,9 +24,6 @@ help:
 	@echo "  make test-mail-server  - Test SMTP server connection"
 	@echo "  make logs-mail         - View mail server and API logs"
 	@echo "  make clean-local-mail  - Remove local mail service containers and volumes"
-	@echo ""
-	@echo "Production Deployment Commands:"
-	@echo "  make deploy-mail-services - Deploy mail services to Dinky"
 	@echo ""
 	@echo "Detected architecture: $(ARCH)"
 	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
@@ -130,29 +127,4 @@ clean-local-mail: stop-local-mail
 	@echo "Removing mail service containers and volumes..."
 	@cd services && \
 	docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml down -v
-	@echo "Mail services cleaned up"
-
-# Deploy mail services to production
-deploy-mail-services:
-	@echo "Preparing to deploy mail services to Dinky..."
-	
-	@# Check if .env.mail.prod exists
-	@if [ ! -f services/.env.mail.prod ]; then \
-		echo "Creating production environment file from template..."; \
-		cp services/.env.mail services/.env.mail.prod; \
-		echo "IMPORTANT: Please edit services/.env.mail.prod with your production settings"; \
-		echo "and then run this command again."; \
-		exit 1; \
-	fi
-	
-	@echo "Deploying mail services using production configuration..."
-	@echo "This will copy files to Dinky and start the services..."
-	
-	@echo "NOTE: This is a template deployment command. Please modify it to match your SSH setup:"
-	@echo "scp -r services/mail-server services/docker-compose.mail.prod.yml services/.env.mail.prod dinky:/path/to/dinky-server/"
-	@echo "scp -r apis/mail-api dinky:/path/to/dinky-server/apis/"
-	@echo "ssh dinky \"cd /path/to/dinky-server && docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d\""
-	
-	@echo ""
-	@echo "After deployment, you'll need to update your website configurations to connect to the mail-api"
-	@echo "See the examples directory for reference configurations" 
+	@echo "Mail services cleaned up" 

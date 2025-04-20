@@ -28,12 +28,13 @@ services:
       - SMTP_HOST=mail-server
       - SMTP_PORT=25  # Inside Docker network, still use standard port
       - DEFAULT_FROM=noreply@dinky.local
+      - PORT=20001  # Set internal port to 20001
     # Override Traefik labels for local testing
     labels:
       - "traefik.enable=false"  # Disable Traefik routing
     # Expose port directly for local testing
     ports:
-      - "127.0.0.1:8080:8080"  # Expose directly on localhost
+      - "127.0.0.1:20001:20001"  # Expose directly on localhost
     # Make sure mail-api depends on mail-server
     depends_on:
       - mail-server

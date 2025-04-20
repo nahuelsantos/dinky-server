@@ -32,32 +32,28 @@ This guide explains how to deploy the mail services to your Dinky server and int
    - Select "Mail" and "Other (Custom name)" - enter "Dinky Server"
    - Copy the 16-character password
 
-   Then in your `.env.mail.prod` file, uncomment and update:
+   Then in your `services/.env.mail.prod` file, uncomment and update:
    ```
    RELAY_HOST=smtp.gmail.com
    RELAY_PORT=587
-   RELAY_USER=nahuelsantos@gmail.com
+   RELAY_USER=your-rely-user@gmail.com
    RELAY_PASSWORD=your-16-character-app-password
    ```
 
 ### 2. Deploy to Dinky
 
-You can use the Makefile deploy target (after customizing it) or follow these manual steps:
-
-1. Copy the mail server files to Dinky:
+1. Copy the files to your Dinky server:
    ```bash
-   scp -r services/mail-server services/docker-compose.mail.prod.yml services/.env.mail.prod dinky:/path/to/dinky-server/
+   # First, clone the repository if you haven't already
+   git clone https://github.com/yourusername/dinky-server.git /opt/dinky-server
+   
+   # Or pull the latest changes if the repository already exists
+   cd /opt/dinky-server && git pull
    ```
 
-2. Copy the mail API files to Dinky:
+2. Start the mail services on your Dinky server:
    ```bash
-   scp -r apis/mail-api dinky:/path/to/dinky-server/apis/
-   ```
-
-3. SSH into Dinky and start the services:
-   ```bash
-   ssh dinky
-   cd /path/to/dinky-server
+   cd /opt/dinky-server
    docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d
    ```
 
@@ -107,22 +103,42 @@ If the queue is empty, the email was sent successfully.
 
 ### 5. Update Your Website Configurations
 
-1. For loopingbyte.com, edit your docker-compose.yml to add:
+For each of your websites, set up to use the mail service:
+
+1. Create a website directory in the sites folder if it doesn't exist:
+   ```bash
+   mkdir -p /opt/dinky-server/sites/your-site-name
+   ```
+
+2. Create an environment file for the site:
+   ```bash
+   cat > /opt/dinky-server/sites/your-site-name/.env.prod << EOL
+   # Production Environment for your-site-name
+   
+   # Site-specific settings
+   SITE_DOMAIN=your-domain.com
+   SITE_EMAIL=hello@your-domain.com
+   
+   # Mail API configuration
+   MAIL_API_URL=http://mail-api:8080/send
+   EOL
+   ```
+
+3. Update your site's docker-compose.yml to include:
    - The mail-internal network
-   - The MAIL_API_URL environment variable
+   - The environment file
 
    Example:
    ```yaml
    services:
-     loopingbyte-website:
+     your-site-name:
        # Existing configuration...
        networks:
          - default
          - traefik_network
          - mail-internal
-       environment:
-         - MAIL_API_URL=http://mail-api:8080/send
-         # Other environment variables...
+       env_file:
+         - .env.prod
 
    networks:
      # Existing networks...
@@ -131,10 +147,9 @@ If the queue is empty, the email was sent successfully.
        name: services_mail-internal
    ```
 
-2. Do the same for nahuelsantos.com.
-
-3. Restart your websites to apply the changes:
+4. Deploy your updated website configuration:
    ```bash
+   cd /opt/dinky-server/sites/your-site-name
    docker-compose up -d
    ```
 
@@ -174,9 +189,9 @@ app.post('/contact', async (req, res) => {
 Send a test email from each website container:
 
 ```bash
-docker exec loopingbyte-website curl -X POST http://mail-api:8080/send \
+docker exec your-site-container curl -X POST http://mail-api:8080/send \
   -H "Content-Type: application/json" \
-  -d '{"to":"hello@loopingbyte.com","subject":"Test","body":"Test from loopingbyte"}'
+  -d '{"to":"your-email@example.com","subject":"Test","body":"Test from your site"}'
 ```
 
 ## Troubleshooting
