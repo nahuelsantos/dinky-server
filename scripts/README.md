@@ -2,36 +2,6 @@
 
 This directory contains utility scripts for managing and maintaining your Dinky Server installation.
 
-## Directory Structure Scripts
-
-### restructure-directories.sh
-
-This script reorganizes your Dinky Server files according to the new directory structure:
-
-```
-/opt/dinky-server/
-├── sites/           # All websites
-├── apis/            # Shared APIs
-├── services/        # Background services
-├── monitoring/      # Monitoring stack
-├── infrastructure/  # Core infrastructure
-└── scripts/         # Deployment scripts
-```
-
-Usage:
-```bash
-./restructure-directories.sh
-```
-
-### validate-structure.sh
-
-Validates that your directory structure is correctly set up.
-
-Usage:
-```bash
-./validate-structure.sh
-```
-
 ## Site Management
 
 ### setup-site.sh
@@ -50,7 +20,7 @@ Arguments:
 
 Examples:
 ```bash
-./setup-site.sh nahuelsantos nahuelsantos.com https://github.com/nahuelsantos/nahuelsantos-website.git
+./setup-site.sh nahuelsantos nahuelsantos.com https://github.com/nahuelsantos/cv.git
 ./setup-site.sh loopingbyte loopingbyte.com
 ```
 
