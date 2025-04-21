@@ -1,5 +1,16 @@
 # Mail Services for Dinky Server
 
+> **DOCUMENTATION UPDATE**: The mail service documentation has been moved to the new [documentation directory](../docs/services/mail/README.md).
+> 
+> Please refer to the following resources for comprehensive and up-to-date information:
+> 
+> - [Mail Service Overview](../docs/services/mail/README.md)
+> - [Mail Service Setup Guide](../docs/services/mail/setup.md)
+> - [Gmail SMTP Relay Configuration](../docs/services/mail/gmail-relay.md)
+> - [Mail Service Troubleshooting](../docs/services/mail/troubleshooting.md)
+> 
+> This file is kept for backward compatibility only.
+
 This service provides a simple self-hosted email solution specifically designed for handling contact form submissions from your websites.
 
 ## Components
