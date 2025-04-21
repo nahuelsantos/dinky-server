@@ -4,7 +4,7 @@ services:
     container_name: looping-byte
     labels:
       - "traefik.enable=true"
-# Main router configuration
+      # Main router configuration
       - "traefik.http.routers.loopingbyte.rule=Host(`loopingbyte.com`) || Host(`www.loopingbyte.com`)"
       
       # SPA middleware configuration

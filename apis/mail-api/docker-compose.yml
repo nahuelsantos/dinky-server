@@ -13,8 +13,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mail-api.rule=Host(`mail-api.dinky.local`)"
-      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
       - "traefik.http.routers.mail-api.entrypoints=web"
+      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
     environment:
       - SMTP_HOST=mail-server
       - SMTP_PORT=25
