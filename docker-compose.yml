@@ -2,7 +2,7 @@ version: '3'
 
 services:
   portainer:
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce:2.29.0
     restart: always
     ports:
       - "192.168.3.2:9000:9000"  # Portainer UI (internal access only)
@@ -14,7 +14,7 @@ services:
       - traefik_network #Not needed for portainer, added if needed
 
   traefik:
-    image: traefik:v2.10.4
+    image: traefik:v3.4.0
     container_name: traefik
     restart: unless-stopped
     security_opt:
@@ -43,7 +43,7 @@ services:
         max-file: "3"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2025.4.0
     restart: always
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
@@ -58,12 +58,12 @@ services:
       
   pihole:
     container_name: pihole
-    image: pihole/pihole:2023.11.0
+    image: pihole/pihole:2025.04.0
     restart: unless-stopped
     networks:
       - traefik_network
     environment:
-      TZ: 'America/Argentina/Buenos_Aires'
+      TZ: 'Europe/Madrid'
       WEBPASSWORD: ${PIHOLE_PASSWORD:-changeme}
       FTLCONF_LOCAL_IPV4: 0.0.0.0
     cap_add:
@@ -157,7 +157,7 @@ services:
 
   # Prometheus - Metrics collection and storage
   prometheus:
-    image: prom/prometheus:v2.45.0
+    image: prom/prometheus:v3.3.0
     restart: always
     ports:
       - "192.168.3.2:9090:9090"
@@ -177,7 +177,7 @@ services:
 
   # Loki - Log aggregation
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:2.9.14
     restart: always
     ports:
       - "192.168.3.2:3100:3100"
@@ -204,7 +204,7 @@ services:
 
   # Tempo - Distributed tracing
   tempo:
-    image: grafana/tempo:2.2.3
+    image: grafana/tempo:2.7.2
     restart: always
     ports:
       - "192.168.3.2:3200:3200"  # Tempo receiver
@@ -219,7 +219,7 @@ services:
 
   # Pyroscope - Continuous profiling
   pyroscope:
-    image: grafana/pyroscope:1.1.0
+    image: grafana/pyroscope:1.13.2
     restart: always
     ports:
       - "192.168.3.2:4040:4040"
@@ -232,7 +232,7 @@ services:
 
   # Grafana - Visualization
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:11.6.0
     restart: always
     ports:
       - "192.168.3.2:3000:3000"
@@ -256,7 +256,7 @@ services:
 
   # OpenTelemetry Collector - Telemetry collection and processing
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.82.0
+    image: otel/opentelemetry-collector-contrib:0.124.1
     restart: always
     ports:
       - "192.168.3.2:4316:4316"  # OTLP gRPC legacy
