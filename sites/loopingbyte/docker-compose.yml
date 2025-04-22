@@ -1,6 +1,6 @@
 services:
   looping-byte:
-    image: ghcr.io/nahuelsantos/looping-byte:v0.0.4
+    image: ghcr.io/nahuelsantos/looping-byte:v0.0.5
     container_name: looping-byte
     labels:
       - "traefik.enable=true"

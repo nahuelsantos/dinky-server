@@ -1,5 +1,6 @@
 services:
   portainer:
+    container_name: portainer
     image: portainer/portainer-ce:2.29.0
     restart: always
     ports:
@@ -12,12 +13,13 @@ services:
       - traefik_network #Not needed for portainer, added if needed
 
   traefik:
+    container_name: traefik
     image: traefik:v3.3.6
     restart: always
     command:
       - --configFile=/etc/traefik/traefik.yml
     ports:
-      - "8080:8080"  # Traefik dashboard (internal access only)
+      - "20000:8080"  # Traefik dashboard (internal access only)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -26,6 +28,7 @@ services:
       - traefik_network
 
   cloudflared:
+    container_name: cloudflared
     image: cloudflare/cloudflared:2025.4.0
     restart: always
     command: tunnel --config /etc/cloudflared/config.yml run
@@ -46,7 +49,7 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "8081:80/tcp"  # Web interface
+      - "19999:80/tcp"  # Web interface
     env_file:
       - .env
     environment:
@@ -69,10 +72,10 @@ services:
 
   # Mail Services
   mail-server:
+    container_name: mail-server
     build:
       context: ./services/mail-server
       dockerfile: Dockerfile
-    container_name: mail-server
     hostname: ${MAIL_HOSTNAME:-mail.dinky.local}
     restart: unless-stopped
     networks:
@@ -100,10 +103,10 @@ services:
         max-file: "3"
 
   mail-api:
+    container_name: mail-api
     build:
       context: ./apis/mail-api
       dockerfile: Dockerfile
-    container_name: mail-api
     restart: unless-stopped
     networks:
       - traefik_network
@@ -269,6 +272,6 @@ volumes:
 
 networks:
   traefik_network:
-    driver: bridge
+    external: true
   mail-internal:
     driver: bridge
