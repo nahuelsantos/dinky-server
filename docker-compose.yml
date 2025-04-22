@@ -3,8 +3,8 @@ services:
     image: portainer/portainer-ce:2.29.0
     restart: always
     ports:
-      - "192.168.3.2:9000:9000"  # Portainer UI (internal access only)
-      - "192.168.3.2:8000:8000" #Edge agent
+      - "9000:9000"  # Portainer UI (internal access only)
+      - "8000:8000" #Edge agent
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
@@ -13,32 +13,17 @@ services:
 
   traefik:
     image: traefik:v3.3.6
-    container_name: traefik
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    restart: always
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "8080:8080"  # Traefik dashboard (internal access only)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infrastructure/traefik/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
     networks:
       - traefik_network
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./data/traefik/traefik.yml:/traefik.yml:ro
-      - ./data/traefik/config.yml:/config.yml:ro
-      - ./data/traefik/acme.json:/acme.json
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik-secure.entrypoints=https"
-      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.${DOMAIN:-dinky.local}`)"
-      - "traefik.http.routers.traefik-secure.service=api@internal"
-      - "traefik.http.routers.traefik-secure.middlewares=basic-auth@file"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   cloudflared:
     image: cloudflare/cloudflared:2025.4.0
@@ -57,32 +42,30 @@ services:
   pihole:
     container_name: pihole
     image: pihole/pihole:2025.04.0
-    restart: unless-stopped
-    networks:
-      - traefik_network
+    restart: always
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8081:80/tcp"  # Web interface
+    env_file:
+      - .env
     environment:
       TZ: 'Europe/Madrid'
-      WEBPASSWORD: ${PIHOLE_PASSWORD:-changeme}
-      FTLCONF_LOCAL_IPV4: 0.0.0.0
+      WEBPASSWORD: '${PIHOLE_PASSWORD}'
+      ServerIP: '192.168.3.2'
+      DNSMASQ_LISTENING: 'all'
+      DNS1: '1.1.1.1'  # Cloudflare DNS
+      DNS2: '8.8.8.8'  # Google DNS
+    volumes:
+      - pihole_data:/etc/pihole
+      - pihole_dnsmasq:/etc/dnsmasq.d
+    networks:
+      - traefik_network
     cap_add:
       - NET_ADMIN
-    volumes:
-      - './data/pihole/etc:/etc/pihole'
-      - './data/pihole/dnsmasq:/etc/dnsmasq.d'
     dns:
-      - 127.0.0.1
-      - 1.1.1.1
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pihole-secure.entrypoints=https"
-      - "traefik.http.routers.pihole-secure.rule=Host(`pihole.${DOMAIN:-dinky.local}`)"
-      - "traefik.http.routers.pihole-secure.service=pihole"
-      - "traefik.http.services.pihole.loadbalancer.server.port=80"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - 1.1.1.1  # Use Cloudflare DNS directly
+      - 8.8.8.8  # Use Google DNS as backup
 
   # Mail Services
   mail-server:
