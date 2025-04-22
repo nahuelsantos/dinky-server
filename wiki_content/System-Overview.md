@@ -73,10 +73,10 @@ Dinky Server is organized into several interconnected components:
 
 To get started with Dinky Server, follow these steps:
 
-1. Review the [Installation Guide](installation.md)
-2. Set up your [Environment Variables](environment-variables.md)
-3. Deploy your first services using the [Mail Service Setup Guide](../services/mail/setup.md)
-4. Explore the [Local Development Guide](../developer-guide/local-development.md) for testing
+1. Review the [Installation Guide](Installation-Guide)
+2. Set up your [Environment Variables](Environment-Variables)
+3. Deploy your first services using the [Mail Service Setup Guide](Mail-Service#setup-and-configuration)
+4. Explore the [Local Development Guide](Local-Development) for testing
 
 ## Who is Dinky Server For?
 
@@ -89,6 +89,6 @@ Dinky Server is ideal for:
 
 ## Next Steps
 
-- See the [Installation Guide](installation.md) to set up your own Dinky Server
-- Explore the [Services Documentation](../services) to learn about each component
-- Check out the [Developer Guide](../developer-guide) for local development and customization 
+- See the [Installation Guide](Installation-Guide) to set up your own Dinky Server
+- Explore the [Mail Service](Mail-Service) documentation to learn about email functionality
+- Check out the [Local Development](Local-Development) guide for local development and customization 

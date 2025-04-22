@@ -56,31 +56,30 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
 
 ## Documentation
 
-All documentation is located in the [`docs/`](docs/) directory:
+All documentation is exclusively available in our [GitHub Wiki](https://github.com/nahuelsantos/dinky-server/wiki):
 
 - **Getting Started**
-  - [Installation Guide](docs/getting-started/installation.md)
-  - [System Overview](docs/getting-started/overview.md)
-  - [Environment Variables](docs/getting-started/environment-variables.md)
+  - [System Overview](https://github.com/nahuelsantos/dinky-server/wiki/System-Overview)
+  - [Installation Guide](https://github.com/nahuelsantos/dinky-server/wiki/Installation-Guide)
+  - [Environment Variables](https://github.com/nahuelsantos/dinky-server/wiki/Environment-Variables)
 
 - **Services**
-  - [Mail Service Setup](docs/services/mail/setup.md)
-  - [Gmail SMTP Relay](docs/services/mail/gmail-relay.md)
-  - [Mail API Reference](docs/services/mail/api-reference.md)
-  - [Monitoring Stack](docs/services/monitoring/overview.md)
+  - [Mail Service](https://github.com/nahuelsantos/dinky-server/wiki/Mail-Service)
+  - [Traffic Management](https://github.com/nahuelsantos/dinky-server/wiki/Traffic-Management)
+  - [Monitoring Stack](https://github.com/nahuelsantos/dinky-server/wiki/Monitoring-Stack)
 
 - **Development & Deployment**
-  - [Local Development](docs/developer-guide/local-development.md)
-  - [Production Deployment](docs/deployment/production.md)
-  - [Deployment Checklist](docs/deployment/checklist.md)
-  - [Troubleshooting](docs/admin-guide/troubleshooting.md)
+  - [Local Development](https://github.com/nahuelsantos/dinky-server/wiki/Local-Development)
+  - [Deployment Guide](https://github.com/nahuelsantos/dinky-server/wiki/Deployment-Guide)
+  - [Troubleshooting](https://github.com/nahuelsantos/dinky-server/wiki/Troubleshooting)
+  - [API Reference](https://github.com/nahuelsantos/dinky-server/wiki/API-Reference)
+  - [Contributing](https://github.com/nahuelsantos/dinky-server/wiki/Contributing)
 
 ## Directory Structure
 
 ```
 dinky-server/
 ├── apis/            # API services (mail-api, etc.)
-├── docs/            # Documentation
 ├── infrastructure/  # Core infrastructure components
 │   ├── traefik/     # Reverse proxy configuration
 │   ├── cloudflared/ # Secure tunneling

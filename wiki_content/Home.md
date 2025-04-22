@@ -16,6 +16,7 @@ Dinky Server is a self-hosted server solution designed for home and small busine
 
 ## Quick Start
 
+- [System Overview](System-Overview)
 - [Installation Guide](Installation-Guide)
 - [Local Development](Local-Development)
 - [Deployment Guide](Deployment-Guide)
@@ -28,7 +29,7 @@ Dinky Server is a self-hosted server solution designed for home and small busine
 
 ## Administration
 
-- [Environment Configuration](Environment-Configuration)
+- [Environment Configuration](Environment-Variables)
 - [Troubleshooting](Troubleshooting)
 
 ## Development
