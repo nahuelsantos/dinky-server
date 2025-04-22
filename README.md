@@ -28,14 +28,15 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
    # Edit .env file with your settings
    ```
 
-3. For local development:
+3. Start the services using Docker Compose:
    ```bash
-   ./scripts/deploy-local.sh
-   ```
-
-4. For production deployment:
-   ```bash
-   ./scripts/deploy-prod.sh
+   # Start core infrastructure
+   docker-compose up -d
+   
+   # For mail services
+   docker-compose -f services/docker-compose.mail.local.yml up -d  # Local development
+   # OR
+   docker-compose -f services/docker-compose.mail.prod.yml up -d   # Production
    ```
 
 ## System Components
@@ -81,11 +82,22 @@ dinky-server/
 ├── apis/            # API services (mail-api, etc.)
 ├── docs/            # Documentation
 ├── infrastructure/  # Core infrastructure components
+│   ├── traefik/     # Reverse proxy configuration
+│   ├── cloudflared/ # Secure tunneling
+│   ├── pihole/      # Ad blocking
+│   └── firewall/    # Security configuration
 ├── monitoring/      # Monitoring stack
 ├── services/        # Background services (mail-server, etc.)
 ├── sites/           # Website configurations
 └── scripts/         # Utility scripts
 ```
+
+## Scripts
+
+The repository includes helpful utility scripts:
+
+- **environment-manager.sh**: Manage and validate environment variables
+- **setup-site.sh**: Set up a new website configuration
 
 ## Contributing
 

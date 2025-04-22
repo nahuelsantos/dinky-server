@@ -57,7 +57,7 @@ Before installing Dinky Server, you need to prepare your system:
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/dinky-server.git /opt/dinky-server
+git clone https://github.com/nahuelsantos/dinky-server.git /opt/dinky-server
 cd /opt/dinky-server
 ```
 
@@ -160,17 +160,12 @@ This will start:
 
 ## Step 5: Deploy Monitoring Stack (Optional)
 
-1. Configure monitoring settings:
-
-   ```bash
-   cp monitoring/.env.example monitoring/.env.monitoring
-   nano monitoring/.env.monitoring
-   ```
+1. Configure monitoring settings in your environment file or create a separate one for monitoring.
 
 2. Deploy the monitoring stack:
 
    ```bash
-   docker-compose -f monitoring/docker-compose.yml --env-file monitoring/.env.monitoring up -d
+   docker-compose -f monitoring/docker-compose.yml up -d
    ```
 
 3. Access Grafana:
@@ -179,23 +174,29 @@ This will start:
    https://grafana.yourdomain.com
    ```
 
-   Default login: admin / admin (change this immediately!)
+   Default login: admin / (password from your .env file)
 
 ## Step 6: Deploy Your Websites
 
 For each website you want to deploy:
 
-1. Create a directory for the site:
+1. Use the setup-site.sh script to create a new site configuration:
 
    ```bash
-   mkdir -p /opt/dinky-server/sites/your-site-name
+   ./scripts/setup-site.sh
+   ```
+
+   Or manually create a directory for the site:
+
+   ```bash
+   mkdir -p sites/your-site-name
    ```
 
 2. Create an environment file:
 
    ```bash
-   cat > /opt/dinky-server/sites/your-site-name/.env.prod << EOL
-   # Production Environment for your-site-name
+   cat > sites/your-site-name/.env << EOL
+   # Environment for your-site-name
    SITE_DOMAIN=your-site-domain.com
    SITE_EMAIL=hello@your-site-domain.com
    MAIL_API_URL=http://mail-api:20001/send
@@ -205,7 +206,7 @@ For each website you want to deploy:
 3. Create a docker-compose.yml for your site:
 
    ```bash
-   nano /opt/dinky-server/sites/your-site-name/docker-compose.yml
+   nano sites/your-site-name/docker-compose.yml
    ```
 
    Basic example:
@@ -220,13 +221,13 @@ For each website you want to deploy:
          - traefik_network
          - mail-internal
        env_file:
-         - .env.prod
+         - .env
        labels:
          - "traefik.enable=true"
          - "traefik.http.routers.your-site-name.rule=Host(`your-site-domain.com`)"
          - "traefik.http.routers.your-site-name.entrypoints=websecure"
          - "traefik.http.routers.your-site-name.tls=true"
-         - "traefik.http.services.your-site-name.loadbalancer.server.port=20002"
+         - "traefik.http.services.your-site-name.loadbalancer.server.port=80"
 
    networks:
      traefik_network:
@@ -239,7 +240,7 @@ For each website you want to deploy:
 4. Deploy your site:
 
    ```bash
-   cd /opt/dinky-server/sites/your-site-name
+   cd sites/your-site-name
    docker-compose up -d
    ```
 
@@ -248,64 +249,34 @@ For each website you want to deploy:
 For each service you want to access via a domain name:
 
 1. Add A/AAAA records pointing to your server's IP address
-2. Or, if using Cloudflare Tunnels, configure the tunnel for each service
+2. Set up MX records for your mail server if using the mail service
 
-Example DNS records:
+## Maintenance and Updates
 
-```
-yourdomain.com.         IN  A     your.server.ip.address
-www.yourdomain.com.     IN  CNAME yourdomain.com.
-mail.yourdomain.com.    IN  A     your.server.ip.address
-pihole.yourdomain.com.  IN  A     your.server.ip.address
-grafana.yourdomain.com. IN  A     your.server.ip.address
-```
+To update Dinky Server:
 
-If your server will receive email, also add MX records:
+1. Pull the latest changes:
+   ```bash
+   cd /opt/dinky-server
+   git pull
+   ```
 
-```
-yourdomain.com.         IN  MX    10 mail.yourdomain.com.
-```
-
-## Step 8: Securing Your Installation
-
-1. Set strong passwords for all services
-2. Regularly update your server and container images
-3. Follow the [Security Best Practices](../admin-guide/security.md) guide
-
-## Step 9: Verify Everything Works
-
-1. Test accessing all your websites
-2. Test contact forms with the mail service
-3. Check monitoring dashboards
-4. Verify Pi-hole is blocking ads
+2. Rebuild and restart services:
+   ```bash
+   docker-compose up -d --build
+   docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d --build
+   ```
 
 ## Troubleshooting
 
 If you encounter issues during installation:
-
-1. Check the container logs:
-
-   ```bash
-   docker logs container_name
-   ```
-
-2. Check if all required ports are open:
-
-   ```bash
-   sudo netstat -tulpn
-   ```
-
-3. Verify network connections between containers:
-
-   ```bash
-   docker network inspect traefik_network
-   ```
-
-4. See the [Troubleshooting Guide](../admin-guide/troubleshooting.md) for more help.
+- Check the container logs: `docker logs container_name`
+- Verify environment variables are correctly set
+- Consult the [Troubleshooting Guide](../admin-guide/troubleshooting.md)
 
 ## Next Steps
 
-- [Configure Gmail SMTP Relay](../services/mail/gmail-relay.md) (Recommended)
-- Set up [Cloudflare Tunnels](../services/cloudflare-tunnel/README.md) for secure remote access
-- Learn about [Local Development](../developer-guide/local-development.md)
-- Review the [Production Deployment Checklist](../deployment/checklist.md) 
+After installation:
+- Review the [Production Deployment Checklist](../deployment/checklist.md)
+- Set up additional security measures
+- Configure backup routines for your data 

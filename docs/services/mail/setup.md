@@ -54,7 +54,6 @@ Before setting up the mail services, ensure you have:
 1. Deploy using Docker Compose:
 
    ```bash
-   cd /path/to/dinky-server
    docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d
    ```
 
@@ -108,8 +107,8 @@ For each website that will use the mail service:
 1. Create or update the site's environment file:
 
    ```bash
-   mkdir -p /path/to/dinky-server/sites/your-site-name
-   nano /path/to/dinky-server/sites/your-site-name/.env.prod
+   mkdir -p sites/your-site-name
+   nano sites/your-site-name/.env
    ```
 
 2. Add the Mail API URL:
@@ -132,7 +131,7 @@ services:
       - traefik_network
       - mail-internal
     env_file:
-      - .env.prod
+      - .env
 
 networks:
   # Existing networks...
