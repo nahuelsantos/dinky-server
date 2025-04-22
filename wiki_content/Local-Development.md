@@ -31,10 +31,10 @@ For local development, you can use the default settings or customize as needed.
 ### Start the Development Environment
 
 ```bash
-./scripts/deploy-local.sh
+docker-compose up -d
 ```
 
-This script sets up:
+This sets up:
 - Traefik for routing
 - Portainer for container management
 - Pi-hole for ad blocking
@@ -46,7 +46,7 @@ This script sets up:
 Start the mail service in development mode:
 
 ```bash
-./scripts/deploy-mail-local.sh
+docker-compose -f services/docker-compose.mail.local.yml up -d
 ```
 
 This will start:
@@ -72,7 +72,7 @@ curl -X POST http://localhost:8025/api/v1/send \
 Start the monitoring stack:
 
 ```bash
-./scripts/deploy-monitoring-local.sh
+docker-compose -f monitoring/docker-compose.yml up -d
 ```
 
 Access points:
@@ -143,7 +143,7 @@ docker-compose logs -f mail-server
 docker-compose -f services/docker-compose.mail.yml restart mail-api
 
 # Restart all services
-./scripts/deploy-local.sh
+docker-compose up -d
 ```
 
 ## Best Practices

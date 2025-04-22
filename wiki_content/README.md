@@ -8,7 +8,7 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
 
 - Website and web application hosting
 - Email sending and receiving
-- Ad blocking
+- Ad blocking network-wide
 - Container management
 - Traffic routing and SSL termination
 - Server monitoring
@@ -38,7 +38,10 @@ cp .env.example .env
 # Edit .env file with your settings
 
 # Start the server locally
-./scripts/deploy-local.sh
+docker-compose up -d
+
+# Deploy mail services
+docker-compose -f services/docker-compose.mail.local.yml up -d
 ```
 
 ## Features

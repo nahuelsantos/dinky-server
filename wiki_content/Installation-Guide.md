@@ -45,10 +45,10 @@ Key configurations to update:
 ### Deploy the Basic Stack
 
 ```bash
-./scripts/deploy-local.sh
+docker-compose up -d
 ```
 
-This script will:
+This will:
 1. Build necessary Docker images
 2. Create required networks
 3. Start the core services

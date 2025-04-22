@@ -51,10 +51,10 @@ Before deploying to production, ensure you have:
 ### Basic Infrastructure Deployment
 
 ```bash
-./scripts/deploy-prod.sh
+docker-compose -f docker-compose.yml --env-file .env.prod up -d
 ```
 
-This script will:
+This will:
 1. Set up Traefik as a reverse proxy
 2. Configure SSL with Let's Encrypt
 3. Deploy Pi-hole for ad blocking
@@ -63,13 +63,13 @@ This script will:
 ### Mail Service Deployment
 
 ```bash
-./scripts/deploy-mail-prod.sh
+docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d
 ```
 
 ### Monitoring Stack Deployment
 
 ```bash
-./scripts/deploy-monitoring-prod.sh
+docker-compose -f monitoring/docker-compose.yml --env-file .env.prod up -d
 ```
 
 ## Post-Deployment Verification
@@ -123,7 +123,7 @@ To update your Dinky Server:
 
 ```bash
 git pull
-./scripts/deploy-prod.sh
+docker-compose -f docker-compose.yml --env-file .env.prod up -d
 ```
 
 ## Troubleshooting

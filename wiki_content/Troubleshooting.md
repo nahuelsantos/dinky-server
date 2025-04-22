@@ -88,7 +88,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Reset admin password:
    ```bash
-   ./scripts/mail/setup-admin.sh
+   docker exec -it mail-server setup email add admin@yourdomain.com yourpassword
    ```
 
 2. Check environment variables in `.env` file:
@@ -196,9 +196,7 @@ docker stats
 ### Restarting All Services
 
 ```bash
-./scripts/deploy-local.sh
-# or for production
-./scripts/deploy-prod.sh
+docker-compose up -d
 ```
 
 ### Complete Reset
@@ -216,7 +214,7 @@ docker-compose -f services/docker-compose.api.yml down
 docker volume prune -f
 
 # Redeploy
-./scripts/deploy-local.sh
+docker-compose up -d
 ```
 
 ## Getting Help

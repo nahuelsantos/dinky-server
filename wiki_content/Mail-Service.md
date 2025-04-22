@@ -47,7 +47,7 @@ For better email deliverability, configure Gmail as an SMTP relay:
 Deploy the mail services:
 
 ```bash
-./scripts/deploy-mail.sh
+docker-compose -f services/docker-compose.mail.prod.yml up -d
 ```
 
 ## Usage
