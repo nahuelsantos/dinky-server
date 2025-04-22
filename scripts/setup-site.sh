@@ -99,8 +99,6 @@ EOL
         echo -e "${BLUE}Creating sample docker-compose.yml${NC}"
         
         cat > "$site_dir/docker-compose.yml" << EOL
-version: '3'
-
 services:
   $site_name-web:
     # Use your site's Docker image or build configuration

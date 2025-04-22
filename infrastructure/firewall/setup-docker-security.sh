@@ -15,8 +15,6 @@ mkdir -p /opt/docker-security
 # Create the Docker socket proxy configuration
 echo "Setting up Docker socket proxy for safer access..."
 cat > /opt/docker-security/docker-socket-proxy.yml << EOF
-version: '3'
-
 services:
   socket-proxy:
     image: tecnativa/docker-socket-proxy:latest

@@ -34,8 +34,6 @@ cp -f monitoring/grafana/dashboards/node-exporter.json monitoring/grafana/dashbo
 
 echo "Setting up cadvisor for container metrics..."
 cat << EOF > docker-compose.cadvisor.yml
-version: '3'
-
 services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
