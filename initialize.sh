@@ -4,6 +4,13 @@
 # This script initializes the Dinky Server repository for a fresh installation
 # It ensures proper file permissions and creates any missing required files
 
+# Check if running with sudo/as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run with sudo or as root"
+    echo "Please run: sudo $0"
+    exit 1
+fi
+
 # ANSI color codes for better readability
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -55,14 +62,6 @@ warning() {
 # Print error message
 error() {
     echo -e "${RED}✗ $1${NC}"
-}
-
-# Check if running as root
-check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        error "This script must be run as root or with sudo"
-        exit 1
-    fi
 }
 
 # Create necessary directories

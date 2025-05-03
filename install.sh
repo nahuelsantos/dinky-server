@@ -3,6 +3,13 @@
 # Dinky Server - Master Installation Script
 # This script allows selective installation of components for the Dinky Server
 
+# Check if running with sudo/as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run with sudo or as root"
+    echo "Please run: sudo $0"
+    exit 1
+fi
+
 # ANSI color codes for better readability
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -58,14 +65,6 @@ error() {
 # Warning message function
 warning() {
     echo -e "${YELLOW}! $1${NC}"
-}
-
-# Check if running as root
-check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        error "This script must be run as root or with sudo"
-        exit 1
-    fi
 }
 
 # Check system requirements
@@ -246,6 +245,8 @@ SMTP_RELAY_HOST=smtp.gmail.com
 SMTP_RELAY_PORT=587
 SMTP_RELAY_USERNAME=your-gmail-address@gmail.com
 SMTP_RELAY_PASSWORD=your-16-character-app-password
+USE_TLS=yes
+TLS_VERIFY=yes
 EOF
     fi
     
@@ -527,9 +528,6 @@ show_help() {
 # Main execution
 main() {
     welcome
-    
-    # Check root privileges
-    check_root
     
     # Check system requirements
     check_requirements

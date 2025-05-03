@@ -91,10 +91,12 @@ services:
     environment:
       - TZ=America/Argentina/Buenos_Aires
       - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
-      - RELAY_HOST=${RELAY_HOST:-smtp.gmail.com}
-      - RELAY_PORT=${RELAY_PORT:-587}
-      - RELAY_USER=${RELAY_USER:-your-gmail-username@gmail.com}
-      - RELAY_PASSWORD=${RELAY_PASSWORD:-your-gmail-app-password}
+      - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
+      - SMTP_RELAY_PORT=${SMTP_RELAY_PORT:-587}
+      - SMTP_RELAY_USERNAME=${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
+      - SMTP_RELAY_PASSWORD=${SMTP_RELAY_PASSWORD:-your-gmail-app-password}
       - USE_TLS=${USE_TLS:-yes}
       - TLS_VERIFY=${TLS_VERIFY:-yes}
     logging:

@@ -3,6 +3,13 @@
 # Dinky Server - System Testing Script
 # This script tests if all components of Dinky Server are functioning correctly
 
+# Check if running with sudo/as root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This script must be run with sudo or as root"
+    echo "Please run: sudo $0"
+    exit 1
+fi
+
 # ANSI color codes for better readability
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -367,6 +374,27 @@ test_security() {
     fi
 }
 
+# Restart mail services
+restart_mail_services() {
+    header "Restarting Mail Services"
+    
+    section "Stopping mail services"
+    docker compose down mail-server mail-api
+    
+    section "Starting mail services"
+    docker compose up -d mail-server mail-api
+    
+    # Wait for services to start
+    sleep 5
+    
+    section "Checking mail services"
+    if docker ps | grep -q mail-server && docker ps | grep -q mail-api; then
+        success "Mail services restarted successfully"
+    else
+        error "Failed to restart mail services"
+    fi
+}
+
 # Main function
 main() {
     header "Dinky Server System Test"
@@ -420,4 +448,8 @@ main() {
 }
 
 # Run the main function
-main 
+if [ "$1" == "--restart-mail" ]; then
+    restart_mail_services
+else
+    main
+fi 
