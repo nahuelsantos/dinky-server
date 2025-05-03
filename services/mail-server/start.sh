@@ -11,6 +11,12 @@ DEFAULT_FROM=${DEFAULT_FROM:-noreply@$MAIL_DOMAIN}
 sed -i "s/\${MAIL_HOSTNAME}/$MAIL_HOSTNAME/g" /etc/postfix/main.cf
 sed -i "s/\${MAIL_DOMAIN}/$MAIL_DOMAIN/g" /etc/postfix/main.cf
 
+# Ensure database directory exists
+mkdir -p /etc/postfix/databases
+
+# Make sure we're using the btree format which is better supported in Alpine
+sed -i 's/hash:/btree:/g' /etc/postfix/main.cf
+
 # Configure relay host if specified
 if [ ! -z "$RELAY_HOST" ]; then
   echo "Configuring relay host: $RELAY_HOST:$RELAY_PORT"
@@ -31,12 +37,22 @@ if [ ! -z "$RELAY_HOST" ]; then
     echo "Configuring relay authentication for user: $RELAY_USER"
     echo "[$RELAY_HOST]:$RELAY_PORT $RELAY_USER:$RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
     chmod 600 /etc/postfix/sasl/sasl_passwd
-    postmap hash:/etc/postfix/sasl/sasl_passwd
-    echo "SMTP relay authentication configured"
     
-    # Test the authentication configuration
-    echo "Testing SMTP relay authentication configuration..."
-    postmap -q "[$RELAY_HOST]:$RELAY_PORT" hash:/etc/postfix/sasl/sasl_passwd || echo "Warning: postmap query failed but continuing"
+    # Use btree format instead of hash (better supported in Alpine)
+    sed -i 's/hash:/btree:/g' /etc/postfix/main.cf
+    
+    # Create the database
+    echo "Creating SASL password database with btree format..."
+    postmap btree:/etc/postfix/sasl/sasl_passwd || { 
+      echo "Error: postmap failed to create database"; 
+      echo "Trying with different format...";
+      postmap lmdb:/etc/postfix/sasl/sasl_passwd || {
+        echo "Error: postmap failed again. Using text format.";
+        sed -i 's/btree:/text:/g' /etc/postfix/main.cf
+      }
+    }
+    
+    echo "SMTP relay authentication configured"
   else
     echo "WARNING: RELAY_HOST specified but RELAY_USER and RELAY_PASSWORD are missing"
     echo "Relay will attempt without authentication, which may fail"
@@ -57,9 +73,12 @@ if [ ! -f /etc/aliases ]; then
   echo "root: postmaster" >> /etc/aliases
 fi
 
-# Try to create aliases database with btree format
+# Create aliases database with btree format
 echo "Creating aliases database with btree format..."
-postalias btree:/etc/aliases || echo "Warning: postalias failed, but continuing..."
+postalias btree:/etc/aliases || {
+  echo "Warning: postalias with btree failed, trying text format...";
+  postalias text:/etc/aliases || echo "Warning: postalias failed, but continuing...";
+}
 
 # Create mail directory if it doesn't exist
 mkdir -p /var/spool/mail

@@ -83,8 +83,8 @@ services:
       - traefik_network
       - mail-internal
     ports:
-      - "25:25"   # SMTP
-      - "587:587" # Submission
+      - "127.0.0.1:25:25"   # SMTP (internal access only)
+      - "127.0.0.1:587:587" # SMTP submission (internal access only)
     volumes:
       - mail-data:/var/mail
       - mail-logs:/var/log/mail

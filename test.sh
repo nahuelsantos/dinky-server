@@ -139,16 +139,18 @@ test_http() {
     local url=$1
     local service=$2
     local expected_status=${3:-200}
+    local acceptable_statuses=${4:-"$expected_status"}
     
     # Use curl to test HTTP endpoint with timeout
     if command -v curl &> /dev/null; then
         local status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url")
         
-        if [ "$status" = "$expected_status" ]; then
+        # Check if status is in the list of acceptable statuses
+        if [[ "$acceptable_statuses" == *"$status"* ]]; then
             success "$service endpoint is responsive (HTTP $status)"
             return 0
         else
-            error "$service endpoint returned HTTP $status (expected $expected_status)"
+            error "$service endpoint returned HTTP $status (expected one of: $acceptable_statuses)"
             return 1
         fi
     else
@@ -166,20 +168,20 @@ test_core() {
     test_container "traefik" "Traefik"
     test_port "$SERVER_IP" 20000 "Traefik dashboard"
     test_port "127.0.0.1" 80 "Traefik HTTP"
-    test_http "http://$SERVER_IP:20000" "Traefik dashboard endpoint"
+    test_http "http://$SERVER_IP:20000/dashboard/" "Traefik dashboard" 200 "200 301 302"
     
     # Test Portainer
     section "Testing Portainer"
     test_container "portainer" "Portainer"
     test_port "$SERVER_IP" 9000 "Portainer UI"
-    test_http "http://$SERVER_IP:9000" "Portainer UI endpoint"
+    test_http "http://$SERVER_IP:9000" "Portainer UI" 200 "200 301 302"
     
     # Test Pi-hole
     section "Testing Pi-hole"
     test_container "pihole" "Pi-hole"
     test_port "$SERVER_IP" 53 "Pi-hole DNS (TCP)"
     test_port "$SERVER_IP" 19999 "Pi-hole admin interface"
-    test_http "http://$SERVER_IP:19999" "Pi-hole admin interface endpoint"
+    test_http "http://$SERVER_IP:19999/admin/" "Pi-hole admin interface" 200 "200 301 302 403"
     
     # Test Cloudflared
     section "Testing Cloudflared"

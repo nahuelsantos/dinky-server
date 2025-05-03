@@ -1,8 +1,12 @@
 FROM alpine:3.18
 
 # Install packages with corrected package names that work on ARM architectures
-RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain openssl || \
-    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5 openssl
+RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain openssl postfix-mysql netcat-openbsd || \
+    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5 openssl postfix-mysql netcat-openbsd
+
+# Ensure the postmap functionality works
+RUN mkdir -p /etc/postfix/databases && \
+    postconf -e "data_directory=/etc/postfix/databases"
 
 # Create necessary directories
 RUN mkdir -p /etc/postfix/sasl /var/spool/mail
@@ -16,9 +20,9 @@ COPY ./start.sh /start.sh
 RUN chmod +x /start.sh && \
     chmod 600 /etc/postfix/sasl/sasl_passwd && \
     touch /var/log/mail.log && \
-    update-ca-certificates && \
-    postmap /etc/postfix/sasl/sasl_passwd && \
-    chmod 600 /etc/postfix/sasl/sasl_passwd.db || true
+    update-ca-certificates
+
+# Note: postmap operation moved to start.sh to ensure it works correctly
 
 EXPOSE 25 587
 
