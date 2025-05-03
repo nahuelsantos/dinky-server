@@ -149,7 +149,7 @@ To update your installation to the latest version:
 
 1. Stop all services:
    ```bash
-   docker-compose down
+   docker compose down
    ```
 
 2. Pull the latest changes:

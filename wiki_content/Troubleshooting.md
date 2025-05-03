@@ -194,7 +194,7 @@ docker stats
 ### Restarting All Services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Complete Reset
@@ -203,16 +203,16 @@ If you need to start fresh:
 
 ```bash
 # Stop all containers
-docker-compose -f services/docker-compose.traefik.yml down
-docker-compose -f services/docker-compose.mail.yml down
-docker-compose -f services/docker-compose.monitoring.yml down
-docker-compose -f services/docker-compose.api.yml down
+docker compose -f services/docker-compose.traefik.yml down
+docker compose -f services/docker-compose.mail.yml down
+docker compose -f services/docker-compose.monitoring.yml down
+docker compose -f services/docker-compose.api.yml down
 
 # Remove volumes (CAUTION: This will delete all data)
 docker volume prune -f
 
 # Redeploy
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Getting Help

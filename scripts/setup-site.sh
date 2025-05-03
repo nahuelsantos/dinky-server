@@ -158,7 +158,7 @@ EOL
     echo -e "${BLUE}Next steps:${NC}"
     echo -e "1. Review and adjust the docker-compose.yml according to your site's needs"
     echo -e "2. Review and update the environment file: $site_dir/.env.prod"
-    echo -e "3. Deploy your site with: cd $site_dir && docker-compose up -d"
+    echo -e "3. Deploy your site with: cd $site_dir && docker compose up -d"
 }
 
 # Display help if no arguments

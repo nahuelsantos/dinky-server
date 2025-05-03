@@ -181,7 +181,7 @@ install_core() {
     fi
     
     # Start core services
-    docker-compose up -d traefik cloudflared pihole portainer
+    docker compose up -d traefik cloudflared pihole portainer
     
     success "Core infrastructure installed and running"
 }
@@ -197,7 +197,7 @@ install_mail() {
     fi
     
     # Install and start mail services in production mode
-    docker-compose -f services/docker-compose.mail.yml -f services/docker-compose.mail.prod.yml up -d
+    docker compose -f services/docker-compose.mail.yml -f services/docker-compose.mail.prod.yml up -d
     
     success "Mail services installed and running"
 }
@@ -208,12 +208,12 @@ install_websites() {
     
     # Install nahuelsantos.com
     section "Installing nahuelsantos.com"
-    docker-compose -f sites/nahuelsantos/docker-compose.yml up -d
+    docker compose -f sites/nahuelsantos/docker-compose.yml up -d
     success "nahuelsantos.com installed"
     
     # Install loopingbyte.com
     section "Installing loopingbyte.com"
-    docker-compose -f sites/loopingbyte/docker-compose.yml up -d
+    docker compose -f sites/loopingbyte/docker-compose.yml up -d
     success "loopingbyte.com installed"
 }
 
@@ -226,7 +226,7 @@ install_monitoring() {
         bash monitoring/setup-monitoring.sh
     else
         # Start monitoring stack directly
-        docker-compose up -d prometheus loki promtail tempo pyroscope grafana otel-collector
+        docker compose up -d prometheus loki promtail tempo pyroscope grafana otel-collector
     fi
     
     success "Monitoring stack installed and running"

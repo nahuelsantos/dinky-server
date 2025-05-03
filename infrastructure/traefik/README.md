@@ -50,7 +50,7 @@ If you prefer to deploy manually:
 
 3. Start Traefik:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 ## Configuration

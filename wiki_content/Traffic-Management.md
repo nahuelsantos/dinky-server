@@ -35,7 +35,7 @@ labels:
 ```
 
 2. Update your DNS to point `myservice.yourdomain.com` to your server's IP address
-3. Restart the service or run `docker-compose up -d`
+3. Restart the service or run `docker compose up -d`
 
 ## Cloudflare Tunnel
 
@@ -51,7 +51,7 @@ Cloudflare Tunnel provides secure remote access to your Dinky Server without ope
 1. Configure your Cloudflare credentials in the `.env` file
 2. Start the cloudflared service:
    ```bash
-   docker-compose -f infrastructure/docker-compose.cloudflared.yml up -d
+   docker compose -f infrastructure/docker-compose.cloudflared.yml up -d
    ```
 3. Configure services to route through the tunnel in `cloudflared/config.yml`
 

@@ -42,10 +42,10 @@ cp .env.example .env
 # Edit .env file with your settings
 
 # Start the server locally
-docker-compose up -d
+docker compose up -d
 
 # Deploy mail services
-docker-compose -f services/docker-compose.mail.local.yml up -d
+docker compose -f services/docker-compose.mail.local.yml up -d
 ```
 
 ## Features
