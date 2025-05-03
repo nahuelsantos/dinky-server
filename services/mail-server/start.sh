@@ -98,6 +98,24 @@ if [ ! -z "$RELAY_HOST" ]; then
 fi
 echo "-------------------------"
 
+# Configure submission service in master.cf
+echo "Configuring submission service on port 587..."
+if ! grep -q "^submission" /etc/postfix/master.cf; then
+  cat >> /etc/postfix/master.cf << EOF
+submission inet n       -       n       -       -       smtpd
+  -o syslog_name=postfix/submission
+  -o smtpd_tls_security_level=encrypt
+  -o smtpd_sasl_auth_enable=yes
+  -o smtpd_tls_auth_only=yes
+  -o smtpd_reject_unlisted_recipient=no
+  -o smtpd_client_restrictions=permit_sasl_authenticated,reject
+  -o milter_macro_daemon_name=ORIGINATING
+EOF
+  echo "Submission service configured"
+else
+  echo "Submission service already configured"
+fi
+
 # Start Postfix in the foreground
 echo "Starting Postfix..."
 /usr/sbin/postfix start
