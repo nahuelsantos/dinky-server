@@ -1,5 +1,3 @@
-# Mail Services
-
 The Dinky Server Mail Services provide a self-hosted email solution specifically designed for handling contact form submissions from your websites.
 
 ## Overview

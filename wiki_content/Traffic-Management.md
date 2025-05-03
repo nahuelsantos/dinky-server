@@ -1,5 +1,3 @@
-# Traffic Management
-
 Dinky Server provides comprehensive traffic management capabilities through several key components. This page covers how traffic is routed, secured, and optimized in your Dinky Server installation.
 
 ## Traefik Reverse Proxy

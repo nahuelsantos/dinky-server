@@ -1,5 +1,3 @@
-# API Reference
-
 Dinky Server provides several APIs for service interaction and management. This page documents the available endpoints and how to use them.
 
 ## Mail API

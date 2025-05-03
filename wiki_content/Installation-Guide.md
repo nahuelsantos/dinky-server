@@ -1,5 +1,3 @@
-# Installation Guide
-
 This guide walks you through the process of installing and setting up your Dinky Server from scratch.
 
 ## System Requirements

@@ -1,5 +1,3 @@
-# Local Development Guide
-
 This guide explains how to set up and test Dinky Server components locally before deploying them to your production server.
 
 ## Prerequisites

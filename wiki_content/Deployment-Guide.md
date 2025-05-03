@@ -1,5 +1,3 @@
-# Deployment Guide
-
 This guide will walk you through deploying your Dinky Server in a production environment.
 
 ## Prerequisites

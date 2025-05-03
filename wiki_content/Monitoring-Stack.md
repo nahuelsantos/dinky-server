@@ -1,5 +1,3 @@
-# Monitoring Stack
-
 Dinky Server includes a comprehensive monitoring stack to help you track the health and performance of your server and services.
 
 ## Components

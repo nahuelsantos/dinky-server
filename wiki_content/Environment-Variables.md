@@ -1,5 +1,3 @@
-# Environment Variables Reference
-
 This document provides a comprehensive list of all environment variables used in Dinky Server, organized by service.
 
 ## Core Variables

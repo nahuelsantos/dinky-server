@@ -1,5 +1,3 @@
-# Troubleshooting Guide
-
 This guide helps you diagnose and fix common issues with Dinky Server.
 
 ## General Troubleshooting Steps
