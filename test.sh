@@ -201,13 +201,13 @@ test_mail() {
     
     # Test Mail Server
     section "Testing Mail Server"
-    test_container "${PROJECT:-dinky}_mail-server" "Mail Server"
+    test_container "mail-server" "Mail Server"
     test_port "127.0.0.1" 25 "SMTP"
     test_port "127.0.0.1" 587 "SMTP submission"
     
     # Test Mail API
     section "Testing Mail API"
-    test_container "${PROJECT:-dinky}_mail-api" "Mail API"
+    test_container "mail-api" "Mail API"
     
     # Check /etc/hosts configuration
     section "Testing Mail API DNS configuration"

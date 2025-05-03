@@ -56,20 +56,20 @@ run-local-mail: setup-local-mail create-network
 	
 	@# Clean up any previous failed builds
 	@echo "Cleaning up any previous failed builds..."
-	@cd services && docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
+	@docker-compose down mail-server mail-api --remove-orphans 2>/dev/null || true
 	
 	@# Build and start the containers
-	@cd services && \
-	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development docker compose -f docker-compose.yml build || { \
+	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development \
+	docker-compose build mail-server mail-api || { \
 		echo "Error building services. See above for details."; \
 		exit 1; \
 	}
 	
-	@cd services && \
-	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development TRAEFIK_ENTRYPOINT=web ENABLE_TLS=false \
-	SERVER_IP=127.0.0.1 RESTART_POLICY=no NODE_ENV=development docker compose -f docker-compose.yml up -d || { \
+	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development TRAEFIK_ENTRYPOINT=web ENABLE_TLS=false \
+	SERVER_IP=127.0.0.1 RESTART_POLICY=no NODE_ENV=development \
+	docker-compose up -d mail-server mail-api || { \
 		echo "Error starting services. Checking logs..."; \
-		docker compose -f docker-compose.yml logs; \
+		docker-compose logs mail-server mail-api; \
 		exit 1; \
 	}
 	
@@ -77,9 +77,9 @@ run-local-mail: setup-local-mail create-network
 	@grep -q "mail-api.local" /etc/hosts || \
 	sudo sh -c 'echo "127.0.0.1 mail-api.local" >> /etc/hosts'
 	@echo "Mail services are running locally"
-	@echo "- Mail API is available at: http://mail-api.local:8080"
-	@echo "- SMTP server is available at: localhost:2525 (mapped to internal port 25)"
-	@echo "- SMTP submission port is available at: localhost:5587 (mapped to internal port 587)"
+	@echo "- Mail API is available at: http://mail-api.local:20001"
+	@echo "- SMTP server is available at: localhost:25 (for internal mail only)"
+	@echo "- SMTP submission port is available at: localhost:587 (for internal mail only)"
 	@echo ""
 	@echo "To check logs: make logs-mail"
 	@echo "To test API: make test-mail-api"
@@ -94,14 +94,13 @@ restart-local-mail: stop-local-mail
 # Stop mail services
 stop-local-mail:
 	@echo "Stopping mail services..."
-	@cd services && \
-	docker compose -f docker-compose.yml down
+	@docker-compose down mail-server mail-api
 	@echo "Mail services stopped"
 
 # Test mail API
 test-mail-api:
 	@echo "Testing mail API..."
-	@curl -X POST http://mail-api.local:8080/send \
+	@curl -X POST http://mail-api.local:20001/send \
 	-H "Content-Type: application/json" \
 	-d '{"to":"test@example.com","subject":"Test Email","body":"This is a test email from the local environment"}' || \
 	echo "Failed to connect to mail API. Make sure services are running with 'make run-local-mail'"
@@ -111,21 +110,20 @@ test-mail-api:
 # Test SMTP server
 test-mail-server:
 	@echo "Testing SMTP server connection..."
-	@(echo "QUIT" | nc localhost 2525) || \
+	@(echo "QUIT" | nc localhost 25) || \
 	echo "Failed to connect to SMTP server. Make sure services are running with 'make run-local-mail'"
 	@echo "If you saw a greeting message above, the SMTP server is working!"
 
 # View logs
 logs-mail:
 	@echo "Viewing mail server logs..."
-	@docker logs ${PROJECT:-dinky}_mail-server 2>&1 || echo "Mail server container not running"
+	@docker logs mail-server 2>&1 || echo "Mail server container not running"
 	@echo ""
 	@echo "Viewing mail API logs..."
-	@docker logs ${PROJECT:-dinky}_mail-api 2>&1 || echo "Mail API container not running"
+	@docker logs mail-api 2>&1 || echo "Mail API container not running"
 
 # Clean up everything
 clean-local-mail: stop-local-mail
 	@echo "Removing mail service containers and volumes..."
-	@cd services && \
-	docker compose -f docker-compose.yml down -v
+	@docker-compose down mail-server mail-api -v
 	@echo "Mail services cleaned up" 
