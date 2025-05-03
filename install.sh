@@ -230,17 +230,23 @@ install_mail() {
     header "Installing Mail Services"
     
     # Check for mail environment variables
-    if [ ! -f services/.env.mail ] && [ -f services/.env.mail.example ]; then
-        cp services/.env.mail.example services/.env.mail
+    if [ ! -f .env.mail ] && [ -f .env.mail.example ]; then
+        cp .env.mail.example .env.mail
         warning "Created mail environment file. Please edit it with your settings."
-    elif [ ! -f services/.env.mail ] && [ ! -f services/.env.mail.example ]; then
+    elif [ ! -f .env.mail ] && [ ! -f .env.mail.example ]; then
         warning "Mail environment files not found. Creating a basic one."
-        cat > services/.env.mail << EOF
+        cat > .env.mail << EOF
 # Mail server configuration
 MAIL_DOMAIN=${DOMAIN_NAME:-nahuelsantos.com}
 MAIL_HOSTNAME=mail.${DOMAIN_NAME:-nahuelsantos.com}
 DEFAULT_FROM=noreply@${DOMAIN_NAME:-nahuelsantos.com}
 ALLOWED_HOSTS=${DOMAIN_NAME:-nahuelsantos.com}
+
+# SMTP Relay Settings
+SMTP_RELAY_HOST=smtp.gmail.com
+SMTP_RELAY_PORT=587
+SMTP_RELAY_USERNAME=your-gmail-address@gmail.com
+SMTP_RELAY_PASSWORD=your-16-character-app-password
 EOF
     fi
     
@@ -259,11 +265,11 @@ EOF
         export SSL_KEY_PATH=/etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem
     fi
     
-    $DOCKER_COMPOSE_CMD -f services/docker-compose.yml build
+    $DOCKER_COMPOSE_CMD build mail-server mail-api
     
     # Install and start mail services
     section "Starting mail services"
-    $DOCKER_COMPOSE_CMD -f services/docker-compose.yml up -d
+    $DOCKER_COMPOSE_CMD up -d mail-server mail-api
     
     success "Mail services installed and running"
 }
