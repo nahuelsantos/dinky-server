@@ -8,7 +8,6 @@ RUN apk add --no-cache \
     mailx \
     cyrus-sasl \
     cyrus-sasl-login \
-    cyrus-sasl-plain \
     openssl \
     netcat-openbsd \
     # Ensure nc and bash are available for health checks and scripts

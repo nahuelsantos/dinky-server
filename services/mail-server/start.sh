@@ -32,8 +32,8 @@ if [ ! -z "$SMTP_RELAY_HOST" ]; then
   # Create sasl_passwd file if credentials are provided
   if [ ! -z "$SMTP_RELAY_USERNAME" ] && [ ! -z "$SMTP_RELAY_PASSWORD" ]; then
     echo "Configuring relay authentication for user: $SMTP_RELAY_USERNAME"
-    # Format for regexp lookup
-    echo "/^.*\[$SMTP_RELAY_HOST\]:$SMTP_RELAY_PORT/ $SMTP_RELAY_USERNAME:$SMTP_RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
+    # Format for direct lookup - much simpler and more reliable
+    echo "[$SMTP_RELAY_HOST]:$SMTP_RELAY_PORT $SMTP_RELAY_USERNAME:$SMTP_RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
     chmod 600 /etc/postfix/sasl/sasl_passwd
     echo "SMTP relay authentication configured"
   else
