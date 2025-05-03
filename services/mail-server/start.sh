@@ -7,9 +7,12 @@ MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
 MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
 DEFAULT_FROM=${DEFAULT_FROM:-noreply@$MAIL_DOMAIN}
 
-# Update main.cf with environment variables
-sed -i "s/\${MAIL_HOSTNAME}/$MAIL_HOSTNAME/g" /etc/postfix/main.cf
-sed -i "s/\${MAIL_DOMAIN}/$MAIL_DOMAIN/g" /etc/postfix/main.cf
+# Use postconf to set basic mail configuration
+postconf -e "myhostname = $MAIL_HOSTNAME"
+postconf -e "mydomain = $MAIL_DOMAIN"
+postconf -e "myorigin = $MAIL_DOMAIN"
+postconf -e "inet_interfaces = all"
+postconf -e "inet_protocols = all"
 
 # Ensure database directory exists
 mkdir -p /etc/postfix/databases
@@ -18,18 +21,13 @@ mkdir -p /etc/postfix/databases
 if [ ! -z "$SMTP_RELAY_HOST" ]; then
   echo "Configuring relay host: $SMTP_RELAY_HOST:$SMTP_RELAY_PORT"
   
-  # Uncomment relay configuration
-  sed -i 's/# relayhost/relayhost/g' /etc/postfix/main.cf
-  sed -i 's/# smtp_sasl_auth_enable/smtp_sasl_auth_enable/g' /etc/postfix/main.cf
-  sed -i 's/# smtp_sasl_password_maps/smtp_sasl_password_maps/g' /etc/postfix/main.cf
-  sed -i 's/# smtp_sasl_security_options/smtp_sasl_security_options/g' /etc/postfix/main.cf
-  sed -i 's/# smtp_tls_note_starttls_offer/smtp_tls_note_starttls_offer/g' /etc/postfix/main.cf
-  
-  # Update relay host and port
-  sed -i "s/\${SMTP_RELAY_HOST}/$SMTP_RELAY_HOST/g" /etc/postfix/main.cf
-  sed -i "s/\${SMTP_RELAY_PORT}/$SMTP_RELAY_PORT/g" /etc/postfix/main.cf
-  sed -i "s/\${SMTP_RELAY_USERNAME}/$SMTP_RELAY_USERNAME/g" /etc/postfix/main.cf
-  sed -i "s/\${SMTP_RELAY_PASSWORD}/$SMTP_RELAY_PASSWORD/g" /etc/postfix/main.cf
+  # Use postconf to set configuration values directly
+  postconf -e "relayhost = [$SMTP_RELAY_HOST]:$SMTP_RELAY_PORT"
+  postconf -e "smtp_sasl_auth_enable = yes"
+  postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd"
+  postconf -e "smtp_sasl_security_options = noanonymous"
+  postconf -e "smtp_tls_security_level = encrypt"
+  postconf -e "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
   
   # Create sasl_passwd file if credentials are provided
   if [ ! -z "$SMTP_RELAY_USERNAME" ] && [ ! -z "$SMTP_RELAY_PASSWORD" ]; then
@@ -37,6 +35,7 @@ if [ ! -z "$SMTP_RELAY_HOST" ]; then
     # Format for direct lookup - much simpler and more reliable
     echo "[$SMTP_RELAY_HOST]:$SMTP_RELAY_PORT $SMTP_RELAY_USERNAME:$SMTP_RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
     chmod 600 /etc/postfix/sasl/sasl_passwd
+    postmap /etc/postfix/sasl/sasl_passwd
     echo "SMTP relay authentication configured"
   else
     echo "WARNING: SMTP_RELAY_HOST specified but SMTP_RELAY_USERNAME and SMTP_RELAY_PASSWORD are missing"
