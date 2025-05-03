@@ -1,298 +1,170 @@
-This guide walks you through the process of installing and setting up your Dinky Server from scratch.
+# Installation Guide
 
-## System Requirements
-
-- **Operating System**: Ubuntu 20.04 LTS or newer (recommended)
-- **RAM**: 2GB minimum, 4GB+ recommended
-- **CPU**: 2 cores minimum, 4+ cores recommended
-- **Storage**: 20GB minimum, 100GB+ recommended
-- **Network**: Static IP address recommended
-- **Domain**: At least one domain name (for Traefik and web services)
+This guide walks you through the process of installing Dinky Server on your hardware.
 
 ## Prerequisites
 
-Before installing Dinky Server, you need to prepare your system:
+Before you begin, make sure you have:
 
-1. Install required packages:
+- A Raspberry Pi 4 (4GB+ RAM) or any compatible Linux system
+- A wired network connection (recommended)
+- A microSD card (32GB+ recommended) or SSD
+- Basic knowledge of Linux terminal commands
+- SSH access to your server
 
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   sudo apt install -y git make curl wget ufw ca-certificates gnupg-agent software-properties-common
-   ```
+## Hardware Recommendations
 
-2. Install Docker:
+- **CPU**: 4+ cores recommended
+- **RAM**: 4GB minimum, 8GB+ recommended
+- **Storage**: 32GB+ with good read/write speeds
+- **Network**: Wired Ethernet connection
 
-   ```bash
-   curl -fsSL https://get.docker.com -o get-docker.sh
-   sudo sh get-docker.sh
-   ```
+## Operating System
 
-3. Install Docker Compose:
+Dinky Server is designed to work on Raspberry Pi OS (Debian-based) or any Debian/Ubuntu based distribution. We recommend:
 
-   ```bash
-   sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-   sudo chmod +x /usr/local/bin/docker-compose
-   ```
+- Raspberry Pi OS 64-bit (for Raspberry Pi 4)
+- Ubuntu Server 22.04 LTS or newer (for other hardware)
 
-4. Configure firewall:
+## Installation Steps
 
-   ```bash
-   sudo ufw default deny incoming
-   sudo ufw default allow outgoing
-   sudo ufw allow ssh
-   sudo ufw allow http
-   sudo ufw allow https
-   sudo ufw enable
-   ```
+### 1. Prepare Your System
 
-5. Create a directory for Dinky Server:
-
-   ```bash
-   sudo mkdir -p /opt/dinky-server
-   sudo chown $USER:$USER /opt/dinky-server
-   ```
-
-## Step 1: Clone the Repository
+Update your system and install Git:
 
 ```bash
-git clone https://github.com/nahuelsantos/dinky-server.git /opt/dinky-server
-cd /opt/dinky-server
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y git curl
 ```
 
-## Step 2: Configure Environment Variables
-
-1. Create your main environment file:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit the environment file with your specific settings:
-
-   ```bash
-   nano .env
-   ```
-
-   At minimum, update these variables:
-   
-   ```
-   PROJECT=dinky
-   REGISTRY=yourusername
-   TAG=latest
-   DOMAIN_NAME=yourdomain.com
-   BASE_DOMAIN=yourdomain.com
-   API_URL=api.yourdomain.com
-   ALLOWED_HOSTS=yourdomain.com
-   ```
-
-3. For a complete list of available variables and their meanings, see the [Environment Variables Reference](Environment-Variables).
-
-## Step 3: Deploy Core Infrastructure
-
-Deploy the core infrastructure components (Traefik, Portainer, Pi-hole):
+### 2. Clone the Repository
 
 ```bash
-docker-compose up -d
+git clone https://github.com/nahuelsantos/dinky-server.git
+cd dinky-server
 ```
 
-This will start:
-- Traefik (reverse proxy)
-- Portainer (container management)
-- Pi-hole (ad blocking)
-- Cloudflared (if configured)
+### 3. Initialize the Environment
 
-### Verifying Core Services
+The initialization script will create necessary directories and set proper permissions:
 
-1. Check that containers are running:
+```bash
+sudo ./initialize.sh
+```
 
-   ```bash
-   docker ps
-   ```
+### 4. Configure Your Environment
 
-2. Access Portainer (container management UI):
+Copy the example environment file and edit it with your settings:
 
-   ```
-   https://portainer.yourdomain.com
-   ```
+```bash
+cp .env.example .env
+nano .env
+```
 
-   Or locally: `http://192.168.1.x:9000`
+Key settings to update:
 
-3. Access Pi-hole (ad blocking dashboard):
+- `DOMAIN_NAME`: Your primary domain name
+- `MAIL_DOMAIN`: Domain for your mail server
+- `TUNNEL_ID` and `TUNNEL_TOKEN`: Your Cloudflare tunnel credentials
+- `PIHOLE_PASSWORD`: Password for Pi-hole admin interface
+- `GRAFANA_PASSWORD`: Password for Grafana admin interface
 
-   ```
-   https://pihole.yourdomain.com/admin
-   ```
+### 5. Run the Installation Script
 
-   Or locally: `http://192.168.1.x:8081/admin`
+The installation script provides an interactive menu to select which components you want to install:
 
-## Step 4: Deploy Mail Services
+```bash
+sudo ./install.sh
+```
 
-1. Copy the mail environment template:
+Follow the prompts to configure your installation. You can choose to install:
 
-   ```bash
-   cp services/.env.mail services/.env.mail.prod
-   ```
+- Security components (firewall, fail2ban, etc.)
+- Core infrastructure (Traefik, Cloudflared, Pi-hole, Portainer)
+- Mail services
+- Websites (nahuelsantos.com, loopingbyte.com)
+- Monitoring stack
 
-2. Edit the mail configuration:
+### 6. Test Your Installation
 
-   ```bash
-   nano services/.env.mail.prod
-   ```
+After installation completes, run the test script to verify everything is working correctly:
 
-   Update these values:
-   
-   ```
-   MAIL_DOMAIN=yourdomain.com
-   MAIL_HOSTNAME=mail.yourdomain.com
-   DEFAULT_FROM=noreply@yourdomain.com
-   ALLOWED_HOSTS=yourdomain.com
-   ```
+```bash
+sudo ./test.sh
+```
 
-3. For detailed instructions, see the [Mail Service](Mail-Service) page.
+This script will check all installed components and report any issues.
 
-4. Deploy the mail services:
+## Non-Interactive Installation
 
-   ```bash
-   docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d
-   ```
+For automated deployments, you can use the `--auto` flag:
 
-## Step 5: Deploy Monitoring Stack (Optional)
+```bash
+sudo ./install.sh --auto
+```
 
-1. Configure monitoring settings in your environment file or create a separate one for monitoring.
+This will use either a previously saved configuration or the default settings.
 
-2. Deploy the monitoring stack:
+## Accessing Your Services
 
-   ```bash
-   docker-compose -f monitoring/docker-compose.yml up -d
-   ```
+After installation, you can access your services at:
 
-3. Access Grafana:
+- **Portainer**: http://your-server-ip:9000
+- **Traefik Dashboard**: http://your-server-ip:20000
+- **Pi-hole Admin**: http://your-server-ip:19999
+- **Grafana**: http://your-server-ip:3000
 
-   ```
-   https://grafana.yourdomain.com
-   ```
+## Security Considerations
 
-   Default login: admin / (password from your .env file)
-
-## Step 6: Deploy Your Websites
-
-For each website you want to deploy:
-
-1. Use the setup-site.sh script to create a new site configuration:
-
-   ```bash
-   ./scripts/setup-site.sh
-   ```
-
-   Or manually create a directory for the site:
-
-   ```bash
-   mkdir -p sites/your-site-name
-   ```
-
-2. Create an environment file:
-
-   ```bash
-   cat > sites/your-site-name/.env << EOL
-   # Environment for your-site-name
-   SITE_DOMAIN=your-site-domain.com
-   SITE_EMAIL=hello@your-site-domain.com
-   MAIL_API_URL=http://mail-api:20001/send
-   EOL
-   ```
-
-3. Create a docker-compose.yml for your site:
-
-   ```bash
-   nano sites/your-site-name/docker-compose.yml
-   ```
-
-   Basic example:
-   
-   ```yaml
-   services:
-     your-site-name:
-       image: nginx:alpine  # Replace with your site's image
-       container_name: your-site-name
-       restart: unless-stopped
-       networks:
-         - traefik_network
-         - mail-internal
-       env_file:
-         - .env
-       labels:
-         - "traefik.enable=true"
-         - "traefik.http.routers.your-site-name.rule=Host(`your-site-domain.com`)"
-         - "traefik.http.routers.your-site-name.entrypoints=websecure"
-         - "traefik.http.routers.your-site-name.tls=true"
-         - "traefik.http.services.your-site-name.loadbalancer.server.port=80"
-
-   networks:
-     traefik_network:
-       external: true
-     mail-internal:
-       external: true
-       name: services_mail-internal
-   ```
-
-4. Deploy your site:
-
-   ```bash
-   cd sites/your-site-name
-   docker-compose up -d
-   ```
-
-## Step 7: Configure DNS
-
-For each service you want to access via a domain name:
-
-1. Add DNS A records pointing to your server's IP address:
-   
-   ```
-   yourdomain.com              A      your.server.ip.address
-   www.yourdomain.com          A      your.server.ip.address
-   mail.yourdomain.com         A      your.server.ip.address
-   api.yourdomain.com          A      your.server.ip.address
-   grafana.yourdomain.com      A      your.server.ip.address
-   portainer.yourdomain.com    A      your.server.ip.address
-   pihole.yourdomain.com       A      your.server.ip.address
-   ```
-
-2. For mail server functionality, add MX, SPF, and DKIM records (see [Mail Service](Mail-Service) documentation).
-
-## Step 8: Secure Your Server
-
-1. Set up automatic security updates:
-
-   ```bash
-   sudo apt install unattended-upgrades
-   sudo dpkg-reconfigure -plow unattended-upgrades
-   ```
-
-2. Review firewall rules:
-
-   ```bash
-   sudo ufw status
-   ```
-
-3. Consider setting up fail2ban for SSH protection:
-
-   ```bash
-   sudo apt install fail2ban
-   sudo systemctl enable fail2ban
-   sudo systemctl start fail2ban
-   ```
+- The installation script sets up basic security measures
+- SSH keys are highly recommended instead of password authentication
+- Consider setting up automatic security updates
+- Review the firewall rules to ensure they meet your needs
 
 ## Troubleshooting
 
 If you encounter issues during installation:
 
-- Check container logs: `docker logs container_name`
-- Verify environment variables are correctly set
-- Consult the [Troubleshooting Guide](Troubleshooting)
+1. Check the logs in the terminal for error messages
+2. Verify that all required ports are available
+3. Ensure Docker is running correctly with `sudo systemctl status docker`
+4. Check service status with `docker ps`
+5. Review individual service logs with `docker logs <container-name>`
+
+For more detailed troubleshooting, see the [Troubleshooting](./Troubleshooting) wiki page.
 
 ## Next Steps
 
-- Review the [Production Deployment Checklist](Deployment-Guide)
-- Set up [Cloudflare Tunnel](Traffic-Management#cloudflare-tunnel) for secure remote access
-- Configure [Monitoring Alerts](Monitoring-Stack#configuring-alerts) 
+After installation, you may want to:
+
+- [Configure mail services](./Mail-Service)
+- [Set up additional websites](./Traffic-Management)
+- [Customize monitoring dashboards](./Monitoring-Stack)
+- [Enable automatic backups](./Backup-and-Recovery)
+
+## Updating Dinky Server
+
+To update your installation to the latest version:
+
+1. Stop all services:
+   ```bash
+   docker-compose down
+   ```
+
+2. Pull the latest changes:
+   ```bash
+   git pull
+   ```
+
+3. Reinitialize the environment:
+   ```bash
+   sudo ./initialize.sh
+   ```
+
+4. Run the installation script again:
+   ```bash
+   sudo ./install.sh
+   ```
+
+This will update all components while preserving your configuration. 

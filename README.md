@@ -1,10 +1,10 @@
 # Dinky Server - Secure Home Server Setup
 
-A complete self-hosted server solution for home and small business use.
+A comprehensive self-hosted server solution for home and small business use.
 
 ## What is Dinky Server?
 
-Dinky Server is a comprehensive self-hosted solution that combines multiple open-source tools to provide:
+Dinky Server is a complete self-hosted solution that combines multiple open-source tools to provide:
 
 - Website and web application hosting
 - Email sending and receiving with your own domain
@@ -14,6 +14,18 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
 - Server monitoring and alerting
 - Secure remote access from anywhere
 
+## Features
+
+- **Ultra Secure**: Firewall, fail2ban, SSH hardening, and other security best practices
+- **Containerized**: All services run in Docker containers managed by Portainer
+- **Easy Domain Management**: Auto-configured Cloudflare tunnels for your domains
+- **Ad-Blocking**: Network-wide ad and malware blocking with Pi-hole
+- **Mail Services**: Complete mail solution for websites to use in contact forms
+- **Monitoring Stack**: Full observability with Grafana, Prometheus, Loki, Tempo, and more
+- **Modular Installation**: Install only the components you need
+- **Multi-Architecture Support**: Works on Raspberry Pi, x86, ARM, and more
+- **Configurable IP**: Easy to adapt to different network setups
+
 ## Quick Start
 
 1. Clone the repository:
@@ -22,22 +34,49 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
    cd dinky-server
    ```
 
-2. Configure your environment:
+2. Initialize the environment:
+   ```bash
+   sudo ./initialize.sh
+   ```
+
+3. Configure your environment:
    ```bash
    cp .env.example .env
    # Edit .env file with your settings
    ```
 
-3. Start the services using Docker Compose:
+4. Run the installation script:
    ```bash
-   # Start core infrastructure
-   docker-compose up -d
-   
-   # For mail services
-   docker-compose -f services/docker-compose.mail.local.yml up -d  # Local development
-   # OR
-   docker-compose -f services/docker-compose.mail.prod.yml up -d   # Production
+   sudo ./install.sh
    ```
+
+5. Test your installation:
+   ```bash
+   sudo ./test.sh
+   ```
+
+## Installation Options
+
+The installation script allows you to selectively install components:
+
+- **Security**: Firewall, fail2ban, SSH hardening, and more
+- **Core Infrastructure**: Traefik, Cloudflared, Pi-hole, Portainer
+- **Mail Services**: Mail server and API for sending emails
+- **Websites**: nahuelsantos.com, loopingbyte.com, and configurable for other sites
+- **Monitoring Stack**: Prometheus, Grafana, Loki, Tempo, and more
+
+You can run the installer in different modes:
+
+```bash
+# Interactive mode (recommended for first-time users)
+sudo ./install.sh
+
+# Non-interactive mode (uses saved configuration)
+sudo ./install.sh --auto
+
+# Display help
+sudo ./install.sh --help
+```
 
 ## System Components
 
@@ -52,11 +91,25 @@ Dinky Server is a comprehensive self-hosted solution that combines multiple open
 
 - **Mail Server**: Complete email solution with SMTP, IMAP, and webmail
 - **Mail API**: RESTful API for sending emails programmatically
-- **Monitoring Stack**: Prometheus, Grafana, and Node Exporter
+
+### Monitoring Stack
+
+- **Prometheus**: Metrics collection and storage
+- **Loki**: Log aggregation system
+- **Grafana**: Visualization and dashboards
+- **Tempo**: Distributed tracing
+- **Pyroscope**: Continuous profiling
+- **OpenTelemetry Collector**: Telemetry processing
+
+### Websites
+
+- **nahuelsantos.com**: Personal website
+- **loopingbyte.com**: Business website
+- **Custom Sites**: Easy to add your own websites
 
 ## Documentation
 
-All documentation is exclusively available in our [GitHub Wiki](https://github.com/nahuelsantos/dinky-server/wiki):
+All documentation is available in our [GitHub Wiki](https://github.com/nahuelsantos/dinky-server/wiki):
 
 - **Getting Started**
   - [System Overview](https://github.com/nahuelsantos/dinky-server/wiki/System-Overview)
@@ -72,8 +125,6 @@ All documentation is exclusively available in our [GitHub Wiki](https://github.c
   - [Local Development](https://github.com/nahuelsantos/dinky-server/wiki/Local-Development)
   - [Deployment Guide](https://github.com/nahuelsantos/dinky-server/wiki/Deployment-Guide)
   - [Troubleshooting](https://github.com/nahuelsantos/dinky-server/wiki/Troubleshooting)
-  - [API Reference](https://github.com/nahuelsantos/dinky-server/wiki/API-Reference)
-  - [Contributing](https://github.com/nahuelsantos/dinky-server/wiki/Contributing)
 
 ## Directory Structure
 
@@ -88,15 +139,19 @@ dinky-server/
 ├── monitoring/      # Monitoring stack
 ├── services/        # Background services (mail-server, etc.)
 ├── sites/           # Website configurations
-└── scripts/         # Utility scripts
+├── scripts/         # Utility scripts
+├── install.sh       # Main installation script
+├── initialize.sh    # Initialization script
+├── test.sh          # Testing script
+└── docker-compose.yml # Core services configuration
 ```
 
-## Scripts
+## Hardware Requirements
 
-The repository includes helpful utility scripts:
-
-- **environment-manager.sh**: Manage and validate environment variables
-- **setup-site.sh**: Set up a new website configuration
+- **Minimum**: Raspberry Pi 4 (4GB RAM) or equivalent
+- **Recommended**: Raspberry Pi 4 (8GB RAM) or any x86 system with 4+ cores and 8GB+ RAM
+- **Storage**: 32GB+ SD card or SSD
+- **Network**: Wired Ethernet connection recommended
 
 ## Contributing
 
