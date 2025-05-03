@@ -37,11 +37,25 @@ if ! docker ps | grep -q mail-api; then
     exit 1
 fi
 
-# Send test email using curl inside the mail-api container
+# Install required tools in mail-api container if needed
+echo "Checking required tools in mail-api container..."
+if ! docker exec -i mail-api which wget >/dev/null 2>&1; then
+    echo "Installing wget in mail-api container..."
+    docker exec -i mail-api sh -c "apk add --no-cache wget" >/dev/null 2>&1 || {
+        echo -e "${RED}Failed to install wget. Email sending may fail.${NC}";
+    }
+fi
+
+if ! docker exec -i mail-api which curl >/dev/null 2>&1; then
+    echo "Installing curl in mail-api container..."
+    docker exec -i mail-api sh -c "apk add --no-cache curl" >/dev/null 2>&1 || {
+        echo -e "${YELLOW}Failed to install curl. Will try with wget instead.${NC}";
+    }
+fi
+
+# Send test email using wget inside the mail-api container (fallback to curl if available)
 echo "Sending test email via mail-api..."
-RESULT=$(docker exec -i mail-api curl -s -X POST http://localhost:20001/send \
-  -H "Content-Type: application/json" \
-  -d "{\"to\":\"${TO_EMAIL}\",\"subject\":\"Dinky Server Test Email\",\"body\":\"This is a test email sent from your Dinky Server on $(date). If you received this, your mail system is working properly!\"}")
+RESULT=$(docker exec -i mail-api sh -c 'wget -q -O- --post-data="{\"to\":\"'"${TO_EMAIL}"'\",\"subject\":\"Dinky Server Test Email\",\"body\":\"This is a test email sent from your Dinky Server on '"$(date)"'. If you received this, your mail system is working properly!\"}" --header="Content-Type: application/json" http://localhost:20001/send || curl -s -X POST -H "Content-Type: application/json" -d "{\"to\":\"'"${TO_EMAIL}"'\",\"subject\":\"Dinky Server Test Email\",\"body\":\"This is a test email sent from your Dinky Server on '"$(date)"'. If you received this, your mail system is working properly!\"}" http://localhost:20001/send')
 
 # Check result
 if echo "$RESULT" | grep -q "success"; then

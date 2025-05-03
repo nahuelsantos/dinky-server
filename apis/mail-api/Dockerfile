@@ -19,6 +19,9 @@ FROM alpine:3.18
 
 WORKDIR /app
 
+# Install necessary tools for diagnostics and health checks
+RUN apk add --no-cache curl wget
+
 # Copy the binary from the builder stage
 COPY --from=builder /app/mail-api /app/mail-api
 

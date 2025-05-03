@@ -26,8 +26,10 @@ if [ ! -z "$SMTP_RELAY_HOST" ]; then
   sed -i 's/# smtp_tls_note_starttls_offer/smtp_tls_note_starttls_offer/g' /etc/postfix/main.cf
   
   # Update relay host and port
-  sed -i "s/\${RELAY_HOST}/$SMTP_RELAY_HOST/g" /etc/postfix/main.cf
-  sed -i "s/\${RELAY_PORT}/$SMTP_RELAY_PORT/g" /etc/postfix/main.cf
+  sed -i "s/\${SMTP_RELAY_HOST}/$SMTP_RELAY_HOST/g" /etc/postfix/main.cf
+  sed -i "s/\${SMTP_RELAY_PORT}/$SMTP_RELAY_PORT/g" /etc/postfix/main.cf
+  sed -i "s/\${SMTP_RELAY_USERNAME}/$SMTP_RELAY_USERNAME/g" /etc/postfix/main.cf
+  sed -i "s/\${SMTP_RELAY_PASSWORD}/$SMTP_RELAY_PASSWORD/g" /etc/postfix/main.cf
   
   # Create sasl_passwd file if credentials are provided
   if [ ! -z "$SMTP_RELAY_USERNAME" ] && [ ! -z "$SMTP_RELAY_PASSWORD" ]; then

@@ -226,6 +226,9 @@ test_mail() {
     section "Testing Mail API"
     test_container "mail-api" "Mail API"
     
+    # Prepare mail-api with necessary tools
+    prepare_mail_api
+    
     # Test Mail API health endpoint
     section "Testing Mail API health endpoint"
     if docker exec -i mail-api sh -c 'wget -q -O- http://localhost:20001/health' 2>/dev/null; then
@@ -374,6 +377,42 @@ test_security() {
     fi
 }
 
+# Prepare mail-api container with necessary tools
+prepare_mail_api() {
+    section "Preparing mail-api container with necessary tools"
+    
+    if ! docker ps | grep -q mail-api; then
+        warning "mail-api container is not running, skipping preparation"
+        return
+    fi
+    
+    # Check if wget is available
+    if ! docker exec -i mail-api which wget >/dev/null 2>&1; then
+        echo "Installing wget in mail-api container..."
+        docker exec -i mail-api sh -c "apk add --no-cache wget" >/dev/null 2>&1
+        if docker exec -i mail-api which wget >/dev/null 2>&1; then
+            success "wget installed successfully"
+        else
+            error "Failed to install wget"
+        fi
+    else
+        success "wget is already installed"
+    fi
+    
+    # Check if curl is available
+    if ! docker exec -i mail-api which curl >/dev/null 2>&1; then
+        echo "Installing curl in mail-api container..."
+        docker exec -i mail-api sh -c "apk add --no-cache curl" >/dev/null 2>&1
+        if docker exec -i mail-api which curl >/dev/null 2>&1; then
+            success "curl installed successfully"
+        else
+            error "Failed to install curl"
+        fi
+    else
+        success "curl is already installed"
+    fi
+}
+
 # Restart mail services
 restart_mail_services() {
     header "Restarting Mail Services"
@@ -390,6 +429,9 @@ restart_mail_services() {
     section "Checking mail services"
     if docker ps | grep -q mail-server && docker ps | grep -q mail-api; then
         success "Mail services restarted successfully"
+        
+        # Prepare mail-api container
+        prepare_mail_api
     else
         error "Failed to restart mail services"
     fi
