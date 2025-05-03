@@ -95,13 +95,24 @@ func sendEmail(req EmailRequest) error {
 
 	// Connect to the SMTP server
 	addr := fmt.Sprintf("%s:%s", config.SMTPHost, config.SMTPPort)
-	return smtp.SendMail(
+	log.Printf("Attempting to send email via SMTP server: %s", addr)
+
+	// Simplified approach using SendMail directly
+	err := smtp.SendMail(
 		addr,
-		nil, // No authentication
+		nil, // No authentication needed for internal mail server
 		req.From,
 		[]string{req.To},
 		[]byte(message),
 	)
+
+	if err != nil {
+		log.Printf("SMTP error: %v", err)
+		return fmt.Errorf("SMTP error: %v", err)
+	}
+
+	log.Printf("Email sent successfully to %s", req.To)
+	return nil
 }
 
 func emailHandler(w http.ResponseWriter, r *http.Request) {

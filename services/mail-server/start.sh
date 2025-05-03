@@ -7,6 +7,15 @@ MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
 MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
 DEFAULT_FROM=${DEFAULT_FROM:-noreply@$MAIL_DOMAIN}
 
+# Create mail log directory
+mkdir -p /var/log
+touch /var/log/mail.log
+
+# Enable detailed SMTP logs
+postconf -e "debug_peer_level = 2"
+postconf -e "debug_peer_list = mail-api.local,mail-api"
+postconf -e "smtpd_debug_unsafe = yes"
+
 # Use postconf to set basic mail configuration
 postconf -e "myhostname = $MAIL_HOSTNAME"
 postconf -e "mydomain = $MAIL_DOMAIN"
@@ -59,9 +68,6 @@ fi
 
 # Create mail directory if it doesn't exist
 mkdir -p /var/spool/mail
-
-# Make sure log file exists
-touch /var/log/mail.log
 
 # Configure submission service in master.cf
 echo "Configuring submission service on port 587..."

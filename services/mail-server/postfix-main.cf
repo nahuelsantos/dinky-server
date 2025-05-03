@@ -36,12 +36,10 @@ smtpd_sasl_path = private/auth
 smtpd_sasl_security_options = noanonymous
 
 # External SMTP Relay configuration via Gmail
-# relayhost = [${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT}
-relayhost = [smtp.gmail.com]:587
+relayhost = [${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT}
 smtp_sasl_auth_enable = yes
-# Use plain text file instead of hash lookup
-smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
-# smtp_sasl_password_maps = static:${SMTP_RELAY_USERNAME}:${SMTP_RELAY_PASSWORD}
+# Use plain text file without special lookup format
+smtp_sasl_password_maps = static:${SMTP_RELAY_USERNAME}:${SMTP_RELAY_PASSWORD}
 smtp_sasl_security_options = noanonymous
 smtp_sasl_tls_security_options = noanonymous
 
