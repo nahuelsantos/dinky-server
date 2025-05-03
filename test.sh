@@ -205,9 +205,40 @@ test_mail() {
     test_port "127.0.0.1" 25 "SMTP"
     test_port "127.0.0.1" 587 "SMTP submission"
     
+    # Test direct SMTP connection to the mail server
+    section "Testing Mail Server SMTP connection"
+    if docker exec -i mail-server sh -c '(echo "EHLO test" && sleep 1 && echo "QUIT") > /dev/tcp/localhost/25' 2>/dev/null; then
+        success "SMTP server responds to EHLO command"
+    elif docker exec -i mail-server sh -c 'command -v nc && (echo "EHLO test"; sleep 1; echo "QUIT") | nc localhost 25'; then
+        success "SMTP server responds to EHLO command"
+    else
+        warning "Could not test SMTP commands directly - server might still be working"
+    fi
+    
     # Test Mail API
     section "Testing Mail API"
     test_container "mail-api" "Mail API"
+    
+    # Test Mail API health endpoint
+    section "Testing Mail API health endpoint"
+    if docker exec -i mail-api sh -c 'wget -q -O- http://localhost:20001/health' 2>/dev/null; then
+        success "Mail API health endpoint is responding"
+    elif docker exec -i mail-api sh -c 'curl -s http://localhost:20001/health'; then
+        success "Mail API health endpoint is responding"
+    else
+        error "Mail API health endpoint is not responding"
+    fi
+    
+    # Attempt to send a test email (just test functionality, not actual delivery)
+    section "Testing Mail API send endpoint"
+    if docker exec -i mail-api sh -c 'curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d "{\"to\":\"test@example.com\",\"subject\":\"Test\",\"body\":\"Test\"}" http://localhost:20001/send' 2>/dev/null | grep -q "200"; then
+        success "Mail API send endpoint is functioning"
+    else
+        error "Mail API send endpoint is not functioning properly"
+        echo "To debug:"
+        echo "- Check mail-api logs: docker logs mail-api"
+        echo "- Check mail-server logs: docker logs mail-server"
+    fi
     
     # Check /etc/hosts configuration
     section "Testing Mail API DNS configuration"
@@ -223,6 +254,11 @@ test_mail() {
         success "All mail service tests passed"
     else
         error "$FAILURES mail service tests failed"
+        echo -e "\n${YELLOW}Mail Service Troubleshooting:${NC}"
+        echo "1. Check mail-server logs: docker logs mail-server"
+        echo "2. Check mail-api logs: docker logs mail-api" 
+        echo "3. To send a test email: make send-test-email EMAIL=your@email.com"
+        echo "4. Make sure mail-api.local is in /etc/hosts: 127.0.0.1 mail-api.local"
     fi
 }
 

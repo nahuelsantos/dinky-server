@@ -1,4 +1,4 @@
-.PHONY: help run-local-mail stop-local-mail test-mail-api test-mail-server clean-local-mail logs-mail setup-local-mail restart-local-mail
+.PHONY: help run-local-mail stop-local-mail test-mail-api test-mail-server clean-local-mail logs-mail setup-local-mail restart-local-mail send-test-email
 
 # Get architecture
 ARCH := $(shell uname -m)
@@ -100,19 +100,26 @@ stop-local-mail:
 # Test mail API
 test-mail-api:
 	@echo "Testing mail API..."
-	@curl -X POST http://mail-api.local:20001/send \
+	@echo "Sending test email through mail-api container..."
+	@docker exec -it mail-api curl -X POST http://localhost:20001/send \
 	-H "Content-Type: application/json" \
 	-d '{"to":"test@example.com","subject":"Test Email","body":"This is a test email from the local environment"}' || \
-	echo "Failed to connect to mail API. Make sure services are running with 'make run-local-mail'"
+	echo "Failed to connect to mail API. Make sure services are running with 'docker compose up -d mail-api mail-server'"
 	@echo ""
-	@echo "If the test failed with 'connection refused', try restarting the services with 'make restart-local-mail'"
+	@echo "To check if mail API is running: docker ps | grep mail-api"
+	@docker ps | grep mail-api || echo "Mail API container not running"
 
 # Test SMTP server
 test-mail-server:
 	@echo "Testing SMTP server connection..."
-	@(echo "QUIT" | nc localhost 25) || \
-	echo "Failed to connect to SMTP server. Make sure services are running with 'make run-local-mail'"
-	@echo "If you saw a greeting message above, the SMTP server is working!"
+	@echo "Checking if mail-server is running..."
+	@docker ps | grep mail-server > /dev/null || { echo "Mail server container not running"; exit 1; }
+	@echo "Connecting to mail-server container on port 25..."
+	@docker exec -it mail-server sh -c '(echo "EHLO test" && sleep 1 && echo "QUIT") > /dev/tcp/localhost/25' 2>/dev/null || \
+	{ docker exec -it mail-server sh -c 'apk add --no-cache netcat-openbsd && (echo "EHLO test"; sleep 1; echo "QUIT") | nc localhost 25'; } || \
+	echo "Failed to connect to SMTP server. The SMTP service might not be running inside the container."
+	@echo ""
+	@echo "To check mail server logs: docker logs mail-server"
 
 # View logs
 logs-mail:
@@ -126,4 +133,16 @@ logs-mail:
 clean-local-mail: stop-local-mail
 	@echo "Removing mail service containers and volumes..."
 	@docker-compose down mail-server mail-api -v
-	@echo "Mail services cleaned up" 
+	@echo "Mail services cleaned up"
+
+# Send a real test email (usage: make send-test-email EMAIL=your@email.com)
+send-test-email:
+	@if [ -z "$(EMAIL)" ]; then \
+		echo "Please specify an email address: make send-test-email EMAIL=your@email.com"; \
+		exit 1; \
+	fi
+	@echo "Sending a real test email to $(EMAIL)..."
+	@docker exec -it mail-api sh -c 'curl -X POST http://localhost:20001/send \
+	-H "Content-Type: application/json" \
+	-d "{\"to\":\"$(EMAIL)\",\"subject\":\"Dinky Server Test Email\",\"body\":\"This is a test email sent from your Dinky Server at $(shell date). If you received this, your mail system is working properly!\"}"' || \
+	echo "Failed to send email. Check mail-api logs for details: docker logs mail-api" 
