@@ -638,6 +638,20 @@ create_networks() {
     fi
 }
 
+# Configure internal DNS for mail-api
+configure_hosts() {
+    section "Configuring internal DNS"
+    
+    # Add mail-api.local to /etc/hosts if not already present
+    if ! grep -q "mail-api.local" /etc/hosts; then
+        echo "Adding mail-api.local to /etc/hosts"
+        echo "127.0.0.1 mail-api.local" >> /etc/hosts
+        success "Added mail-api.local to /etc/hosts"
+    else
+        success "mail-api.local already in /etc/hosts"
+    fi
+}
+
 # Main function
 main() {
     header "Dinky Server Initialization"
@@ -661,6 +675,9 @@ main() {
     
     # Create Docker networks
     create_networks
+    
+    # Configure internal DNS
+    configure_hosts
     
     # Final message
     header "Initialization Complete"

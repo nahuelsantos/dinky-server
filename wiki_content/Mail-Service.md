@@ -88,27 +88,30 @@ The mail service exposes a simple RESTful API that you can use to send emails:
 From JavaScript (in a website contact form):
 
 ```javascript
-async function sendContactForm(formData) {
+// Example for a Node.js backend
+app.post('/contact', async (req, res) => {
   try {
-    const response = await fetch('https://mail-api.yourdomain.com/send', {
+    const response = await fetch('http://mail-api.local:20001/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to: 'your-email@example.com',
-        subject: 'Contact Form Submission',
-        body: `Name: ${formData.name}\nEmail: ${formData.email}\nMessage: ${formData.message}`,
-      }),
+        to: "hello@yourdomain.com",
+        subject: "Contact Form Submission",
+        body: `Name: ${req.body.name}\nEmail: ${req.body.email}\nMessage: ${req.body.message}`,
+        html: false
+      })
     });
     
-    const data = await response.json();
-    return data;
+    const result = await response.json();
+    if (result.success) {
+      res.status(200).send({ message: "Message sent successfully" });
+    } else {
+      res.status(500).send({ message: "Failed to send message" });
+    }
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw error;
+    res.status(500).send({ message: "An error occurred" });
   }
-}
+});
 ```
 
 ## Troubleshooting
@@ -239,4 +242,26 @@ docker compose -f services/docker-compose.yml up -d
 
 - [API Reference](API-Reference#mail-api)
 - [Environment Variables](Environment-Variables#mail-service-variables)
-- [Local Development](Local-Development#mail-services-development) 
+- [Local Development](Local-Development#mail-services-development)
+
+# Network Configuration
+
+- **SMTP Server**: Exposed on ports 25 and 587 (internal access only)
+- **Mail API**: Exposed via Traefik at `mail-api.local` (internal access only)
+
+### Internal Access Configuration
+
+The mail services are configured for internal access only, meaning:
+
+1. The SMTP server (mail-server) binds to 127.0.0.1, making it accessible only from the local machine
+2. The Mail API is configured with Traefik to be accessible only as `mail-api.local`
+3. No public/external exposure via Cloudflare Tunnel
+
+### DNS Configuration
+
+Add the following to your local hosts file or internal DNS server:
+```
+127.0.0.1 mail-api.local
+```
+
+This is automatically added to the server's /etc/hosts file during installation. 

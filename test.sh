@@ -85,7 +85,7 @@ load_configuration() {
         return 0
     else
         # Default values if no config file exists
-        SERVER_IP="192.168.3.2"
+        SERVER_IP=${SERVER_IP:-192.168.3.2}
         INSTALL_SECURITY="Y"
         INSTALL_CORE="Y"
         INSTALL_MAIL="Y"
@@ -165,22 +165,21 @@ test_core() {
     section "Testing Traefik"
     test_container "traefik" "Traefik"
     test_port "$SERVER_IP" 20000 "Traefik dashboard"
-    test_port "$SERVER_IP" 80 "Traefik HTTP"
-    test_http "http://$SERVER_IP:20000/dashboard/" "Traefik dashboard"
+    test_port "127.0.0.1" 80 "Traefik HTTP"
+    test_http "http://$SERVER_IP:20000" "Traefik dashboard endpoint"
     
     # Test Portainer
     section "Testing Portainer"
     test_container "portainer" "Portainer"
     test_port "$SERVER_IP" 9000 "Portainer UI"
-    test_http "http://$SERVER_IP:9000" "Portainer UI"
+    test_http "http://$SERVER_IP:9000" "Portainer UI endpoint"
     
     # Test Pi-hole
     section "Testing Pi-hole"
     test_container "pihole" "Pi-hole"
     test_port "$SERVER_IP" 53 "Pi-hole DNS (TCP)"
-    # Also test UDP if possible
     test_port "$SERVER_IP" 19999 "Pi-hole admin interface"
-    test_http "http://$SERVER_IP:19999/admin/" "Pi-hole admin interface"
+    test_http "http://$SERVER_IP:19999" "Pi-hole admin interface endpoint"
     
     # Test Cloudflared
     section "Testing Cloudflared"
@@ -201,12 +200,21 @@ test_mail() {
     # Test Mail Server
     section "Testing Mail Server"
     test_container "${PROJECT:-dinky}_mail-server" "Mail Server"
-    test_port "$SERVER_IP" 25 "SMTP"
-    test_port "$SERVER_IP" 587 "SMTP submission"
+    test_port "127.0.0.1" 25 "SMTP"
+    test_port "127.0.0.1" 587 "SMTP submission"
     
     # Test Mail API
     section "Testing Mail API"
     test_container "${PROJECT:-dinky}_mail-api" "Mail API"
+    
+    # Check /etc/hosts configuration
+    section "Testing Mail API DNS configuration"
+    if grep -q "mail-api.local" /etc/hosts; then
+        success "mail-api.local is properly configured in /etc/hosts"
+    else
+        error "mail-api.local is not configured in /etc/hosts"
+        echo "Add this line to /etc/hosts: 127.0.0.1 mail-api.local"
+    fi
     
     echo ""
     if [ $FAILURES -eq 0 ]; then

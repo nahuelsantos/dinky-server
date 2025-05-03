@@ -11,8 +11,8 @@ services:
       - traefik_network
       - mail-internal
     ports:
-      - "${SERVER_IP:-127.0.0.1}:25:25"   # SMTP
-      - "${SERVER_IP:-127.0.0.1}:587:587" # Submission
+      - "127.0.0.1:25:25"   # SMTP (internal access only)
+      - "127.0.0.1:587:587" # SMTP submission (internal access only)
     volumes:
       - mail-data:/var/mail
       - mail-logs:/var/log/mail
@@ -76,15 +76,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    # Internal access only - accessible only on local network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mail-api.rule=Host(`mail-api.${DOMAIN_NAME:-dinky.local}`)"
+      - "traefik.http.routers.mail-api.rule=Host(`mail-api.local`)"
       - "traefik.http.routers.mail-api.service=mail-api"
       - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
-      # These labels are applied based on environment
-      - "traefik.http.routers.mail-api.entrypoints=${TRAEFIK_ENTRYPOINT:-web}"
-      - "traefik.http.routers.mail-api.tls=${ENABLE_TLS:-false}"
-      - "traefik.http.routers.mail-api.middlewares=${MIDDLEWARE_CHAIN:-}"
     logging:
       driver: "json-file"
       options:

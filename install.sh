@@ -251,6 +251,7 @@ EOF
     export ENABLE_TLS=true
     export RESTART_POLICY=always
     export MIDDLEWARE_CHAIN=secured@file
+    export SERVER_IP=${SERVER_IP:-192.168.3.2}
     
     # Set SSL paths for production
     if [ -d "/etc/letsencrypt/live/${DOMAIN_NAME}" ]; then

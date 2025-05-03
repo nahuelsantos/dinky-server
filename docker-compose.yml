@@ -20,6 +20,7 @@ services:
       - --configFile=/etc/traefik/traefik.yml
     ports:
       - "20000:8080"  # Traefik dashboard (internal access only)
+      - "127.0.0.1:80:80"  # HTTP (internal access only, cloudflared tunnels traffic)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -125,11 +126,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    # Internal access only, no public exposure via Traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mail-api-secure.entrypoints=https"
-      - "traefik.http.routers.mail-api-secure.rule=Host(`mail-api.${DOMAIN:-dinky.local}`)"
-      - "traefik.http.routers.mail-api-secure.service=mail-api"
+      - "traefik.http.routers.mail-api.rule=Host(`mail-api.local`)"
+      - "traefik.http.routers.mail-api.service=mail-api"
       - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
     logging:
       driver: "json-file"
@@ -275,3 +276,8 @@ networks:
     external: true
   mail-internal:
     driver: bridge
+
+x-common-variables: &common-variables
+  DOMAIN_NAME: ${DOMAIN_NAME:-nahuelsantos.com}
+  SERVER_IP: ${SERVER_IP:-192.168.3.2}
+  TZ: ${TZ:-America/Argentina/Buenos_Aires}
