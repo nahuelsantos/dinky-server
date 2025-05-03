@@ -70,7 +70,6 @@ create_directories() {
     section "Creating necessary directories"
     
     # Create directories
-    mkdir -p services/mail-server-logs
     mkdir -p services/mail-server/sasl
     mkdir -p monitoring/grafana
     mkdir -p monitoring/prometheus

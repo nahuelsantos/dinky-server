@@ -35,9 +35,9 @@ setup-local-mail:
 	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
 	
 	@# Create necessary directories
-	@mkdir -p services/mail-server-logs
 	@mkdir -p services/mail-server/sasl
 	@touch services/mail-server/sasl/sasl_passwd
+	@chmod 600 services/mail-server/sasl/sasl_passwd
 	
 	@# Check if Docker is running
 	@docker info > /dev/null 2>&1 || { echo "Error: Docker is not running. Please start Docker and try again."; exit 1; }

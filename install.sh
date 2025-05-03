@@ -123,7 +123,6 @@ create_directories() {
     section "Creating required directories"
     
     # Create directories if they don't exist
-    mkdir -p services/mail-server-logs
     mkdir -p services/mail-server/sasl
     touch services/mail-server/sasl/sasl_passwd
     
