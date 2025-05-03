@@ -49,7 +49,7 @@ Before deploying to production, ensure you have:
 ### Basic Infrastructure Deployment
 
 ```bash
-docker-compose -f docker-compose.yml --env-file .env.prod up -d
+docker compose -f docker-compose.yml --env-file .env.prod up -d
 ```
 
 This will:
@@ -61,13 +61,13 @@ This will:
 ### Mail Service Deployment
 
 ```bash
-docker-compose -f services/docker-compose.mail.prod.yml --env-file services/.env.mail.prod up -d
+docker compose -f services/docker-compose.yml --env-file services/.env.mail up -d
 ```
 
 ### Monitoring Stack Deployment
 
 ```bash
-docker-compose -f monitoring/docker-compose.yml --env-file .env.prod up -d
+docker compose -f monitoring/docker-compose.yml --env-file .env.prod up -d
 ```
 
 ## Post-Deployment Verification
@@ -121,7 +121,7 @@ To update your Dinky Server:
 
 ```bash
 git pull
-docker-compose -f docker-compose.yml --env-file .env.prod up -d
+docker compose -f docker-compose.yml --env-file .env.prod up -d
 ```
 
 ## Troubleshooting

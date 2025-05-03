@@ -29,7 +29,7 @@ curl -X POST http://mail-api.local:20001/send \
 
 echo ""
 echo "Request sent. Check the mail-server logs for delivery status:"
-echo "docker logs mail-server"
+echo "docker logs ${PROJECT:-dinky}_mail-server"
 echo ""
 echo "Note: In the local environment, SMTP is available at:"
 echo "- localhost:2525 (standard SMTP)"

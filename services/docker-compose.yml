@@ -1,0 +1,102 @@
+services:
+  mail-server:
+    image: alpine:3.18
+    build:
+      context: ./mail-server
+      dockerfile: Dockerfile
+    container_name: ${PROJECT:-dinky}_mail-server
+    hostname: ${MAIL_HOSTNAME:-mail.dinky.local}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+      - traefik_network
+      - mail-internal
+    ports:
+      - "${SERVER_IP:-127.0.0.1}:25:25"   # SMTP
+      - "${SERVER_IP:-127.0.0.1}:587:587" # Submission
+    volumes:
+      - mail-data:/var/mail
+      - mail-logs:/var/log/mail
+      - ${SSL_CERT_PATH:-./mail-server/certs/fullchain.pem}:/etc/ssl/certs/cert.pem:ro
+      - ${SSL_KEY_PATH:-./mail-server/certs/privkey.pem}:/etc/ssl/private/key.pem:ro
+    environment:
+      - TZ=${TZ:-America/Argentina/Buenos_Aires}
+      - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
+      - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
+      - RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
+      - RELAY_PORT=${SMTP_RELAY_PORT:-587}
+      - RELAY_USER=${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
+      - RELAY_PASSWORD=${SMTP_RELAY_PASSWORD:-your-gmail-app-password}
+      - USE_TLS=${USE_TLS:-yes}
+      - TLS_VERIFY=${TLS_VERIFY:-yes}
+      - DEFAULT_USER=${MAIL_USER:-admin}
+      - DEFAULT_PASS=${MAIL_PASSWORD:-password}
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "25"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mail-api:
+    image: node:18-alpine
+    build:
+      context: ../apis/mail-api
+      dockerfile: Dockerfile
+    container_name: ${PROJECT:-dinky}_mail-api
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+      - traefik_network
+      - mail-internal
+    depends_on:
+      - mail-server
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=20001
+      - SMTP_HOST=mail-server
+      - SMTP_PORT=25
+      - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
+      - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
+      - MAIL_PORT=${MAIL_PORT:-25}
+      - MAIL_USER=${MAIL_USER:-admin}
+      - MAIL_PASS=${MAIL_PASSWORD:-password}
+      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - MAIL_SECURE=${MAIL_SECURE:-false}
+      - FORWARD_EMAIL=${FORWARD_EMAIL:-}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-dinky.local}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:20001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mail-api.rule=Host(`mail-api.${DOMAIN_NAME:-dinky.local}`)"
+      - "traefik.http.routers.mail-api.service=mail-api"
+      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
+      # These labels are applied based on environment
+      - "traefik.http.routers.mail-api.entrypoints=${TRAEFIK_ENTRYPOINT:-web}"
+      - "traefik.http.routers.mail-api.tls=${ENABLE_TLS:-false}"
+      - "traefik.http.routers.mail-api.middlewares=${MIDDLEWARE_CHAIN:-}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mail-data:
+  mail-logs:
+
+networks:
+  traefik_network:
+    external: true
+  mail-internal:
+    external: false 

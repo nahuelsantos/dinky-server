@@ -45,7 +45,7 @@ cp .env.example .env
 docker compose up -d
 
 # Deploy mail services
-docker compose -f services/docker-compose.mail.local.yml up -d
+docker compose -f services/docker-compose.yml up -d
 ```
 
 ## Features

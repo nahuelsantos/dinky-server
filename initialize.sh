@@ -16,6 +16,20 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 cd "$SCRIPT_DIR" || { echo "Failed to change directory to script directory"; exit 1; }
 
+# Determine Docker Compose command
+determine_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        success "Using docker-compose command"
+    elif docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        success "Using docker compose command"
+    else
+        warning "Neither docker-compose nor docker compose found. Will be installed during setup."
+        DOCKER_COMPOSE_CMD="docker compose"
+    fi
+}
+
 # Print section header
 header() {
     echo -e "\n${BLUE}======================================================${NC}"
@@ -173,6 +187,24 @@ EOF
     else
         success ".env file exists"
     fi
+    
+    # Create mail environment example file if needed
+    if [ ! -f "services/.env.mail.example" ]; then
+        warning "services/.env.mail.example file not found, creating one..."
+        
+        mkdir -p services
+        cat > services/.env.mail.example << EOF
+# Mail server configuration
+MAIL_DOMAIN=nahuelsantos.com
+MAIL_HOSTNAME=mail.nahuelsantos.com
+DEFAULT_FROM=noreply@nahuelsantos.com
+ALLOWED_HOSTS=nahuelsantos.com,loopingbyte.com
+EOF
+        
+        success "Created services/.env.mail.example file"
+    else
+        success "services/.env.mail.example file exists"
+    fi
 }
 
 # Check for docker-compose.yml
@@ -185,6 +217,390 @@ check_docker_compose() {
     else
         success "docker-compose.yml file exists"
     fi
+    
+    # Check for mail compose file
+    if [ ! -f "services/docker-compose.yml" ]; then
+        warning "services/docker-compose.yml not found. Mail services may not work."
+        warning "Creating a basic services/docker-compose.yml file..."
+        
+        # Create the basic file
+        mkdir -p services
+        cp -f "$(dirname "$0")/services/docker-compose.yml" services/docker-compose.yml 2>/dev/null || cat > services/docker-compose.yml << EOF
+version: '3'
+
+# Consolidated Docker Compose file for all mail services
+# Supports both local and production environments through environment variables
+
+services:
+  mail-server:
+    image: alpine:3.18
+    build:
+      context: ./mail-server
+      dockerfile: Dockerfile
+    container_name: \${PROJECT:-dinky}_mail-server
+    hostname: \${MAIL_HOSTNAME:-mail.dinky.local}
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    ports:
+      - "\${SERVER_IP:-127.0.0.1}:25:25"   # SMTP
+      - "\${SERVER_IP:-127.0.0.1}:587:587" # Submission
+    volumes:
+      - mail-data:/var/mail
+      - mail-logs:/var/log/mail
+      - \${SSL_CERT_PATH:-./mail-server/certs/fullchain.pem}:/etc/ssl/certs/cert.pem:ro
+      - \${SSL_KEY_PATH:-./mail-server/certs/privkey.pem}:/etc/ssl/private/key.pem:ro
+    environment:
+      - TZ=\${TZ:-America/Argentina/Buenos_Aires}
+      - MAIL_DOMAIN=\${MAIL_DOMAIN:-dinky.local}
+      - MAIL_HOSTNAME=\${MAIL_HOSTNAME:-mail.dinky.local}
+      - RELAY_HOST=\${SMTP_RELAY_HOST:-smtp.gmail.com}
+      - RELAY_PORT=\${SMTP_RELAY_PORT:-587}
+      - RELAY_USER=\${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
+      - RELAY_PASSWORD=\${SMTP_RELAY_PASSWORD:-your-gmail-app-password}
+      - USE_TLS=\${USE_TLS:-yes}
+      - TLS_VERIFY=\${TLS_VERIFY:-yes}
+      - DEFAULT_USER=\${MAIL_USER:-admin}
+      - DEFAULT_PASS=\${MAIL_PASSWORD:-password}
+      - DEFAULT_FROM=\${DEFAULT_FROM:-noreply@dinky.local}
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "25"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mail-api:
+    image: node:18-alpine
+    build:
+      context: ../apis/mail-api
+      dockerfile: Dockerfile
+    container_name: \${PROJECT:-dinky}_mail-api
+    restart: unless-stopped
+    networks:
+      - traefik_network
+      - mail-internal
+    depends_on:
+      - mail-server
+    environment:
+      - NODE_ENV=\${NODE_ENV:-production}
+      - PORT=20001
+      - SMTP_HOST=mail-server
+      - SMTP_PORT=25
+      - MAIL_DOMAIN=\${MAIL_DOMAIN:-dinky.local}
+      - MAIL_HOSTNAME=\${MAIL_HOSTNAME:-mail.dinky.local}
+      - DEFAULT_FROM=\${DEFAULT_FROM:-noreply@dinky.local}
+      - ALLOWED_HOSTS=\${ALLOWED_HOSTS:-dinky.local}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:20001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mail-api.rule=Host(\`mail-api.\${DOMAIN_NAME:-dinky.local}\`)"
+      - "traefik.http.routers.mail-api.service=mail-api"
+      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
+      # These labels are only applied in production
+      - "traefik.http.routers.mail-api.entrypoints=\${TRAEFIK_ENTRYPOINT:-web}"
+      - "traefik.http.routers.mail-api.tls=\${ENABLE_TLS:-false}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mail-data:
+  mail-logs:
+
+networks:
+  traefik_network:
+    external: true
+  mail-internal:
+    external: false
+EOF
+        success "Created services/docker-compose.yml file"
+    else
+        success "Mail compose file exists"
+    fi
+}
+
+# Ensure mail service Dockerfiles exist
+check_mail_services() {
+    section "Checking mail service files"
+    
+    # Check for mail server Dockerfile
+    if [ ! -f "services/mail-server/Dockerfile" ]; then
+        warning "services/mail-server/Dockerfile not found, creating a basic one..."
+        
+        mkdir -p services/mail-server
+        cat > services/mail-server/Dockerfile << EOF
+FROM alpine:3.18
+
+# Install packages with corrected package names that work on ARM architectures
+RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain openssl || \\
+    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5 openssl
+
+# Create necessary directories
+RUN mkdir -p /etc/postfix/sasl /var/spool/mail
+
+# Copy configuration files
+COPY ./postfix-main.cf /etc/postfix/main.cf
+COPY ./sasl/sasl_passwd /etc/postfix/sasl/sasl_passwd
+COPY ./start.sh /start.sh
+
+# Set permissions and prepare the environment
+RUN chmod +x /start.sh && \\
+    chmod 600 /etc/postfix/sasl/sasl_passwd && \\
+    touch /var/log/mail.log && \\
+    update-ca-certificates && \\
+    postmap /etc/postfix/sasl/sasl_passwd && \\
+    chmod 600 /etc/postfix/sasl/sasl_passwd.db || true
+
+EXPOSE 25 587
+
+CMD ["/start.sh"]
+EOF
+        
+        success "Created mail server Dockerfile"
+    else
+        success "Mail server Dockerfile exists"
+    fi
+    
+    # Check for mail server configuration files
+    if [ ! -f "services/mail-server/postfix-main.cf" ]; then
+        warning "services/mail-server/postfix-main.cf not found, creating a basic one..."
+        
+        cat > services/mail-server/postfix-main.cf << EOF
+# Basic Postfix configuration
+myhostname = \$MAIL_HOSTNAME
+mydomain = \$MAIL_DOMAIN
+myorigin = \$mydomain
+
+inet_interfaces = all
+inet_protocols = all
+
+# Mail directories
+mail_owner = postfix
+mailbox_size_limit = 0
+recipient_delimiter = +
+append_dot_mydomain = no
+
+# TLS parameters
+smtp_use_tls = yes
+smtp_tls_security_level = may
+smtp_tls_loglevel = 1
+smtpd_tls_security_level = may
+smtpd_tls_loglevel = 1
+smtpd_tls_received_header = yes
+
+# SMTP relay settings (if using external relay)
+relayhost = [\$RELAY_HOST]:\$RELAY_PORT
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+
+# Recipient restrictions
+smtpd_recipient_restrictions = permit_mynetworks permit_sasl_authenticated reject_unauth_destination
+
+# Other settings
+disable_vrfy_command = yes
+smtpd_helo_required = yes
+strict_rfc821_envelopes = yes
+EOF
+        
+        success "Created postfix-main.cf"
+    else
+        success "postfix-main.cf exists"
+    fi
+    
+    # Check for start script
+    if [ ! -f "services/mail-server/start.sh" ]; then
+        warning "services/mail-server/start.sh not found, creating a basic one..."
+        
+        cat > services/mail-server/start.sh << EOF
+#!/bin/sh
+# Mail server startup script
+
+# Update postfix settings with environment variables
+postconf -e "myhostname = \$MAIL_HOSTNAME"
+postconf -e "mydomain = \$MAIL_DOMAIN"
+postconf -e "myorigin = \$MAIL_DOMAIN"
+
+# Configure relayhost if relay settings are provided
+if [ -n "\$RELAY_HOST" ] && [ -n "\$RELAY_PORT" ]; then
+    echo "Setting up SMTP relay to \$RELAY_HOST:\$RELAY_PORT"
+    postconf -e "relayhost = [\$RELAY_HOST]:\$RELAY_PORT"
+    
+    # Setup SMTP relay with credentials if they exist
+    if [ -n "\$RELAY_USER" ] && [ -n "\$RELAY_PASSWORD" ]; then
+        echo "[\$RELAY_HOST]:\$RELAY_PORT \$RELAY_USER:\$RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
+        postmap /etc/postfix/sasl/sasl_passwd
+        postconf -e "smtp_sasl_auth_enable = yes"
+        postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd"
+        postconf -e "smtp_sasl_security_options = noanonymous"
+    fi
+    
+    # Configure TLS
+    if [ "\$USE_TLS" = "yes" ]; then
+        postconf -e "smtp_use_tls = yes"
+        postconf -e "smtp_tls_security_level = may"
+        
+        if [ "\$TLS_VERIFY" = "yes" ]; then
+            postconf -e "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt"
+        else
+            postconf -e "smtp_tls_CAfile = "
+            postconf -e "smtp_tls_wrappermode = yes"
+        fi
+    fi
+else
+    echo "No relay host configured, mail server will deliver directly"
+fi
+
+# Start services
+echo "Starting mail server..."
+postfix start
+
+# Keep container running and tail logs
+echo "Mail server started, tailing logs..."
+touch /var/log/mail.log
+tail -f /var/log/mail.log
+EOF
+        
+        chmod +x services/mail-server/start.sh
+        success "Created start.sh"
+    else
+        success "start.sh exists"
+    fi
+    
+    # Check for mail API Dockerfile
+    if [ ! -d "apis/mail-api" ]; then
+        warning "apis/mail-api directory not found, creating basic API files..."
+        
+        mkdir -p apis/mail-api
+        
+        # Create Dockerfile
+        cat > apis/mail-api/Dockerfile << EOF
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source
+COPY . .
+
+# Expose port
+EXPOSE 20001
+
+# Start application
+CMD ["node", "index.js"]
+EOF
+        
+        # Create package.json
+        cat > apis/mail-api/package.json << EOF
+{
+  "name": "mail-api",
+  "version": "1.0.0",
+  "description": "Simple mail API for Dinky Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.1",
+    "cors": "^2.8.5"
+  }
+}
+EOF
+        
+        # Create index.js
+        cat > apis/mail-api/index.js << EOF
+const express = require('express');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
+
+const app = express();
+const PORT = process.env.PORT || 20001;
+
+// Configure allowed hosts
+const allowedHosts = process.env.ALLOWED_HOSTS 
+  ? process.env.ALLOWED_HOSTS.split(',').map(host => host.trim())
+  : ['localhost'];
+
+// Configure CORS
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedHosts.some(host => origin.includes(host))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
+
+// Parse JSON bodies
+app.use(express.json());
+
+// Configure mail transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'mail-server',
+  port: process.env.SMTP_PORT || 25,
+  secure: process.env.MAIL_SECURE === 'true'
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Send email endpoint
+app.post('/send', async (req, res) => {
+  try {
+    const { to, subject, body, from = process.env.DEFAULT_FROM } = req.body;
+    
+    if (!to || !subject || !body) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const mailOptions = {
+      from,
+      to,
+      subject,
+      text: body,
+      html: body.replace(/\\n/g, '<br>')
+    };
+    
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: 'Failed to send email', details: error.message });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(\`Mail API server running on port \${PORT}\`);
+});
+EOF
+        
+        success "Created basic mail API files"
+    else
+        success "Mail API files exist"
+    fi
 }
 
 # Ensure Docker networks exist
@@ -196,6 +612,9 @@ create_networks() {
         warning "Docker is not installed or not in PATH. Networks will be created during installation."
         return
     fi
+    
+    # Determine Docker Compose command
+    determine_docker_compose_cmd
     
     # Check if Docker can be run
     if ! docker ps &> /dev/null; then
@@ -236,6 +655,9 @@ main() {
     
     # Check for docker-compose.yml
     check_docker_compose
+    
+    # Check mail services
+    check_mail_services
     
     # Create Docker networks
     create_networks

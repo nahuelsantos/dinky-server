@@ -56,7 +56,7 @@ make stop-local-mail
 
 2. Deploy mail services:
    ```bash
-   docker-compose -f docker-compose.mail.prod.yml --env-file .env.mail.prod up -d
+   ENVIRONMENT=production docker compose -f docker-compose.yml --env-file .env.mail.prod up -d
    ```
 
 ## API Usage
@@ -142,12 +142,12 @@ dinky-server/
 ├── services/
 │   ├── mail-server/        # Postfix SMTP server
 │   │   └── ufw-setup.sh    # Firewall configuration script
-│   └── docker-compose.mail.yml  # Combined Docker Compose file
+│   └── docker-compose.yml  # Consolidated Docker Compose file
 ├── apis/
-│   └── mail-api/           # Go API for sending emails
+│   └── mail-api/           # API for sending emails
 ```
 
 ## Maintenance
 
 - Mail logs are stored in the `mail-logs` volume
-- Sent emails are stored in the `
+- Check the [Mail Service Wiki](../wiki_content/Mail-Service.md) for troubleshooting and maintenance tips

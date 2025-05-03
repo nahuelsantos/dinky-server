@@ -64,7 +64,7 @@ To add custom metrics to your monitoring stack:
 3. Add a new scrape job to the `prometheus/prometheus.yml` file
 4. Restart the monitoring stack:
    ```bash
-   docker-compose -f services/docker-compose.monitoring.yml restart
+   docker compose -f services/docker-compose.monitoring.yml restart
    ```
 
 ## Troubleshooting

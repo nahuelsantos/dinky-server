@@ -10,13 +10,13 @@ This guide helps you diagnose and fix common issues with Dinky Server.
 
 2. **View logs**:
    ```bash
-   docker-compose -f services/docker-compose.[service].yml logs -f
+   docker compose -f services/docker-compose.[service].yml logs -f
    ```
    Replace `[service]` with the relevant service file (e.g., mail, traefik).
 
 3. **Restart services**:
    ```bash
-   docker-compose -f services/docker-compose.[service].yml restart
+   docker compose -f services/docker-compose.[service].yml restart
    ```
 
 4. **Check Docker networks**:
@@ -62,7 +62,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Check mail server logs:
    ```bash
-   docker-compose -f services/docker-compose.mail.prod.yml logs mail-server
+   docker compose -f services/docker-compose.yml logs mail-server
    ```
 
 2. Verify DNS configuration:
@@ -75,7 +75,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 4. View the mail queue:
    ```bash
-   docker exec -it mail-server mailq
+   docker exec -it ${PROJECT:-dinky}_mail-server mailq
    ```
 
 #### Authentication Failures
@@ -86,7 +86,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Reset admin password:
    ```bash
-   docker exec -it mail-server setup email add admin@yourdomain.com yourpassword
+   docker exec -it ${PROJECT:-dinky}_mail-server setup email add admin@yourdomain.com yourpassword
    ```
 
 2. Check environment variables in `.env` file:
@@ -103,7 +103,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Check API logs:
    ```bash
-   docker-compose -f services/docker-compose.api.yml logs api
+   docker compose -f services/docker-compose.api.yml logs api
    ```
 
 2. Verify API container is running:
@@ -113,7 +113,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 3. Restart the API:
    ```bash
-   docker-compose -f services/docker-compose.api.yml restart api
+   docker compose -f services/docker-compose.api.yml restart api
    ```
 
 #### Website Not Loading
@@ -124,7 +124,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Check Traefik logs:
    ```bash
-   docker-compose -f services/docker-compose.traefik.yml logs traefik
+   docker compose -f services/docker-compose.traefik.yml logs traefik
    ```
 
 2. Verify Traefik routes:
@@ -146,7 +146,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 1. Check Grafana logs:
    ```bash
-   docker-compose -f services/docker-compose.monitoring.yml logs grafana
+   docker compose -f services/docker-compose.monitoring.yml logs grafana
    ```
 
 2. Reset Grafana admin password:
@@ -166,7 +166,7 @@ sudo chown -R 1000:1000 /path/to/volume/data
 
 2. Verify Prometheus configuration:
    ```bash
-   docker-compose -f services/docker-compose.monitoring.yml exec prometheus promtool check config /etc/prometheus/prometheus.yml
+   docker compose -f services/docker-compose.monitoring.yml exec prometheus promtool check config /etc/prometheus/prometheus.yml
    ```
 
 ## Advanced Troubleshooting
@@ -204,9 +204,7 @@ If you need to start fresh:
 ```bash
 # Stop all containers
 docker compose -f services/docker-compose.traefik.yml down
-docker compose -f services/docker-compose.mail.yml down
-docker compose -f services/docker-compose.monitoring.yml down
-docker compose -f services/docker-compose.api.yml down
+docker compose -f services/docker-compose.yml down
 
 # Remove volumes (CAUTION: This will delete all data)
 docker volume prune -f

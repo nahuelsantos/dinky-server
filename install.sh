@@ -19,6 +19,20 @@ cd "$SCRIPT_DIR" || { echo "Failed to change directory to script directory"; exi
 DEFAULT_IP="192.168.3.2"
 CONFIG_FILE="install.conf"
 
+# Determine Docker Compose command
+determine_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        success "Using docker-compose command"
+    elif docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        success "Using docker compose command"
+    else
+        error "Neither docker-compose nor docker compose found"
+        exit 1
+    fi
+}
+
 # Header display function
 header() {
     echo -e "\n${BLUE}======================================================${NC}"
@@ -69,15 +83,18 @@ check_requirements() {
         success "Docker is installed"
     fi
     
-    # Check for Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        warning "Docker Compose not found. Installing Docker Compose..."
+    # Check for Docker Compose (either as a plugin or standalone)
+    if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+        warning "Docker Compose not found. Installing Docker Compose plugin..."
         apt-get update
         apt-get install -y docker-compose-plugin
         success "Docker Compose installed"
     else
         success "Docker Compose is installed"
     fi
+    
+    # Determine Docker Compose command
+    determine_docker_compose_cmd
     
     # Check for curl
     if ! command -v curl &> /dev/null; then
@@ -181,9 +198,31 @@ install_core() {
     fi
     
     # Start core services
-    docker compose up -d traefik cloudflared pihole portainer
+    $DOCKER_COMPOSE_CMD up -d traefik cloudflared pihole portainer
     
     success "Core infrastructure installed and running"
+}
+
+# Check and update service images in docker-compose.yml files
+update_services_images() {
+    section "Checking service image references"
+    
+    # Update mail service Dockerfiles if they reference the wrong image tag format
+    if [ -f "services/docker-compose.yml" ]; then
+        # Fixed image names instead of using variables that might resolve incorrectly
+        sed -i 's|image: ${REGISTRY}/${PROJECT}/mail-server:${TAG}|image: alpine:3.18|g' services/docker-compose.yml
+        sed -i 's|image: ${REGISTRY}/${PROJECT}/mail-api:${TAG}|image: node:18-alpine|g' services/docker-compose.yml
+        
+        # Add build contexts if they don't exist
+        if ! grep -q "build:" services/docker-compose.yml; then
+            sed -i '/image: alpine:3.18/a\    build:\n      context: ./mail-server\n      dockerfile: Dockerfile' services/docker-compose.yml
+            sed -i '/image: node:18-alpine/a\    build:\n      context: ../apis/mail-api\n      dockerfile: Dockerfile' services/docker-compose.yml
+        fi
+        
+        success "Updated mail service image references"
+    else
+        warning "Could not find services/docker-compose.yml"
+    fi
 }
 
 # Install mail services
@@ -194,10 +233,36 @@ install_mail() {
     if [ ! -f services/.env.mail ] && [ -f services/.env.mail.example ]; then
         cp services/.env.mail.example services/.env.mail
         warning "Created mail environment file. Please edit it with your settings."
+    elif [ ! -f services/.env.mail ] && [ ! -f services/.env.mail.example ]; then
+        warning "Mail environment files not found. Creating a basic one."
+        cat > services/.env.mail << EOF
+# Mail server configuration
+MAIL_DOMAIN=${DOMAIN_NAME:-nahuelsantos.com}
+MAIL_HOSTNAME=mail.${DOMAIN_NAME:-nahuelsantos.com}
+DEFAULT_FROM=noreply@${DOMAIN_NAME:-nahuelsantos.com}
+ALLOWED_HOSTS=${DOMAIN_NAME:-nahuelsantos.com}
+EOF
     fi
     
-    # Install and start mail services in production mode
-    docker compose -f services/docker-compose.mail.yml -f services/docker-compose.mail.prod.yml up -d
+    # Build mail services first
+    section "Building mail services"
+    export ENVIRONMENT=production
+    export TRAEFIK_ENTRYPOINT=https
+    export ENABLE_TLS=true
+    export RESTART_POLICY=always
+    export MIDDLEWARE_CHAIN=secured@file
+    
+    # Set SSL paths for production
+    if [ -d "/etc/letsencrypt/live/${DOMAIN_NAME}" ]; then
+        export SSL_CERT_PATH=/etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem
+        export SSL_KEY_PATH=/etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem
+    fi
+    
+    $DOCKER_COMPOSE_CMD -f services/docker-compose.yml build
+    
+    # Install and start mail services
+    section "Starting mail services"
+    $DOCKER_COMPOSE_CMD -f services/docker-compose.yml up -d
     
     success "Mail services installed and running"
 }
@@ -208,12 +273,12 @@ install_websites() {
     
     # Install nahuelsantos.com
     section "Installing nahuelsantos.com"
-    docker compose -f sites/nahuelsantos/docker-compose.yml up -d
+    $DOCKER_COMPOSE_CMD -f sites/nahuelsantos/docker-compose.yml up -d
     success "nahuelsantos.com installed"
     
     # Install loopingbyte.com
     section "Installing loopingbyte.com"
-    docker compose -f sites/loopingbyte/docker-compose.yml up -d
+    $DOCKER_COMPOSE_CMD -f sites/loopingbyte/docker-compose.yml up -d
     success "loopingbyte.com installed"
 }
 
@@ -226,7 +291,7 @@ install_monitoring() {
         bash monitoring/setup-monitoring.sh
     else
         # Start monitoring stack directly
-        docker compose up -d prometheus loki promtail tempo pyroscope grafana otel-collector
+        $DOCKER_COMPOSE_CMD up -d prometheus loki promtail tempo pyroscope grafana otel-collector
     fi
     
     success "Monitoring stack installed and running"

@@ -56,19 +56,20 @@ run-local-mail: setup-local-mail create-network
 	
 	@# Clean up any previous failed builds
 	@echo "Cleaning up any previous failed builds..."
-	@cd services && docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml down --remove-orphans 2>/dev/null || true
+	@cd services && docker compose -f docker-compose.yml down --remove-orphans 2>/dev/null || true
 	
 	@# Build and start the containers
 	@cd services && \
-	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml build || { \
+	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development docker compose -f docker-compose.yml build || { \
 		echo "Error building services. See above for details."; \
 		exit 1; \
 	}
 	
 	@cd services && \
-	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml up -d || { \
+	DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development TRAEFIK_ENTRYPOINT=web ENABLE_TLS=false \
+	SERVER_IP=127.0.0.1 RESTART_POLICY=no NODE_ENV=development docker compose -f docker-compose.yml up -d || { \
 		echo "Error starting services. Checking logs..."; \
-		docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml logs; \
+		docker compose -f docker-compose.yml logs; \
 		exit 1; \
 	}
 	
@@ -94,7 +95,7 @@ restart-local-mail: stop-local-mail
 stop-local-mail:
 	@echo "Stopping mail services..."
 	@cd services && \
-	docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml down
+	docker compose -f docker-compose.yml down
 	@echo "Mail services stopped"
 
 # Test mail API
@@ -117,14 +118,14 @@ test-mail-server:
 # View logs
 logs-mail:
 	@echo "Viewing mail server logs..."
-	@docker logs mail-server 2>&1 || echo "Mail server container not running"
+	@docker logs ${PROJECT:-dinky}_mail-server 2>&1 || echo "Mail server container not running"
 	@echo ""
 	@echo "Viewing mail API logs..."
-	@docker logs mail-api 2>&1 || echo "Mail API container not running"
+	@docker logs ${PROJECT:-dinky}_mail-api 2>&1 || echo "Mail API container not running"
 
 # Clean up everything
 clean-local-mail: stop-local-mail
 	@echo "Removing mail service containers and volumes..."
 	@cd services && \
-	docker-compose -f docker-compose.mail.yml -f docker-compose.mail.local.yml down -v
+	docker compose -f docker-compose.yml down -v
 	@echo "Mail services cleaned up" 

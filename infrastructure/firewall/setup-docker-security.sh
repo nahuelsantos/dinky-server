@@ -155,7 +155,7 @@ echo "Starting Docker socket proxy..."
 if command -v docker compose &> /dev/null; then
   cd /opt/docker-security && docker compose -f docker-socket-proxy.yml up -d
 elif command -v docker-compose &> /dev/null; then
-  cd /opt/docker-security && docker-compose -f docker-socket-proxy.yml up -d
+  cd /opt/docker-security && docker compose -f docker-socket-proxy.yml up -d
 else
   echo "WARNING: Neither 'docker compose' nor 'docker-compose' command found."
   echo "Please install Docker Compose and then start the Docker socket proxy manually with:"

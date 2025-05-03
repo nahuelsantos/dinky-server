@@ -130,10 +130,10 @@ Or view the logs for specific containers:
 
 ```bash
 # Mail API logs
-docker logs mail-api
+docker logs ${PROJECT:-dinky}_mail-api
 
 # Mail server logs
-docker logs mail-server
+docker logs ${PROJECT:-dinky}_mail-server
 ```
 
 ## Integrating with Local Web Applications

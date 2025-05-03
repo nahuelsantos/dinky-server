@@ -16,6 +16,20 @@ FAILURES=0
 SUCCESSES=0
 CONFIG_FILE="install.conf"
 
+# Determine Docker Compose command
+determine_docker_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        success "Using docker-compose command"
+    elif docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        success "Using docker compose command"
+    else
+        error "Neither docker-compose nor docker compose found"
+        exit 1
+    fi
+}
+
 # Header display function
 header() {
     echo -e "\n${BLUE}======================================================${NC}"
@@ -51,11 +65,17 @@ check_docker() {
     
     if systemctl is-active --quiet docker; then
         success "Docker service is running"
+    elif pgrep -x "dockerd" > /dev/null; then
+        # Alternative check for macOS or systems not using systemd
+        success "Docker service is running"
     else
         error "Docker service is not running"
         echo "Try starting Docker with: sudo systemctl start docker"
         exit 1
     fi
+    
+    # Determine Docker Compose command
+    determine_docker_compose_cmd
 }
 
 # Load configuration if it exists
@@ -95,12 +115,22 @@ test_port() {
     local port=$2
     local service=$3
     
-    if nc -z -w 2 "$host" "$port"; then
-        success "$service port $port is open"
-        return 0
+    if command -v nc &> /dev/null; then
+        if nc -z -w 2 "$host" "$port"; then
+            success "$service port $port is open"
+            return 0
+        else
+            error "$service port $port is closed"
+            return 1
+        fi
     else
-        error "$service port $port is closed"
-        return 1
+        if timeout 2 bash -c "</dev/tcp/$host/$port"; then
+            success "$service port $port is open"
+            return 0
+        else
+            error "$service port $port is closed"
+            return 1
+        fi
     fi
 }
 
@@ -111,14 +141,19 @@ test_http() {
     local expected_status=${3:-200}
     
     # Use curl to test HTTP endpoint with timeout
-    local status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url")
-    
-    if [ "$status" = "$expected_status" ]; then
-        success "$service endpoint is responsive (HTTP $status)"
-        return 0
+    if command -v curl &> /dev/null; then
+        local status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url")
+        
+        if [ "$status" = "$expected_status" ]; then
+            success "$service endpoint is responsive (HTTP $status)"
+            return 0
+        else
+            error "$service endpoint returned HTTP $status (expected $expected_status)"
+            return 1
+        fi
     else
-        error "$service endpoint returned HTTP $status (expected $expected_status)"
-        return 1
+        warning "curl not installed, skipping HTTP test for $service"
+        return 0
     fi
 }
 
@@ -165,13 +200,13 @@ test_mail() {
     
     # Test Mail Server
     section "Testing Mail Server"
-    test_container "mail-server" "Mail Server"
+    test_container "${PROJECT:-dinky}_mail-server" "Mail Server"
     test_port "$SERVER_IP" 25 "SMTP"
     test_port "$SERVER_IP" 587 "SMTP submission"
     
     # Test Mail API
     section "Testing Mail API"
-    test_container "mail-api" "Mail API"
+    test_container "${PROJECT:-dinky}_mail-api" "Mail API"
     
     echo ""
     if [ $FAILURES -eq 0 ]; then
