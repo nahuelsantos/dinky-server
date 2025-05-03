@@ -22,12 +22,12 @@ compatibility_level = 2
 smtpd_tls_security_level = may
 smtpd_tls_cert_file = /etc/ssl/certs/ssl-cert-snakeoil.pem
 smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
-smtpd_tls_session_cache_database = btree:${data_directory}/smtpd_scache
+smtpd_tls_session_cache_database = texthash:${data_directory}/smtpd_scache
 
 # TLS parameters for outgoing connections
 smtp_tls_security_level = encrypt
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
-smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+smtp_tls_session_cache_database = texthash:${data_directory}/smtp_scache
 
 # SASL authentication settings
 smtpd_sasl_auth_enable = yes
@@ -36,11 +36,16 @@ smtpd_sasl_path = private/auth
 smtpd_sasl_security_options = noanonymous
 
 # External SMTP Relay configuration via Gmail
-relayhost = [${RELAY_HOST}]:${RELAY_PORT}
+relayhost = [${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT}
 smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = btree:/etc/postfix/sasl/sasl_passwd
+# Use plain file for password since Alpine doesn't support databases
+smtp_sasl_password_maps = regexp:/etc/postfix/sasl/sasl_passwd
 smtp_sasl_security_options = noanonymous
 smtp_sasl_tls_security_options = noanonymous
+
+# Use text files for caches since Alpine doesn't support btree
+smtp_tls_session_cache_database = texthash:${data_directory}/smtp_scache
+smtpd_tls_session_cache_database = texthash:${data_directory}/smtpd_scache
 
 # Policy settings
 smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination

@@ -22,10 +22,10 @@ services:
       - TZ=${TZ:-America/Argentina/Buenos_Aires}
       - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
       - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
-      - RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
-      - RELAY_PORT=${SMTP_RELAY_PORT:-587}
-      - RELAY_USER=${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
-      - RELAY_PASSWORD=${SMTP_RELAY_PASSWORD:-your-gmail-app-password}
+      - SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
+      - SMTP_RELAY_PORT=${SMTP_RELAY_PORT:-587}
+      - SMTP_RELAY_USERNAME=${SMTP_RELAY_USERNAME:-smtp-user@example.com}
+      - SMTP_RELAY_PASSWORD=${SMTP_RELAY_PASSWORD:-changeme}
       - USE_TLS=${USE_TLS:-yes}
       - TLS_VERIFY=${TLS_VERIFY:-yes}
       - DEFAULT_USER=${MAIL_USER:-admin}

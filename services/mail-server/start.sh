@@ -14,12 +14,9 @@ sed -i "s/\${MAIL_DOMAIN}/$MAIL_DOMAIN/g" /etc/postfix/main.cf
 # Ensure database directory exists
 mkdir -p /etc/postfix/databases
 
-# Make sure we're using the btree format which is better supported in Alpine
-sed -i 's/hash:/btree:/g' /etc/postfix/main.cf
-
 # Configure relay host if specified
-if [ ! -z "$RELAY_HOST" ]; then
-  echo "Configuring relay host: $RELAY_HOST:$RELAY_PORT"
+if [ ! -z "$SMTP_RELAY_HOST" ]; then
+  echo "Configuring relay host: $SMTP_RELAY_HOST:$SMTP_RELAY_PORT"
   
   # Uncomment relay configuration
   sed -i 's/# relayhost/relayhost/g' /etc/postfix/main.cf
@@ -29,36 +26,22 @@ if [ ! -z "$RELAY_HOST" ]; then
   sed -i 's/# smtp_tls_note_starttls_offer/smtp_tls_note_starttls_offer/g' /etc/postfix/main.cf
   
   # Update relay host and port
-  sed -i "s/\${RELAY_HOST}/$RELAY_HOST/g" /etc/postfix/main.cf
-  sed -i "s/\${RELAY_PORT}/$RELAY_PORT/g" /etc/postfix/main.cf
+  sed -i "s/\${RELAY_HOST}/$SMTP_RELAY_HOST/g" /etc/postfix/main.cf
+  sed -i "s/\${RELAY_PORT}/$SMTP_RELAY_PORT/g" /etc/postfix/main.cf
   
   # Create sasl_passwd file if credentials are provided
-  if [ ! -z "$RELAY_USER" ] && [ ! -z "$RELAY_PASSWORD" ]; then
-    echo "Configuring relay authentication for user: $RELAY_USER"
-    echo "[$RELAY_HOST]:$RELAY_PORT $RELAY_USER:$RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
+  if [ ! -z "$SMTP_RELAY_USERNAME" ] && [ ! -z "$SMTP_RELAY_PASSWORD" ]; then
+    echo "Configuring relay authentication for user: $SMTP_RELAY_USERNAME"
+    # Format for regexp lookup
+    echo "/^.*\[$SMTP_RELAY_HOST\]:$SMTP_RELAY_PORT/ $SMTP_RELAY_USERNAME:$SMTP_RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
     chmod 600 /etc/postfix/sasl/sasl_passwd
-    
-    # Use btree format instead of hash (better supported in Alpine)
-    sed -i 's/hash:/btree:/g' /etc/postfix/main.cf
-    
-    # Create the database
-    echo "Creating SASL password database with btree format..."
-    postmap btree:/etc/postfix/sasl/sasl_passwd || { 
-      echo "Error: postmap failed to create database"; 
-      echo "Trying with different format...";
-      postmap lmdb:/etc/postfix/sasl/sasl_passwd || {
-        echo "Error: postmap failed again. Using text format.";
-        sed -i 's/btree:/text:/g' /etc/postfix/main.cf
-      }
-    }
-    
     echo "SMTP relay authentication configured"
   else
-    echo "WARNING: RELAY_HOST specified but RELAY_USER and RELAY_PASSWORD are missing"
+    echo "WARNING: SMTP_RELAY_HOST specified but SMTP_RELAY_USERNAME and SMTP_RELAY_PASSWORD are missing"
     echo "Relay will attempt without authentication, which may fail"
   fi
   
-  echo "SMTP relay configured to use $RELAY_HOST:$RELAY_PORT"
+  echo "SMTP relay configured to use $SMTP_RELAY_HOST:$SMTP_RELAY_PORT"
   echo "Make sure your Gmail account has 'Less secure app access' enabled or App Passwords configured."
 else
   echo "No SMTP relay configured - using direct delivery"
@@ -73,30 +56,11 @@ if [ ! -f /etc/aliases ]; then
   echo "root: postmaster" >> /etc/aliases
 fi
 
-# Create aliases database with btree format
-echo "Creating aliases database with btree format..."
-postalias btree:/etc/aliases || {
-  echo "Warning: postalias with btree failed, trying text format...";
-  postalias text:/etc/aliases || echo "Warning: postalias failed, but continuing...";
-}
-
 # Create mail directory if it doesn't exist
 mkdir -p /var/spool/mail
 
 # Make sure log file exists
 touch /var/log/mail.log
-
-# Show final configuration
-echo "Mail server configuration:"
-echo "-------------------------"
-echo "Hostname: $MAIL_HOSTNAME"
-echo "Domain: $MAIL_DOMAIN"
-echo "Default From: ${DEFAULT_FROM}"
-if [ ! -z "$RELAY_HOST" ]; then
-  echo "Relay: $RELAY_HOST:$RELAY_PORT"
-  echo "Relay User: $RELAY_USER"
-fi
-echo "-------------------------"
 
 # Configure submission service in master.cf
 echo "Configuring submission service on port 587..."
@@ -115,6 +79,18 @@ EOF
 else
   echo "Submission service already configured"
 fi
+
+# Show final configuration
+echo "Mail server configuration:"
+echo "-------------------------"
+echo "Hostname: $MAIL_HOSTNAME"
+echo "Domain: $MAIL_DOMAIN"
+echo "Default From: ${DEFAULT_FROM}"
+if [ ! -z "$SMTP_RELAY_HOST" ]; then
+  echo "Relay: $SMTP_RELAY_HOST:$SMTP_RELAY_PORT"
+  echo "Relay User: $SMTP_RELAY_USERNAME"
+fi
+echo "-------------------------"
 
 # Start Postfix in the foreground
 echo "Starting Postfix..."

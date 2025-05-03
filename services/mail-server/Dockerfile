@@ -1,12 +1,24 @@
 FROM alpine:3.18
 
-# Install packages with corrected package names that work on ARM architectures
-RUN apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-plain openssl postfix-mysql netcat-openbsd || \
-    apk add --no-cache postfix postfix-pcre ca-certificates mailx cyrus-sasl cyrus-sasl-login cyrus-sasl-crammd5 openssl postfix-mysql netcat-openbsd
+# Install packages with corrected package names that work on Alpine
+RUN apk add --no-cache \
+    postfix \
+    postfix-pcre \
+    ca-certificates \
+    mailx \
+    cyrus-sasl \
+    cyrus-sasl-login \
+    cyrus-sasl-plain \
+    openssl \
+    netcat-openbsd \
+    # Ensure nc and bash are available for health checks and scripts
+    bash \
+    # Make sure we have all tools needed for mail server
+    findutils \
+    coreutils
 
 # Ensure the postmap functionality works
-RUN mkdir -p /etc/postfix/databases && \
-    postconf -e "data_directory=/etc/postfix/databases"
+RUN mkdir -p /etc/postfix/databases
 
 # Create necessary directories
 RUN mkdir -p /etc/postfix/sasl /var/spool/mail
