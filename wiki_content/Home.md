@@ -16,26 +16,30 @@ Dinky Server is a self-hosted server solution designed for home and small busine
 
 ## Quick Start
 
-- [System Overview](System-Overview)
-- [Installation Guide](Installation-Guide)
-- [Local Development](Local-Development)
-- [Deployment Guide](Deployment-Guide)
+- [System Overview](System-Overview.md)
+- [Installation Guide](Installation-Guide.md)
+- [Local Development](Local-Development.md)
+- [Deployment Guide](Deployment-Guide.md)
 
 ## Services
 
-- [Mail Service](Mail-Service)
-- [Monitoring Stack](Monitoring-Stack)
-- [Traffic Management](Traffic-Management)
+- [Mail Service](Mail-Service.md)
+- [Monitoring Stack](Monitoring-Stack.md)
+- [Traffic Management](Traffic-Management.md)
+
+## Architecture
+
+- [System Dependencies](System-Dependencies.md)
 
 ## Administration
 
-- [Environment Configuration](Environment-Variables)
-- [Troubleshooting](Troubleshooting)
+- [Environment Configuration](Environment-Variables.md)
+- [Troubleshooting](Troubleshooting.md)
 
 ## Development
 
-- [Contributing to Dinky Server](Contributing)
-- [API Reference](API-Reference)
+- [Contributing](../CONTRIBUTING.md)
+- [API Reference](API-Reference.md)
 
 ## Additional Resources
 

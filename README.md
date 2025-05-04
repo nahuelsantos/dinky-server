@@ -1,3 +1,9 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Required-blue.svg)](https://www.docker.com/)
+[![Platforms](https://img.shields.io/badge/Platforms-Linux%20%7C%20Raspberry%20Pi-green.svg)](#hardware-requirements)
+[![Documentation](https://img.shields.io/badge/Wiki-Documentation-informational)](https://github.com/nahuelsantos/dinky-server/wiki)
+[![Maintenance](https://img.shields.io/badge/Maintained-Yes-success.svg)](https://github.com/nahuelsantos/dinky-server/commits/main)
+
 # Dinky Server - Secure Home Server Setup
 
 A comprehensive self-hosted server solution for home and small business use.

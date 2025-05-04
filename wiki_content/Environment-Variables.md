@@ -7,10 +7,12 @@ These variables are used across multiple services or affect the entire system.
 | Variable | Description | Default Value | Required |
 |----------|-------------|---------------|----------|
 | `PROJECT` | Name of the project for Docker images | `dinky` | Yes |
-| `REGISTRY` | Docker registry for images | `nahuelsantos` | Yes |
+| `REGISTRY` | Docker registry for images | `yourregistry` | Yes |
 | `TAG` | Version tag for Docker images | `latest` | Yes |
 | `DOMAIN_NAME` | Primary domain for the server | - | Yes |
 | `BASE_DOMAIN` | Base domain for subdomain services | - | Yes |
+| `SERVER_IP` | Server IP address | `127.0.0.1` | Yes |
+| `TZ` | Timezone | `UTC` | Yes |
 
 ## Domain Configuration
 
@@ -18,7 +20,7 @@ Variables that affect domain and hostname settings.
 
 | Variable | Description | Default Value | Required |
 |----------|-------------|---------------|----------|
-| `ALLOWED_HOSTS` | Comma-separated list of allowed domains | - | Yes |
+| `ALLOWED_HOSTS` | Comma-separated list of allowed domains | `yourdomain.com,api.yourdomain.com` | Yes |
 | `API_URL` | Domain for API services | `api.yourdomain.com` | Yes |
 
 ## Mail Service Variables
@@ -27,7 +29,7 @@ Variables specific to the mail services.
 
 | Variable | Description | Default Value | Required |
 |----------|-------------|---------------|----------|
-| `MAIL_DOMAIN` | Domain used for email addresses | - | Yes |
+| `MAIL_DOMAIN` | Domain used for email addresses | `yourdomain.com` | Yes |
 | `MAIL_HOSTNAME` | FQDN for the mail server | `mail.yourdomain.com` | Yes |
 | `MAIL_USER` | Admin username for mail server | `admin` | Yes |
 | `MAIL_PASSWORD` | Admin password for mail server | - | Yes |
@@ -42,8 +44,8 @@ Variables specific to the mail services.
 |----------|-------------|---------------|--------------------------|
 | `SMTP_RELAY_HOST` | SMTP relay hostname | `smtp.gmail.com` | Yes |
 | `SMTP_RELAY_PORT` | SMTP relay port | `587` | Yes |
-| `SMTP_RELAY_USERNAME` | Gmail username | - | Yes |
-| `SMTP_RELAY_PASSWORD` | Gmail app password | - | Yes |
+| `SMTP_RELAY_USERNAME` | Gmail username | `your-gmail-username@gmail.com` | Yes |
+| `SMTP_RELAY_PASSWORD` | Gmail app password (no spaces) | - | Yes |
 | `USE_TLS` | Enable TLS for SMTP relay | `yes` | Yes |
 | `TLS_VERIFY` | Verify TLS certificates | `yes` | Yes |
 
@@ -70,7 +72,7 @@ Variables for Cloudflare Tunnel.
 
 ## Website-Specific Variables
 
-These variables are typically set in each website's .env.prod file.
+These variables are typically set in each website's environment.
 
 | Variable | Description | Default Value | Required |
 |----------|-------------|---------------|----------|
@@ -78,49 +80,41 @@ These variables are typically set in each website's .env.prod file.
 | `SITE_EMAIL` | Contact email for the website | - | Yes |
 | `MAIL_API_URL` | URL for the mail API | `http://mail-api:20001/send` | Yes |
 
-## Environment File Locations
+## Environment File Location
 
-Dinky Server uses multiple environment files in different locations:
+Dinky Server uses a single environment file:
 
 | File | Purpose | Location |
 |------|---------|----------|
 | `.env` | Main environment file | `/path/to/dinky-server/.env` |
 | `.env.example` | Template for main environment | `/path/to/dinky-server/.env.example` |
-| `.env.mail.prod` | Production mail settings | `/path/to/dinky-server/services/.env.mail.prod` |
-| `.env.mail` | Template for mail settings | `/path/to/dinky-server/services/.env.mail` |
-| `.env.prod` | Website-specific settings | `/path/to/dinky-server/sites/[site-name]/.env.prod` |
 
 ## Managing Environment Variables
 
 ### Creating Environment Files
 
-Copy example files to create your environment files:
+Copy the example file to create your environment file:
 
 ```bash
 # Main environment file
 cp .env.example .env
-
-# Mail service environment file
-cp services/.env.mail services/.env.mail.prod
 ```
 
 ### Updating Variables
 
-Edit the files directly:
+Edit the file directly:
 
 ```bash
 nano .env
-nano services/.env.mail.prod
 ```
 
 Or use the environment manager script:
 
 ```bash
 ./scripts/environment-manager.sh update-env main DOMAIN_NAME=yourdomain.com
-./scripts/environment-manager.sh update-env mail MAIL_DOMAIN=yourdomain.com
 ```
 
-### Listing Environment Files
+### Listing Environment Variables
 
 ```bash
 ./scripts/environment-manager.sh list-env
@@ -135,36 +129,58 @@ When working with environment variables:
 3. **Restrict access to environment files on your server**
 4. **Consider using a secrets management solution for production**
 
-## Examples
+## Important Note About Gmail App Passwords
 
-### Minimal .env File
+When using Gmail for SMTP relay, make sure to:
+
+1. Enable 2-Step Verification on your Google account
+2. Create an App Password specifically for Dinky Server
+3. Copy the password without spaces when pasting it into the `.env` file
+
+Example:
+```
+# This is wrong (with spaces)
+SMTP_RELAY_PASSWORD=XXXX XXXX XXXX XXXX
+
+# This is correct (no spaces)
+SMTP_RELAY_PASSWORD=XXXXXXXXXXXXXXXX
+```
+
+## Example .env File
 
 ```
+# Project Configuration
 PROJECT=dinky
-REGISTRY=nahuelsantos
+REGISTRY=yourregistry
 TAG=latest
-DOMAIN_NAME=example.com
-MAIL_DOMAIN=example.com
-BASE_DOMAIN=example.com
-API_URL=api.example.com
-ALLOWED_HOSTS=example.com
-```
 
-### Mail Service Example
+# Domain Configuration
+DOMAIN_NAME=yourdomain.com
+MAIL_DOMAIN=yourdomain.com
+BASE_DOMAIN=yourdomain.com
+API_URL=api.yourdomain.com
+ALLOWED_HOSTS=yourdomain.com,api.yourdomain.com
 
-```
-MAIL_DOMAIN=example.com
-MAIL_HOSTNAME=mail.example.com
-MAIL_USER=admin
-MAIL_PASSWORD=secure-password-here
-DEFAULT_FROM=hi@example.com
-FORWARD_EMAIL=your-personal-email@gmail.com
+# Mail Server Configuration
+DEFAULT_FROM=hi@yourdomain.com
+FORWARD_EMAIL=your-personal-email@example.com
+MAIL_HOSTNAME=mail.yourdomain.com
 
-# Gmail SMTP Relay
+# SMTP Relay Configuration (Gmail)
 SMTP_RELAY_HOST=smtp.gmail.com
 SMTP_RELAY_PORT=587
-SMTP_RELAY_USERNAME=your-gmail@gmail.com
-SMTP_RELAY_PASSWORD=your-app-password
+SMTP_RELAY_USERNAME=your-gmail-username@gmail.com
+SMTP_RELAY_PASSWORD=your-gmail-app-password
 USE_TLS=yes
 TLS_VERIFY=yes
+
+# Cloudflared settings
+TUNNEL_ID=your-tunnel-id-here
+TUNNEL_TOKEN=your-tunnel-token-here
+
+# Pihole settings
+PIHOLE_PASSWORD=your-pihole-password
+
+# Grafana settings
+GRAFANA_PASSWORD=your-grafana-password
 ``` 

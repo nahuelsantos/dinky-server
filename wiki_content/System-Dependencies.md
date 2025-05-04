@@ -1,10 +1,9 @@
-# System Dependencies
-
 This document outlines all dependencies between components in the Dinky Server system using visual diagrams.
 
 ## Service Dependencies
 
 ```mermaid
+%%{init: { 'themeVariables': { 'darkMode': true, 'primaryColor': '#cba6f7', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#cdd6f4', 'secondaryColor': '#89dceb', 'tertiaryColor': '#45475a' } } }%%
 graph TD
     %% Core Infrastructure
     Traefik[Traefik Proxy]
@@ -74,10 +73,10 @@ graph TD
     end
     
     %% Styling
-    classDef core fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef mail fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef web fill:#bfb,stroke:#333,stroke-width:2px;
-    classDef monitoring fill:#fbf,stroke:#333,stroke-width:2px;
+    classDef core fill:#cba6f7,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef mail fill:#89dceb,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef web fill:#a6e3a1,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef monitoring fill:#f5c2e7,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
     
     class Traefik,Cloudflared,Pihole,Portainer core;
     class MailServer,MailAPI mail;
@@ -88,6 +87,7 @@ graph TD
 ## Network Dependencies
 
 ```mermaid
+%%{init: { 'themeVariables': { 'darkMode': true, 'primaryColor': '#cba6f7', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#cdd6f4', 'secondaryColor': '#89dceb', 'tertiaryColor': '#45475a' } } }%%
 graph TD
     %% Networks
     TraefikNet[traefik_network]
@@ -117,8 +117,8 @@ graph TD
     Monitoring --- TraefikNet
     
     %% Styling
-    classDef network fill:#ddd,stroke:#333,stroke-width:1px;
-    classDef service fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef network fill:#45475a,stroke:#cdd6f4,stroke-width:1px,color:#cdd6f4;
+    classDef service fill:#89dceb,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
     
     class TraefikNet,MailNet network;
     class Traefik,Cloudflared,Pihole,Portainer,MailServer,MailAPI,Websites,Monitoring service;
@@ -127,6 +127,7 @@ graph TD
 ## Environment Variable Dependencies
 
 ```mermaid
+%%{init: { 'themeVariables': { 'darkMode': true, 'primaryColor': '#cba6f7', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#cdd6f4', 'secondaryColor': '#89dceb', 'tertiaryColor': '#45475a' } } }%%
 graph TD
     %% Environment Files
     EnvFile[.env File]
@@ -161,8 +162,8 @@ graph TD
     EnvFile --> |GRAFANA_PASSWORD| Grafana
     
     %% Styling
-    classDef env fill:#fbb,stroke:#333,stroke-width:2px;
-    classDef service fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef env fill:#f38ba8,stroke:#cdd6f4,stroke-width:2px,color:#1e1e2e;
+    classDef service fill:#89dceb,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
     
     class EnvFile env;
     class Traefik,Cloudflared,Pihole,MailServer,MailAPI,Grafana service;

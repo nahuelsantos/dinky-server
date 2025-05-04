@@ -1,47 +1,51 @@
-# System Overview
-
 This page provides a high-level overview of the Dinky Server architecture and how the various components work together.
 
 ## Architecture Diagram
 
-```
-                                     ┌─────────────────┐
-                                     │                 │
-                                 ┌───▶ nahuelsantos.com│
-                                 │   │                 │
-                                 │   └─────────────────┘
-┌──────────────┐    ┌────────┐  │   ┌─────────────────┐
-│              │    │        │  │   │                 │
-│  Internet    │───▶│Cloudflare│─┼───▶ loopingbyte.com │
-│              │    │  Tunnel │  │   │                 │
-└──────────────┘    └────────┘  │   └─────────────────┘
-                         │      │   ┌─────────────────┐
-                         │      │   │                 │
-                         ▼      └───▶    Mail API     │
-               ┌─────────────────────┐ │               │
-               │                     │ └─────────────────┘
-               │      Traefik        │
-               │  (Reverse Proxy)    │
-               │                     │
-               └─────────────────────┘
-                         │
-                         │
-      ┌─────────────────┼─────────────────┐
-      │                 │                 │
-      ▼                 ▼                 ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐
-│             │  │             │  │                     │
-│  Pi-hole    │  │ Portainer   │  │ Monitoring Stack    │
-│ (DNS/Adblock)│  │(Container  │  │(Prometheus, Grafana,│
-│             │  │Management)  │  │ Loki, etc.)         │
-└─────────────┘  └─────────────┘  └─────────────────────┘
-                                                │
-                                                │
-                                    ┌───────────▼───────────┐
-                                    │                       │
-                                    │  Docker Containers    │
-                                    │                       │
-                                    └───────────────────────┘
+```mermaid
+%%{init: { 'themeVariables': { 'darkMode': true, 'primaryColor': '#cba6f7', 'primaryTextColor': '#cdd6f4', 'primaryBorderColor': '#89b4fa', 'lineColor': '#cdd6f4', 'secondaryColor': '#89dceb', 'tertiaryColor': '#45475a' } } }%%
+flowchart TD
+    %% External connections
+    Internet([Internet]) --> Cloudflared
+
+    %% Main infrastructure
+    Cloudflared[Cloudflare Tunnel] --> Traefik
+    
+    %% Websites and services
+    Traefik[Traefik Proxy] --> Website1[yourdomain.com]
+    Traefik --> Website2[api.yourdomain.com]
+    Traefik --> MailAPI[Mail API]
+    
+    %% Core services
+    Traefik --> Pihole[Pi-hole DNS]
+    Traefik --> Portainer[Portainer]
+    Traefik --> Monitoring[Monitoring Stack]
+    
+    %% Mail service connections
+    MailAPI --> MailServer[Mail Server]
+    Website1 --> MailAPI
+    Website2 --> MailAPI
+    
+    %% Monitoring details
+    Monitoring --> Prometheus & Grafana & Loki & Tempo & Pyroscope
+    
+    %% Containers
+    Prometheus & Grafana & Loki & Tempo & Pyroscope -.-> |collects metrics from| DockerContainers[Docker Containers]
+    
+    %% Styling
+    classDef external fill:#f5c2e7,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef infrastructure fill:#cba6f7,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef websites fill:#a6e3a1,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef mail fill:#89dceb,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef monitoring fill:#f9e2af,stroke:#89b4fa,stroke-width:2px,color:#1e1e2e;
+    classDef containers fill:#45475a,stroke:#cdd6f4,stroke-width:1px,color:#cdd6f4;
+    
+    class Internet external;
+    class Cloudflared,Traefik,Pihole,Portainer infrastructure;
+    class Website1,Website2 websites;
+    class MailAPI,MailServer mail;
+    class Monitoring,Prometheus,Grafana,Loki,Tempo,Pyroscope monitoring;
+    class DockerContainers containers;
 ```
 
 ## Core Components
@@ -64,9 +68,9 @@ This page provides a high-level overview of the Dinky Server architecture and ho
 
 ### 3. Websites
 
-- **nahuelsantos.com**: Personal website configuration.
+- **yourdomain.com**: Your primary website.
 
-- **loopingbyte.com**: Business website configuration.
+- **api.yourdomain.com**: API services.
 
 - **Custom Sites**: You can easily add additional websites following the same pattern.
 
@@ -112,7 +116,7 @@ All services are contained within these networks, with only necessary ports expo
 
 2. **Traffic Routing**:
    - Traefik routes traffic based on the hostname in the request.
-   - For example, requests to `nahuelsantos.com` are routed to the nahuelsantos website container.
+   - For example, requests to `yourdomain.com` are routed to your website container.
 
 3. **Internal Communication**:
    - Services can communicate with each other via Docker networks.

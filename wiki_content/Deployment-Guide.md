@@ -24,50 +24,81 @@ Before deploying to production, ensure you have:
 
 1. Copy and configure the environment file:
    ```bash
-   cp .env.example .env.prod
+   cp .env.example .env
    ```
 
-2. Edit the production environment variables:
+2. Edit the environment variables:
    ```bash
-   # Domain configuration
-   DOMAIN=yourdomain.com
+   # Project Configuration
+   PROJECT=dinky
+   REGISTRY=yourregistry
+   TAG=latest
+
+   # Domain Configuration
+   DOMAIN_NAME=yourdomain.com
    MAIL_DOMAIN=yourdomain.com
-   MAIL_HOSTNAME=mail.yourdomain.com
+   BASE_DOMAIN=yourdomain.com
+   API_URL=api.yourdomain.com
+   ALLOWED_HOSTS=yourdomain.com,api.yourdomain.com
+   SERVER_IP=your-server-ip
+   TZ=UTC
+
+   # Mail Server Configuration
+   MAIL_USER=admin
+   MAIL_PASSWORD=your-secure-mail-password
    DEFAULT_FROM=hi@yourdomain.com
-   
-   # Set strong passwords
-   MAIL_ADMIN_PASSWORD=strong-unique-password
-   GRAFANA_PASSWORD=strong-unique-password
-   PORTAINER_PASSWORD=strong-unique-password
-   
-   # Configure Cloudflared (if using)
-   CLOUDFLARED_TOKEN=your-cloudflare-tunnel-token
+   FORWARD_EMAIL=your-personal-email@example.com
+   MAIL_HOSTNAME=mail.yourdomain.com
+   MAIL_SECURE=false
+   MAIL_PORT=25
+
+   # SMTP Relay Configuration (Gmail)
+   SMTP_RELAY_HOST=smtp.gmail.com
+   SMTP_RELAY_PORT=587
+   SMTP_RELAY_USERNAME=your-gmail-username@gmail.com
+   SMTP_RELAY_PASSWORD=your-gmail-app-password-without-spaces
+   USE_TLS=yes
+   TLS_VERIFY=yes
+
+   # Pi-hole settings
+   PIHOLE_PASSWORD=your-pihole-password
+
+   # Grafana settings
+   GRAFANA_PASSWORD=your-grafana-password
+
+   # Cloudflared settings (if using)
+   TUNNEL_ID=your-cloudflare-tunnel-id
+   TUNNEL_TOKEN=your-cloudflare-tunnel-token
    ```
+
+   > **Important Note About Gmail App Passwords**: When using a Gmail app password, you must enter it without spaces. For example, if Google shows "XXXX XXXX XXXX XXXX", enter it as "XXXXXXXXXXXXXXXX" in your .env file.
 
 ## Deployment Process
 
-### Basic Infrastructure Deployment
+### Installation Script
+
+The easiest way to deploy is to use the installation script:
 
 ```bash
-docker compose -f docker-compose.yml --env-file .env.prod up -d
+sudo ./scripts/install.sh
 ```
 
-This will:
-1. Set up Traefik as a reverse proxy
-2. Configure SSL with Let's Encrypt
-3. Deploy Pi-hole for ad blocking
-4. Set up Portainer for container management
-
-### Mail Service Deployment
+This will guide you through the installation process interactively. You can also use non-interactive mode:
 
 ```bash
-docker compose -f services/docker-compose.yml --env-file services/.env.mail up -d
+sudo ./scripts/install.sh --auto
 ```
 
-### Monitoring Stack Deployment
+### Manual Deployment
+
+If you prefer to deploy manually:
 
 ```bash
-docker compose -f monitoring/docker-compose.yml --env-file .env.prod up -d
+# Deploy core services
+docker compose up -d
+
+# Restart mail services if needed
+docker compose restart mail-server mail-api
 ```
 
 ## Post-Deployment Verification
@@ -79,17 +110,21 @@ Check that all services are running:
 docker ps
 ```
 
+You can also use the test script:
+```bash
+sudo ./scripts/test.sh
+```
+
+For a more comprehensive test:
+```bash
+sudo ./scripts/test-all-components.sh
+```
+
 ### Testing Email Functionality
 
 Send a test email:
 ```bash
-curl -X POST https://mail-api.yourdomain.com/api/v1/send \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "your-email@example.com",
-    "subject": "Test Email",
-    "text": "This is a test email from your Dinky Server."
-  }'
+sudo ./scripts/send-test-email.sh your-email@example.com
 ```
 
 ### Security Checks
@@ -101,7 +136,7 @@ curl -X POST https://mail-api.yourdomain.com/api/v1/send \
 
 2. Check for open ports:
    ```bash
-   nmap -p 1-1000 yourdomain.com
+   sudo nmap -p 1-1000 localhost
    ```
 
 3. Ensure authentication is required for all admin interfaces
@@ -110,10 +145,11 @@ curl -X POST https://mail-api.yourdomain.com/api/v1/send \
 
 ### Backups
 
-Set up regular backups for:
-- Mail data: `/var/lib/docker/volumes/dinky_mail_data`
-- Configuration files
-- Databases
+Set up regular backups for Docker volumes:
+```bash
+# Example backup script
+docker run --rm -v dinky_mail-data:/source -v /backup:/backup alpine tar -czf /backup/mail-data-$(date +%Y%m%d).tar.gz -C /source ./
+```
 
 ### Updates
 
@@ -121,9 +157,9 @@ To update your Dinky Server:
 
 ```bash
 git pull
-docker compose -f docker-compose.yml --env-file .env.prod up -d
+make install
 ```
 
 ## Troubleshooting
 
-For common deployment issues and their solutions, refer to the [Troubleshooting](Troubleshooting) page. 
+For common deployment issues and their solutions, refer to the [Troubleshooting](Troubleshooting.md) page. 

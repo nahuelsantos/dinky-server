@@ -1,5 +1,3 @@
-# Mail Service
-
 This page provides information about the mail service in Dinky Server, including setup, configuration, and troubleshooting.
 
 ## Overview
@@ -19,20 +17,20 @@ The mail service consists of two main components:
 
 ### Environment Variables
 
-The mail service is configured through environment variables in your `.env` file and `services/.env.mail` file:
+The mail service is configured through environment variables in your `.env` file:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MAIL_DOMAIN` | Your mail domain | nahuelsantos.com |
-| `MAIL_HOSTNAME` | Mail server hostname | mail.nahuelsantos.com |
-| `DEFAULT_FROM` | Default sender address | noreply@nahuelsantos.com |
+| `MAIL_DOMAIN` | Your mail domain | yourdomain.com |
+| `MAIL_HOSTNAME` | Mail server hostname | mail.yourdomain.com |
+| `DEFAULT_FROM` | Default sender address | noreply@yourdomain.com |
 | `SMTP_RELAY_HOST` | SMTP relay host (optional) | smtp.gmail.com |
 | `SMTP_RELAY_PORT` | SMTP relay port | 587 |
 | `SMTP_RELAY_USERNAME` | SMTP relay username | |
-| `SMTP_RELAY_PASSWORD` | SMTP relay password | |
+| `SMTP_RELAY_PASSWORD` | SMTP relay password (no spaces) | |
 | `USE_TLS` | Whether to use TLS for SMTP relay | yes |
 | `TLS_VERIFY` | Whether to verify TLS certificates | yes |
-| `ALLOWED_HOSTS` | Comma-separated list of allowed origins | nahuelsantos.com,loopingbyte.com |
+| `ALLOWED_HOSTS` | Comma-separated list of allowed origins | yourdomain.com,api.yourdomain.com |
 | `ENVIRONMENT` | Environment (production/development) | production |
 | `TRAEFIK_ENTRYPOINT` | Traefik entrypoint to use for mail API | https |
 | `ENABLE_TLS` | Whether to enable TLS for mail API | true |
@@ -48,8 +46,10 @@ If you want to use Gmail as a relay (recommended for better deliverability):
 3. Add these to your `.env` file:
    ```
    SMTP_RELAY_USERNAME=your-gmail-username@gmail.com
-   SMTP_RELAY_PASSWORD=your-app-password
+   SMTP_RELAY_PASSWORD=your-app-password  # Without spaces
    ```
+
+**Important note about Gmail App Passwords**: The password should be entered without spaces. For example, if Google shows "XXXX XXXX XXXX XXXX", enter it as "XXXXXXXXXXXXXXXX" in your .env file.
 
 ## Using the Mail API
 
@@ -137,7 +137,7 @@ app.post('/contact', async (req, res) => {
 
 3. If you encounter image reference errors like:
    ```
-   pull access denied for nahuelsantos/dinky/mail-server, repository does not exist or may require 'docker login'
+   pull access denied for yourregistry/dinky/mail-server, repository does not exist or may require 'docker login'
    ```
 
    This means the image references in the docker-compose file are incorrect. The installation script should automatically fix this, but you can manually update `services/docker-compose.yml` to use:
@@ -240,9 +240,9 @@ docker compose -f services/docker-compose.yml up -d
 
 ## Related Documentation
 
-- [API Reference](API-Reference#mail-api)
-- [Environment Variables](Environment-Variables#mail-service-variables)
-- [Local Development](Local-Development#mail-services-development)
+- [API Reference](API-Reference.md#mail-api)
+- [Environment Variables](Environment-Variables.md#mail-service-variables)
+- [Local Development](Local-Development.md#mail-services-development)
 
 # Network Configuration
 
@@ -302,7 +302,7 @@ If you're experiencing issues with the mail service, here are some steps you can
 
 The mail-server expects environment variables with `SMTP_RELAY_` prefix (e.g., `SMTP_RELAY_HOST`, `SMTP_RELAY_PORT`, etc.), but older versions may have used `RELAY_` prefix. To fix this:
 
-1. Check your .env.mail file and make sure it uses the correct variables:
+1. Check your .env file and make sure it uses the correct variables:
    ```
    SMTP_RELAY_HOST=smtp.gmail.com
    SMTP_RELAY_PORT=587
@@ -316,7 +316,7 @@ The mail-server expects environment variables with `SMTP_RELAY_` prefix (e.g., `
 
 If your mail server cannot connect to the SMTP relay (e.g., Gmail):
 
-1. Verify your credentials are correct in .env.mail
+1. Verify your credentials are correct in the .env file
 2. For Gmail, make sure you're using an App Password (requires 2FA to be enabled on your Google account)
 3. Check if your ISP or cloud provider is blocking outgoing connections to port 587
 
@@ -342,7 +342,7 @@ For better deliverability, configure an SMTP relay service like Gmail:
 
 1. Go to your Google Account > Security > 2-Step Verification (enable it)
 2. Go to App Passwords, create a new password for "Mail" app
-3. Use these credentials in your .env.mail file:
+3. Use these credentials in your .env file:
    ```
    SMTP_RELAY_HOST=smtp.gmail.com
    SMTP_RELAY_PORT=587
