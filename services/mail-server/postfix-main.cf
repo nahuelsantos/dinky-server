@@ -7,9 +7,16 @@ myorigin = $mydomain
 
 # Network settings
 inet_interfaces = all
-inet_protocols = all
+inet_protocols = ipv4
+
+# Local mail delivery settings
 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+mail_spool_directory = /var/mail
+mailbox_command =
+home_mailbox = Maildir/
 
 # Basic SMTP parameters
 smtpd_banner = $myhostname ESMTP $mail_name
@@ -25,31 +32,26 @@ smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
 smtpd_tls_session_cache_database = texthash:${data_directory}/smtpd_scache
 
 # TLS parameters for outgoing connections
-smtp_tls_security_level = encrypt
+smtp_tls_security_level = may
+smtp_tls_loglevel = 1
+smtp_use_tls = yes
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 smtp_tls_session_cache_database = texthash:${data_directory}/smtp_scache
 
-# SASL authentication settings
+# SASL authentication for outgoing emails
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_sasl_mechanism_filter = plain, login
+
+# SASL authentication for incoming emails (SMTP submission)
 smtpd_sasl_auth_enable = yes
-smtpd_sasl_type = dovecot
-smtpd_sasl_path = private/auth
 smtpd_sasl_security_options = noanonymous
 
-# External SMTP Relay configuration via Gmail
+# External SMTP Relay configuration
 relayhost = [${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT}
-smtp_sasl_auth_enable = yes
-# Use plain text file without special lookup format
-smtp_sasl_password_maps = static:${SMTP_RELAY_USERNAME}:${SMTP_RELAY_PASSWORD}
-smtp_sasl_security_options = noanonymous
-smtp_sasl_tls_security_options = noanonymous
-
-# Use text files for caches since Alpine doesn't support btree
-smtp_tls_session_cache_database = texthash:${data_directory}/smtp_scache
-smtpd_tls_session_cache_database = texthash:${data_directory}/smtpd_scache
 
 # Policy settings
 smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination
 mailbox_size_limit = 0
 recipient_delimiter = +
-home_mailbox = Maildir/
-mail_spool_directory = /var/mail

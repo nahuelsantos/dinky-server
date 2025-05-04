@@ -1,40 +1,46 @@
 FROM alpine:3.18
 
-# Install packages with corrected package names that work on Alpine
+# Install required packages
 RUN apk add --no-cache \
     postfix \
     postfix-pcre \
     ca-certificates \
-    mailx \
     cyrus-sasl \
     cyrus-sasl-login \
+    mailx \
     openssl \
-    netcat-openbsd \
-    # Ensure nc and bash are available for health checks and scripts
+    tzdata \
     bash \
-    # Make sure we have all tools needed for mail server
-    findutils \
     coreutils
 
-# Ensure the postmap functionality works
-RUN mkdir -p /etc/postfix/databases
+# Create required directories
+RUN mkdir -p /etc/postfix/sasl /var/spool/postfix /var/mail /var/log/mail
 
-# Create necessary directories
-RUN mkdir -p /etc/postfix/sasl /var/spool/mail
+# Create basic alias settings
+RUN echo "# Basic system aliases" > /etc/aliases && \
+    echo "mailer-daemon: root" >> /etc/aliases && \
+    echo "postmaster: root" >> /etc/aliases && \
+    echo "nobody: root" >> /etc/aliases && \
+    echo "hostmaster: root" >> /etc/aliases && \
+    echo "webmaster: root" >> /etc/aliases && \
+    echo "www: root" >> /etc/aliases && \
+    echo "root: root" >> /etc/aliases && \
+    postalias /etc/aliases
 
 # Copy configuration files
-COPY ./postfix-main.cf /etc/postfix/main.cf
-COPY ./sasl/sasl_passwd /etc/postfix/sasl/sasl_passwd
-COPY ./start.sh /start.sh
+COPY postfix-main.cf /etc/postfix/main.cf.template
+COPY start.sh /start.sh
 
-# Set permissions and prepare the environment
-RUN chmod +x /start.sh && \
-    chmod 600 /etc/postfix/sasl/sasl_passwd && \
-    touch /var/log/mail.log && \
+# Set permissions
+RUN chmod 755 /start.sh && \
+    chmod -R 644 /etc/postfix/ && \
     update-ca-certificates
 
-# Note: postmap operation moved to start.sh to ensure it works correctly
+# Create volume for mail storage and logs
+VOLUME ["/var/mail", "/var/log/mail"]
 
+# Expose ports
 EXPOSE 25 587
 
+# Set command
 CMD ["/start.sh"] 
