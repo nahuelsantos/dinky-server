@@ -50,7 +50,7 @@ cd dinky-server
 The initialization script will create necessary directories and set proper permissions:
 
 ```bash
-sudo ./initialize.sh
+sudo ./scripts/initialize.sh
 ```
 
 ### 4. Configure Your Environment
@@ -75,7 +75,7 @@ Key settings to update:
 The installation script provides an interactive menu to select which components you want to install:
 
 ```bash
-sudo ./install.sh
+sudo ./scripts/install.sh
 ```
 
 Follow the prompts to configure your installation. You can choose to install:
@@ -91,17 +91,36 @@ Follow the prompts to configure your installation. You can choose to install:
 After installation completes, run the test script to verify everything is working correctly:
 
 ```bash
-sudo ./test.sh
+sudo ./scripts/test.sh
 ```
 
 This script will check all installed components and report any issues.
+
+For more comprehensive testing, you can use:
+
+```bash
+sudo ./scripts/test-all-components.sh
+```
+
+This script includes more detailed tests and has options for testing specific components:
+
+```bash
+# Test only mail services
+sudo ./scripts/test-all-components.sh --mail --verbose
+
+# Test core infrastructure with extra details
+sudo ./scripts/test-all-components.sh --core --verbose
+
+# See all available options
+sudo ./scripts/test-all-components.sh --help
+```
 
 ## Non-Interactive Installation
 
 For automated deployments, you can use the `--auto` flag:
 
 ```bash
-sudo ./install.sh --auto
+sudo ./scripts/install.sh --auto
 ```
 
 This will use either a previously saved configuration or the default settings.
@@ -159,12 +178,12 @@ To update your installation to the latest version:
 
 3. Reinitialize the environment:
    ```bash
-   sudo ./initialize.sh
+   sudo ./scripts/initialize.sh
    ```
 
 4. Run the installation script again:
    ```bash
-   sudo ./install.sh
+   sudo ./scripts/install.sh
    ```
 
 This will update all components while preserving your configuration. 

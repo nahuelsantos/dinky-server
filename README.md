@@ -36,7 +36,7 @@ Dinky Server is a complete self-hosted solution that combines multiple open-sour
 
 2. Initialize the environment:
    ```bash
-   sudo ./initialize.sh
+   sudo ./scripts/initialize.sh
    ```
 
 3. Configure your environment:
@@ -47,13 +47,43 @@ Dinky Server is a complete self-hosted solution that combines multiple open-sour
 
 4. Run the installation script:
    ```bash
-   sudo ./install.sh
+   sudo ./scripts/install.sh
    ```
 
 5. Test your installation:
    ```bash
-   sudo ./test.sh
+   sudo ./scripts/test.sh
    ```
+
+## Using Make Commands
+
+Dinky Server provides convenient make commands for common tasks:
+
+```bash
+# Initialize the environment
+make setup
+
+# Install the server
+make install
+
+# Test the installation
+make test
+
+# Comprehensive testing
+make test-all
+
+# Mail service management
+make mail-start
+make mail-stop
+make mail-restart
+make mail-logs
+```
+
+For a full list of available commands, run:
+
+```bash
+make help
+```
 
 ## Installation Options
 
@@ -69,13 +99,13 @@ You can run the installer in different modes:
 
 ```bash
 # Interactive mode (recommended for first-time users)
-sudo ./install.sh
+sudo ./scripts/install.sh
 
 # Non-interactive mode (uses saved configuration)
-sudo ./install.sh --auto
+sudo ./scripts/install.sh --auto
 
 # Display help
-sudo ./install.sh --help
+sudo ./scripts/install.sh --help
 ```
 
 ## System Components
@@ -112,19 +142,20 @@ sudo ./install.sh --help
 All documentation is available in our [GitHub Wiki](https://github.com/nahuelsantos/dinky-server/wiki):
 
 - **Getting Started**
-  - [System Overview](https://github.com/nahuelsantos/dinky-server/wiki/System-Overview)
-  - [Installation Guide](https://github.com/nahuelsantos/dinky-server/wiki/Installation-Guide)
-  - [Environment Variables](https://github.com/nahuelsantos/dinky-server/wiki/Environment-Variables)
+  - [System Overview](wiki_content/System-Overview.md)
+  - [Installation Guide](wiki_content/Installation-Guide.md)
+  - [Environment Variables](wiki_content/Environment-Variables.md)
+  - [System Dependencies](wiki_content/System-Dependencies.md)
 
 - **Services**
-  - [Mail Service](https://github.com/nahuelsantos/dinky-server/wiki/Mail-Service)
-  - [Traffic Management](https://github.com/nahuelsantos/dinky-server/wiki/Traffic-Management)
-  - [Monitoring Stack](https://github.com/nahuelsantos/dinky-server/wiki/Monitoring-Stack)
+  - [Mail Service](wiki_content/Mail-Service.md)
+  - [Traffic Management](wiki_content/Traffic-Management.md)
+  - [Monitoring Stack](wiki_content/Monitoring-Stack.md)
 
 - **Development & Deployment**
-  - [Local Development](https://github.com/nahuelsantos/dinky-server/wiki/Local-Development)
-  - [Deployment Guide](https://github.com/nahuelsantos/dinky-server/wiki/Deployment-Guide)
-  - [Troubleshooting](https://github.com/nahuelsantos/dinky-server/wiki/Troubleshooting)
+  - [Local Development](wiki_content/Local-Development.md)
+  - [Deployment Guide](wiki_content/Deployment-Guide.md)
+  - [Troubleshooting](wiki_content/Troubleshooting.md)
 
 ## Directory Structure
 
@@ -140,6 +171,7 @@ dinky-server/
 ├── services/        # Background services (mail-server, etc.)
 ├── sites/           # Website configurations
 ├── scripts/         # Utility scripts
+├── wiki_content/    # Documentation files
 ├── install.sh       # Main installation script
 ├── initialize.sh    # Initialization script
 ├── test.sh          # Testing script

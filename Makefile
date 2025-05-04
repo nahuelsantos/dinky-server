@@ -1,4 +1,4 @@
-.PHONY: help run-local-mail stop-local-mail test-mail-api test-mail-server clean-local-mail logs-mail setup-local-mail restart-local-mail send-test-email
+.PHONY: help setup install test mail-setup mail-start mail-stop mail-restart mail-test mail-logs test-all
 
 # Get architecture
 ARCH := $(shell uname -m)
@@ -15,134 +15,90 @@ endif
 
 # Default target
 help:
-	@echo "Local Development Commands:"
-	@echo "  make setup-local-mail  - Setup mail services for local testing"
-	@echo "  make run-local-mail    - Start mail services locally for testing"
-	@echo "  make restart-local-mail - Restart mail services locally"
-	@echo "  make stop-local-mail   - Stop local mail services"
-	@echo "  make test-mail-api     - Test the mail API endpoint"
-	@echo "  make test-mail-server  - Test SMTP server connection"
-	@echo "  make logs-mail         - View mail server and API logs"
-	@echo "  make clean-local-mail  - Remove local mail service containers and volumes"
+	@echo "Dinky Server Management Commands:"
+	@echo ""
+	@echo "Installation:"
+	@echo "  make setup         - Initialize the environment (runs initialize.sh)"
+	@echo "  make install       - Install Dinky Server (runs install.sh)"
+	@echo "  make test          - Test Dinky Server installation (runs test.sh)"
+	@echo "  make test-all      - Run comprehensive tests (runs test-all-components.sh)"
+	@echo ""
+	@echo "Mail Service Management:"
+	@echo "  make mail-setup    - Setup mail services for local testing"
+	@echo "  make mail-start    - Start mail services locally"
+	@echo "  make mail-stop     - Stop mail services"
+	@echo "  make mail-restart  - Restart mail services"
+	@echo "  make mail-test     - Test mail services"
+	@echo "  make mail-logs     - View mail service logs"
 	@echo ""
 	@echo "Detected architecture: $(ARCH)"
 	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
 
-# Setup environment for local mail testing
-setup-local-mail:
-	@echo "Setting up local mail environment..."
-	@echo "Detected architecture: $(ARCH)"
-	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
-	
-	@# Create necessary directories
+# Main installation wrappers
+setup:
+	@echo "Initializing Dinky Server environment..."
+	@sudo ./scripts/initialize.sh
+
+install:
+	@echo "Installing Dinky Server..."
+	@sudo ./scripts/install.sh
+
+test:
+	@echo "Testing Dinky Server installation..."
+	@sudo ./scripts/test.sh
+
+test-all:
+	@echo "Running comprehensive tests..."
+	@sudo ./scripts/test-all-components.sh
+
+# Mail service management commands
+mail-setup:
+	@echo "Setting up mail services..."
 	@mkdir -p services/mail-server/sasl
 	@touch services/mail-server/sasl/sasl_passwd
 	@chmod 600 services/mail-server/sasl/sasl_passwd
-	
-	@# Check if Docker is running
-	@docker info > /dev/null 2>&1 || { echo "Error: Docker is not running. Please start Docker and try again."; exit 1; }
-	
-	@echo "Setup complete. Run 'make run-local-mail' to start services."
-
-# Create local network if it doesn't exist
-create-network:
-	@echo "Creating docker network if it doesn't exist..."
 	@docker network inspect dinky-network >/dev/null 2>&1 || docker network create dinky-network
+	@echo "Mail services setup complete."
 
-# Start mail services locally
-run-local-mail: setup-local-mail create-network
-	@echo "Starting mail services locally..."
+mail-start: mail-setup
+	@echo "Starting mail services..."
 	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
-	
-	@# Clean up any previous failed builds
-	@echo "Cleaning up any previous failed builds..."
-	@docker-compose down mail-server mail-api --remove-orphans 2>/dev/null || true
-	
-	@# Build and start the containers
-	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development \
-	docker-compose build mail-server mail-api || { \
-		echo "Error building services. See above for details."; \
-		exit 1; \
-	}
-	
-	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 ENVIRONMENT=development TRAEFIK_ENTRYPOINT=web ENABLE_TLS=false \
-	SERVER_IP=127.0.0.1 RESTART_POLICY=no NODE_ENV=development \
-	docker-compose up -d mail-server mail-api || { \
-		echo "Error starting services. Checking logs..."; \
-		docker-compose logs mail-server mail-api; \
-		exit 1; \
-	}
-	
-	@echo "Adding mail-api.local to /etc/hosts if needed (requires sudo)..."
-	@grep -q "mail-api.local" /etc/hosts || \
-	sudo sh -c 'echo "127.0.0.1 mail-api.local" >> /etc/hosts'
-	@echo "Mail services are running locally"
-	@echo "- Mail API is available at: http://mail-api.local:20001"
-	@echo "- SMTP server is available at: localhost:25 (for internal mail only)"
-	@echo "- SMTP submission port is available at: localhost:587 (for internal mail only)"
-	@echo ""
-	@echo "To check logs: make logs-mail"
-	@echo "To test API: make test-mail-api"
-	@echo "To test SMTP server: make test-mail-server"
+	@docker compose down mail-server mail-api --remove-orphans 2>/dev/null || true
+	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose build mail-server mail-api
+	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 SERVER_IP=127.0.0.1 RESTART_POLICY=no docker compose up -d mail-server mail-api
+	@grep -q "mail-api.local" /etc/hosts || sudo sh -c 'echo "127.0.0.1 mail-api.local" >> /etc/hosts'
+	@echo "Mail services started successfully."
+	@echo "- Mail API available at: http://mail-api.local:20001"
+	@echo "- Mail server ports: 25, 587"
 
-# Restart mail services
-restart-local-mail: stop-local-mail
-	@echo "Restarting mail services..."
-	@make run-local-mail
-	@echo "Services restarted successfully."
-
-# Stop mail services
-stop-local-mail:
+mail-stop:
 	@echo "Stopping mail services..."
-	@docker-compose down mail-server mail-api
-	@echo "Mail services stopped"
+	@docker compose down mail-server mail-api
+	@echo "Mail services stopped."
 
-# Test mail API
-test-mail-api:
-	@echo "Testing mail API..."
-	@echo "Sending test email through mail-api container..."
-	@docker exec -it mail-api curl -X POST http://localhost:20001/send \
-	-H "Content-Type: application/json" \
-	-d '{"to":"test@example.com","subject":"Test Email","body":"This is a test email from the local environment"}' || \
-	echo "Failed to connect to mail API. Make sure services are running with 'docker compose up -d mail-api mail-server'"
-	@echo ""
-	@echo "To check if mail API is running: docker ps | grep mail-api"
-	@docker ps | grep mail-api || echo "Mail API container not running"
+mail-restart: mail-stop mail-start
+	@echo "Mail services restarted successfully."
 
-# Test SMTP server
-test-mail-server:
-	@echo "Testing SMTP server connection..."
-	@echo "Checking if mail-server is running..."
-	@docker ps | grep mail-server > /dev/null || { echo "Mail server container not running"; exit 1; }
-	@echo "Connecting to mail-server container on port 25..."
-	@docker exec -it mail-server sh -c '(echo "EHLO test" && sleep 1 && echo "QUIT") > /dev/tcp/localhost/25' 2>/dev/null || \
-	{ docker exec -it mail-server sh -c 'apk add --no-cache netcat-openbsd && (echo "EHLO test"; sleep 1; echo "QUIT") | nc localhost 25'; } || \
-	echo "Failed to connect to SMTP server. The SMTP service might not be running inside the container."
-	@echo ""
-	@echo "To check mail server logs: docker logs mail-server"
+mail-test:
+	@echo "Testing mail services..."
+	@echo "Testing mail-api container..."
+	@docker exec -it mail-api wget -q -O- http://localhost:20001/health || echo "Mail API health check failed."
+	@echo "Testing mail-server container..."
+	@docker exec -it mail-server sh -c "postconf -n" > /dev/null || echo "Mail server configuration check failed."
+	@echo "Mail services test complete."
 
-# View logs
-logs-mail:
+mail-logs:
 	@echo "Viewing mail server logs..."
-	@docker logs mail-server 2>&1 || echo "Mail server container not running"
+	@docker logs mail-server 2>&1 || echo "Mail server not running"
 	@echo ""
 	@echo "Viewing mail API logs..."
-	@docker logs mail-api 2>&1 || echo "Mail API container not running"
+	@docker logs mail-api 2>&1 || echo "Mail API not running"
 
-# Clean up everything
-clean-local-mail: stop-local-mail
-	@echo "Removing mail service containers and volumes..."
-	@docker-compose down mail-server mail-api -v
-	@echo "Mail services cleaned up"
-
-# Send a real test email (usage: make send-test-email EMAIL=your@email.com)
-send-test-email:
+# Send a test email - Usage: make mail-send-test EMAIL=your@email.com
+mail-send-test:
 	@if [ -z "$(EMAIL)" ]; then \
-		echo "Please specify an email address: make send-test-email EMAIL=your@email.com"; \
+		echo "Please specify an email address: make mail-send-test EMAIL=your@email.com"; \
 		exit 1; \
 	fi
-	@echo "Sending a real test email to $(EMAIL)..."
-	@docker exec -it mail-api sh -c 'curl -X POST http://localhost:20001/send \
-	-H "Content-Type: application/json" \
-	-d "{\"to\":\"$(EMAIL)\",\"subject\":\"Dinky Server Test Email\",\"body\":\"This is a test email sent from your Dinky Server at $(shell date). If you received this, your mail system is working properly!\"}"' || \
-	echo "Failed to send email. Check mail-api logs for details: docker logs mail-api" 
+	@echo "Sending test email to $(EMAIL)..."
+	@sudo ./scripts/send-test-email.sh $(EMAIL) 

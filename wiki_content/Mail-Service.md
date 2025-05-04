@@ -132,7 +132,7 @@ app.post('/contact', async (req, res) => {
 
 2. If they don't exist, run the initialization script to create them:
    ```bash
-   sudo ./initialize.sh
+   sudo ./scripts/initialize.sh
    ```
 
 3. If you encounter image reference errors like:
@@ -274,19 +274,25 @@ If you're experiencing issues with the mail service, here are some steps you can
 
 1. **Use the test.sh script to check if services are running**:
    ```bash
-   sudo ./test.sh
+   sudo ./scripts/test.sh
    ```
    This will check if both mail-server and mail-api containers are running and communicating properly.
 
-2. **Restart the mail services**:
+2. **For more detailed mail service tests**:
    ```bash
-   sudo ./test.sh --restart-mail
+   sudo ./scripts/test-all-components.sh --mail
+   ```
+   This will perform comprehensive tests on the mail services including connectivity, configuration, and network checks.
+
+3. **Restart the mail services**:
+   ```bash
+   sudo ./scripts/test.sh --restart-mail
    ```
    This will stop and restart both the mail-server and mail-api containers.
 
-3. **Send a test email**:
+4. **Send a test email**:
    ```bash
-   sudo ./send-test-email.sh your-email@example.com
+   sudo ./scripts/send-test-email.sh your-email@example.com
    ```
    This script will send a test email to the specified address and provide immediate feedback on success or failure.
 
