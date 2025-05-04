@@ -289,7 +289,7 @@ smtpd_tls_received_header = yes
 # SMTP relay settings (if using external relay)
 relayhost = [\$RELAY_HOST]:\$RELAY_PORT
 smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
+smtp_sasl_password_maps = lmdb:/etc/postfix/sasl/sasl_passwd
 smtp_sasl_security_options = noanonymous
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 
@@ -330,7 +330,7 @@ if [ -n "\$RELAY_HOST" ] && [ -n "\$RELAY_PORT" ]; then
         echo "[\$RELAY_HOST]:\$RELAY_PORT \$RELAY_USER:\$RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
         postmap /etc/postfix/sasl/sasl_passwd
         postconf -e "smtp_sasl_auth_enable = yes"
-        postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd"
+        postconf -e "smtp_sasl_password_maps = lmdb:/etc/postfix/sasl/sasl_passwd"
         postconf -e "smtp_sasl_security_options = noanonymous"
     fi
     

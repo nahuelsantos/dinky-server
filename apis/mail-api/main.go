@@ -97,18 +97,46 @@ func sendEmail(req EmailRequest) error {
 	addr := fmt.Sprintf("%s:%s", config.SMTPHost, config.SMTPPort)
 	log.Printf("Attempting to send email via SMTP server: %s", addr)
 
-	// Simplified approach using SendMail directly
-	err := smtp.SendMail(
-		addr,
-		nil, // No authentication needed for internal mail server
-		req.From,
-		[]string{req.To},
-		[]byte(message),
-	)
-
+	// Create client with TLS disabled
+	client, err := smtp.Dial(addr)
 	if err != nil {
-		log.Printf("SMTP error: %v", err)
-		return fmt.Errorf("SMTP error: %v", err)
+		log.Printf("SMTP connection error: %v", err)
+		return fmt.Errorf("SMTP connection error: %v", err)
+	}
+	defer client.Close()
+
+	// Set the sender and recipient
+	if err := client.Mail(req.From); err != nil {
+		log.Printf("SMTP FROM error: %v", err)
+		return fmt.Errorf("SMTP FROM error: %v", err)
+	}
+	if err := client.Rcpt(req.To); err != nil {
+		log.Printf("SMTP RCPT error: %v", err)
+		return fmt.Errorf("SMTP RCPT error: %v", err)
+	}
+
+	// Send the email body
+	w, err := client.Data()
+	if err != nil {
+		log.Printf("SMTP DATA error: %v", err)
+		return fmt.Errorf("SMTP DATA error: %v", err)
+	}
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		log.Printf("SMTP write error: %v", err)
+		return fmt.Errorf("SMTP write error: %v", err)
+	}
+	err = w.Close()
+	if err != nil {
+		log.Printf("SMTP close error: %v", err)
+		return fmt.Errorf("SMTP close error: %v", err)
+	}
+
+	// Send the QUIT command and close the connection
+	err = client.Quit()
+	if err != nil {
+		log.Printf("SMTP quit error: %v", err)
+		return fmt.Errorf("SMTP quit error: %v", err)
 	}
 
 	log.Printf("Email sent successfully to %s", req.To)

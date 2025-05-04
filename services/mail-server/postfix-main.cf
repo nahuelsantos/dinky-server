@@ -1,19 +1,20 @@
 # See /usr/share/postfix/main.cf.dist for a commented, more complete version
 
-# Hostname and domain settings (set via environment variables)
+# Basic Postfix configuration
 myhostname = ${MAIL_HOSTNAME}
 mydomain = ${MAIL_DOMAIN}
 myorigin = $mydomain
+compatibility_level = 2
 
-# Network settings
+# Network settings - use IPv4 only to avoid IPv6 connectivity issues
 inet_interfaces = all
 inet_protocols = ipv4
 
 # Local mail delivery settings
 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
-alias_maps = hash:/etc/aliases
-alias_database = hash:/etc/aliases
+alias_maps = lmdb:/etc/aliases
+alias_database = lmdb:/etc/aliases
 mail_spool_directory = /var/mail
 mailbox_command =
 home_mailbox = Maildir/
@@ -23,7 +24,6 @@ smtpd_banner = $myhostname ESMTP $mail_name
 biff = no
 append_dot_mydomain = no
 readme_directory = no
-compatibility_level = 2
 
 # TLS parameters for incoming connections
 smtpd_tls_security_level = may
@@ -32,15 +32,15 @@ smtpd_tls_key_file = /etc/ssl/private/ssl-cert-snakeoil.key
 smtpd_tls_session_cache_database = texthash:${data_directory}/smtpd_scache
 
 # TLS parameters for outgoing connections
-smtp_tls_security_level = may
+smtp_tls_security_level = encrypt
 smtp_tls_loglevel = 1
-smtp_use_tls = yes
 smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
 smtp_tls_session_cache_database = texthash:${data_directory}/smtp_scache
+tls_random_source = dev:/dev/urandom
 
 # SASL authentication for outgoing emails
 smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd
+smtp_sasl_password_maps = lmdb:/etc/postfix/sasl/sasl_passwd
 smtp_sasl_security_options = noanonymous
 smtp_sasl_mechanism_filter = plain, login
 

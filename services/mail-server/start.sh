@@ -3,7 +3,7 @@ set -e
 
 echo "=== Starting Mail Server Configuration ==="
 
-# Default values for environment variables
+# Default values for environment variables (if not set)
 MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
 MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
 DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
@@ -11,8 +11,6 @@ SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
 SMTP_RELAY_PORT=${SMTP_RELAY_PORT:-587}
 SMTP_RELAY_USERNAME=${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
 SMTP_RELAY_PASSWORD=${SMTP_RELAY_PASSWORD:-your-gmail-app-password}
-USE_TLS=${USE_TLS:-yes}
-TLS_VERIFY=${TLS_VERIFY:-yes}
 
 echo "Mail server configuration:"
 echo "-------------------------"
@@ -23,17 +21,19 @@ echo "Relay: $SMTP_RELAY_HOST:$SMTP_RELAY_PORT"
 echo "Relay User: $SMTP_RELAY_USERNAME"
 echo "-------------------------"
 
-# Create and touch necessary log files
+# Create log directory and file
 mkdir -p /var/log
 touch /var/log/mail.log
 
-# Process template files
-echo "Setting up configuration files..."
+# Apply environment variables to configuration
+echo "Processing configuration template..."
 cat /etc/postfix/main.cf.template | \
   sed "s|\${MAIL_HOSTNAME}|$MAIL_HOSTNAME|g" | \
   sed "s|\${MAIL_DOMAIN}|$MAIL_DOMAIN|g" | \
   sed "s|\${SMTP_RELAY_HOST}|$SMTP_RELAY_HOST|g" | \
-  sed "s|\${SMTP_RELAY_PORT}|$SMTP_RELAY_PORT|g" \
+  sed "s|\${SMTP_RELAY_PORT}|$SMTP_RELAY_PORT|g" | \
+  sed "s|\${SMTP_RELAY_USERNAME}|$SMTP_RELAY_USERNAME|g" | \
+  sed "s|\${SMTP_RELAY_PASSWORD}|$SMTP_RELAY_PASSWORD|g" \
   > /etc/postfix/main.cf
 
 # Configure SMTP relay authentication
@@ -41,10 +41,7 @@ echo "Setting up SMTP relay authentication..."
 mkdir -p /etc/postfix/sasl
 echo "[$SMTP_RELAY_HOST]:$SMTP_RELAY_PORT $SMTP_RELAY_USERNAME:$SMTP_RELAY_PASSWORD" > /etc/postfix/sasl/sasl_passwd
 chmod 600 /etc/postfix/sasl/sasl_passwd
-postmap hash:/etc/postfix/sasl/sasl_passwd
-
-# Update postfix configuration to ensure it uses the hash map correctly
-postconf -e "smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_passwd"
+postmap lmdb:/etc/postfix/sasl/sasl_passwd
 
 # Configure submission service in master.cf for port 587
 echo "Configuring submission service..."
@@ -65,10 +62,10 @@ fi
 echo "Starting Postfix mail server..."
 postfix start
 
-# Wait a moment for Postfix to start
+# Give Postfix a moment to start
 sleep 2
 
-# Show running processes
+# Show Postfix processes
 echo "Postfix processes:"
 ps aux | grep postfix
 

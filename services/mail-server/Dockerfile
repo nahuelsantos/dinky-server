@@ -13,10 +13,13 @@ RUN apk add --no-cache \
     bash \
     coreutils
 
+# Create temporary minimal configuration to use postalias
+RUN echo "myhostname = localhost" > /etc/postfix/main.cf
+
 # Create required directories
 RUN mkdir -p /etc/postfix/sasl /var/spool/postfix /var/mail /var/log/mail
 
-# Create basic alias settings
+# Create and process alias file
 RUN echo "# Basic system aliases" > /etc/aliases && \
     echo "mailer-daemon: root" >> /etc/aliases && \
     echo "postmaster: root" >> /etc/aliases && \
@@ -34,6 +37,7 @@ COPY start.sh /start.sh
 # Set permissions
 RUN chmod 755 /start.sh && \
     chmod -R 644 /etc/postfix/ && \
+    chmod 755 /etc/postfix && \
     update-ca-certificates
 
 # Create volume for mail storage and logs

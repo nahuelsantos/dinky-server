@@ -26,7 +26,7 @@ if [ -n "${RELAY_HOST}" ] && [ -n "${RELAY_USERNAME}" ] && [ -n "${RELAY_PASSWOR
   
   # Secure the credentials files
   chmod 600 /etc/postfix/sasl_passwd
-  chmod 600 /etc/postfix/sasl_passwd.db
+  chmod 600 /etc/postfix/sasl_passwd.lmdb
   
   echo "SMTP relay configuration completed"
 else
