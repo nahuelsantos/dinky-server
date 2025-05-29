@@ -279,6 +279,6 @@ networks:
     driver: bridge
 
 x-common-variables: &common-variables
-  DOMAIN_NAME: ${DOMAIN_NAME:-nahuelsantos.com}
+  DOMAIN_NAME: ${DOMAIN_NAME:-example.com}
   SERVER_IP: ${SERVER_IP:-192.168.3.2}
   TZ: ${TZ:-America/Argentina/Buenos_Aires}

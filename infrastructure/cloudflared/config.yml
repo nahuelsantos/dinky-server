@@ -5,16 +5,12 @@ logfile: /var/log/cloudflared.log
 loglevel: info
 
 ingress:
-  - hostname: nahuelsantos.com
+  - hostname: example.com
     service: http://traefik:80
-  - hostname: cv.nahuelsantos.com
+  - hostname: www.example.com
     service: http://traefik:80
-  - hostname: www.nahuelsantos.com
+  - hostname: example-2.com
     service: http://traefik:80
-  - hostname: ssh.loopingbyte.com
-    service: ssh://traefik:22
-  - hostname: loopingbyte.com
-    service: http://traefik:80
-  - hostname: www.loopingbyte.com
+  - hostname: www.example-2.com
     service: http://traefik:80
   - service: http_status:404 #Default
