@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>monitoring_stack</title>
+    <style>
+        :root {
+            /* Font families */
+            --font-mono: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+            --default-mono-font-family: var(--font-mono);
+            --font-family-mono: "JetBrains Mono", Menlo, Monaco, "Courier New", monospace;
+            
+            /* Terminal colors */
+            --color-terminal-black: #282c34;
+            --color-terminal-gray: #3f4451;
+            --color-terminal-lightGray: #abb2bf;
+            --color-terminal-white: #f8f8f2;
+            --color-terminal-green: #98c379;
+            --color-terminal-cyan: #56b6c2;
+            --color-terminal-blue: #61afef;
+            --color-terminal-red: #e06c75;
+            --color-terminal-yellow: #e5c07b;
+            
+            /* Typography */
+            --font-weight-bold: 700;
+            --text-4xl: 4rem;
+            --text-4xl--line-height: 4.5rem;
+            
+            /* Dark theme (default) */
+            --bg-primary: var(--color-terminal-black);
+            --bg-secondary: var(--color-terminal-gray);
+            --bg-tertiary: #1e2127;
+            --text-primary: var(--color-terminal-white);
+            --text-secondary: var(--color-terminal-lightGray);
+            --text-muted: #5c6370;
+            --accent-primary: var(--color-terminal-green);
+            --accent-secondary: var(--color-terminal-cyan);
+            --accent-blue: var(--color-terminal-blue);
+            --accent-yellow: var(--color-terminal-yellow);
+            --accent-red: var(--color-terminal-red);
+            --border-color: var(--color-terminal-gray);
+        }
+
+        [data-theme="light"] {
+            /* Light theme */
+            --bg-primary: #fafafa;
+            --bg-secondary: #f0f0f0;
+            --bg-tertiary: #ffffff;
+            --text-primary: var(--color-terminal-black);
+            --text-secondary: var(--color-terminal-gray);
+            --text-muted: #6c757d;
+            --accent-primary: #22863a;
+            --accent-secondary: #0366d6;
+            --accent-blue: #0366d6;
+            --accent-yellow: #d73a49;
+            --accent-red: #d73a49;
+            --border-color: #e1e4e8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-mono);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        /* Utility Classes */
+        .text-terminal-green {
+            color: var(--color-terminal-green);
+        }
+
+        .font-bold {
+            --tw-font-weight: var(--font-weight-bold);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .text-4xl {
+            font-size: var(--text-4xl);
+            line-height: var(--tw-leading, var(--text-4xl--line-height));
+        }
+
+        /* Header Navigation */
+        .header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            color: var(--accent-blue);
+            font-size: 1rem;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo::before {
+            content: '>';
+            margin-right: 0.25rem;
+            font-weight: normal;
+        }
+
+        .logo::after {
+            content: '_';
+            animation: blink 1s infinite;
+            margin-left: 0;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-secondary);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 80px 0 60px 0;
+        }
+
+        .hero h1 {
+            margin-bottom: 1rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid var(--accent-primary);
+            background: transparent;
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .btn-blue {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .btn-blue:hover {
+            background: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        /* Test Grid */
+        .section {
+            margin: 4rem 0;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: var(--accent-yellow);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-title::before {
+            content: 'cat ';
+            color: var(--text-primary);
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .test-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+        }
+
+        .test-card-header {
+            background: #3f4451;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .test-card-icon {
+            color: var(--accent-primary);
+            font-size: 1rem;
+        }
+
+        .test-card-title {
+            color: var(--accent-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .test-card-status {
+            margin-left: auto;
+            color: var(--accent-blue);
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .test-card-content {
+            padding: 20px;
+        }
+
+        .test-card-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .test-card-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .test-card-buttons .btn {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.8rem;
+            padding: 10px 16px;
+        }
+
+        /* Status Section */
+        .status-section {
+            margin: 3rem 0;
+        }
+
+        .status-log {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .status-entry {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .status-time {
+            color: var(--text-muted);
+            min-width: 80px;
+            font-size: 0.8rem;
+        }
+
+        .status-entry.success .status-message {
+            color: var(--accent-primary);
+        }
+
+        .status-entry.error .status-message {
+            color: var(--accent-red);
+        }
+
+        /* Links Section */
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .link-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .link-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .link-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .link-title {
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-secondary);
+        }
+
+        /* Loading States */
+        .btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .btn.loading::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px 20px;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .container {
+                padding: 0 20px;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .test-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">monitoring_stack</div>
+        <nav class="nav-links">
+            <a href="#tests" class="nav-link">tests.log</a>
+            <a href="#status" class="nav-link">status.info</a>
+            <a href="#dashboards" class="nav-link">dashboards.sh</a>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+                🌙 dark
+            </button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1 class="text-4xl font-bold text-terminal-green">monitoring_stack</h1>
+            <p>comprehensive testing // observability stack // modern telemetry</p>
+            <div class="hero-buttons">
+                <a href="#tests" class="btn">./run_tests</a>
+                <a href="#dashboards" class="btn btn-blue">./view_dashboards</a>
+            </div>
+        </section>
+
+        <!-- Test Section -->
+        <section class="section" id="tests">
+            <h2 class="section-title">tests.log</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Metrics Testing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Generate custom Prometheus metrics to test metric collection, storage, and visualization in Grafana dashboards.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runTest('metrics')">./test-metrics</button>
+                            <a href="http://localhost:3005/metrics" target="_blank" class="btn btn-blue">./view-raw</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Logging Testing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Generate structured logs with different levels (INFO, WARN, ERROR, DEBUG) to test Loki log aggregation.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runTest('logs')">./test-logs</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Distributed Tracing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Simulate distributed service calls to test OpenTelemetry tracing and Tempo trace storage.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runTest('trace')">./test-traces</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Error Testing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Generate intentional errors to test error tracking, alerting, and error rate metrics.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runTest('error')">./test-errors</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Performance Testing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Generate CPU and memory load to test system metrics and performance monitoring.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runTest('cpu')">./test-cpu</button>
+                            <button class="btn" onclick="runTest('memory')">./test-memory</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-card">
+                    <div class="test-card-header">
+                        <span class="test-card-icon">▼</span>
+                        <span class="test-card-title">Load Testing</span>
+                        <span class="test-card-status">[Ready]</span>
+                    </div>
+                    <div class="test-card-content">
+                        <p class="test-card-description">
+                            Run comprehensive tests to generate monitoring data across all observability pillars.
+                        </p>
+                        <div class="test-card-buttons">
+                            <button class="btn" onclick="runLoadTest()">./run-load-test</button>
+                            <button class="btn btn-blue" onclick="toggleContinuous()" id="continuousBtn">./start-continuous</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Section -->
+        <section class="section" id="status">
+            <h2 class="section-title">status.info</h2>
+            <div class="status-log" id="statusLog">
+                <div class="status-entry">
+                    <span class="status-time">Ready</span>
+                    <span class="status-message">Monitoring stack initialized and ready for testing...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboards Section -->
+        <section class="section" id="dashboards">
+            <h2 class="section-title">dashboards.sh</h2>
+            <div class="links-grid">
+                <a href="http://localhost:3000" target="_blank" class="link-card">
+                    <span class="link-icon">📊</span>
+                    <div class="link-title">grafana</div>
+                </a>
+                <a href="http://localhost:9090" target="_blank" class="link-card">
+                    <span class="link-icon">🎯</span>
+                    <div class="link-title">prometheus</div>
+                </a>
+                <a href="http://localhost:3005/ui" target="_blank" class="link-card">
+                    <span class="link-icon">🔧</span>
+                    <div class="link-title">api-suite</div>
+                </a>
+                <a href="http://localhost:4040" target="_blank" class="link-card">
+                    <span class="link-icon">🔥</span>
+                    <div class="link-title">pyroscope</div>
+                </a>
+                <a href="http://localhost:3000/explore" target="_blank" class="link-card">
+                    <span class="link-icon">📝</span>
+                    <div class="link-title">loki-logs</div>
+                </a>
+                <a href="http://localhost:3000/explore" target="_blank" class="link-card">
+                    <span class="link-icon">🔗</span>
+                    <div class="link-title">tempo-traces</div>
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div>$ echo "© 2025 Monitoring Stack. All rights reserved."</div>
+        <div class="footer-links">
+            <a href="https://github.com" target="_blank">github</a>
+            <a href="#" target="_blank">x</a>
+            <a href="#" target="_blank">docs</a>
+        </div>
+    </footer>
+
+    <script>
+        // Theme management
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            const toggleBtn = document.getElementById('themeToggle');
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            toggleBtn.textContent = newTheme === 'light' ? '☀️ light' : '🌙 dark';
+        }
+
+        // Initialize theme
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const toggleBtn = document.getElementById('themeToggle');
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            toggleBtn.textContent = savedTheme === 'light' ? '☀️ light' : '🌙 dark';
+        }
+
+        // Status management
+        let continuousInterval = null;
+
+        function addStatusEntry(message, isError = false) {
+            const statusLog = document.getElementById('statusLog');
+            const entry = document.createElement('div');
+            entry.className = `status-entry ${isError ? 'error' : 'success'}`;
+            
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <span class="status-time">${time}</span>
+                <span class="status-message">${message}</span>
+            `;
+            
+            statusLog.insertBefore(entry, statusLog.firstChild);
+            
+            // Keep only last 15 entries
+            while (statusLog.children.length > 15) {
+                statusLog.removeChild(statusLog.lastChild);
+            }
+        }
+
+        async function makeRequest(endpoint, method = 'POST') {
+            try {
+                const response = await fetch(`http://localhost:3005${endpoint}`, { method });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addStatusEntry(`✓ ${endpoint}: ${data.message || data.status}`);
+                } else {
+                    addStatusEntry(`✗ ${endpoint}: ${data.error || 'Request failed'}`, true);
+                }
+                return data;
+            } catch (error) {
+                addStatusEntry(`✗ ${endpoint}: ${error.message}`, true);
+                throw error;
+            }
+        }
+
+        async function runTest(testType) {
+            const button = event.target;
+            button.classList.add('loading');
+            button.disabled = true;
+
+            try {
+                let endpoint;
+                let params = '';
+                
+                switch(testType) {
+                    case 'metrics':
+                        endpoint = '/test/metrics';
+                        break;
+                    case 'logs':
+                        endpoint = '/test/logs';
+                        break;
+                    case 'trace':
+                        endpoint = '/test/trace';
+                        break;
+                    case 'error':
+                        endpoint = '/test/error';
+                        break;
+                    case 'cpu':
+                        endpoint = '/test/cpu';
+                        params = '?duration=3s';
+                        break;
+                    case 'memory':
+                        endpoint = '/test/memory';
+                        params = '?size=30';
+                        break;
+                }
+
+                addStatusEntry(`→ Running ${testType} test...`);
+                await makeRequest(`${endpoint}${params}`);
+
+            } catch (error) {
+                addStatusEntry(`✗ ${testType} test failed: ${error.message}`, true);
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
+            }
+        }
+
+        async function runLoadTest() {
+            const button = event.target;
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            addStatusEntry('→ Starting comprehensive load test...');
+            
+            try {
+                await Promise.all([
+                    makeRequest('/test/metrics'),
+                    makeRequest('/test/logs'),
+                    makeRequest('/test/trace'),
+                    makeRequest('/test/error')
+                ]);
+                
+                addStatusEntry('✓ Load test completed successfully!');
+            } catch (error) {
+                addStatusEntry('✗ Load test encountered errors', true);
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
+            }
+        }
+
+        function toggleContinuous() {
+            const btn = document.getElementById('continuousBtn');
+            
+            if (continuousInterval) {
+                clearInterval(continuousInterval);
+                continuousInterval = null;
+                btn.textContent = './start-continuous';
+                btn.classList.remove('btn-blue');
+                addStatusEntry('⏹ Continuous testing stopped');
+            } else {
+                btn.textContent = './stop-continuous';
+                btn.classList.add('btn-blue');
+                addStatusEntry('▶ Continuous testing started (every 10s)');
+                
+                continuousInterval = setInterval(async () => {
+                    const tests = [
+                        () => makeRequest('/test/metrics'),
+                        () => makeRequest('/test/logs'),
+                        () => makeRequest('/test/trace')
+                    ];
+                    
+                    const randomTest = tests[Math.floor(Math.random() * tests.length)];
+                    await randomTest();
+                }, 10000);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            addStatusEntry('✓ Monitoring stack loaded and ready!');
+            
+            // Test API connectivity
+            fetch('http://localhost:3005/health')
+                .then(response => response.json())
+                .then(data => {
+                    addStatusEntry(`✓ API connection established (v${data.version})`);
+                })
+                .catch(error => {
+                    addStatusEntry('✗ API connection failed - ensure services are running', true);
+                });
+        });
+    </script>
+</body>
+</html> 

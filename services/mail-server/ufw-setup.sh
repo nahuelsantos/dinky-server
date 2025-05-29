@@ -13,7 +13,7 @@ ufw allow 25/tcp comment 'SMTP'
 ufw allow 587/tcp comment 'SMTP submission'
 
 # Allow HTTP for mail API (if not already allowed)
-ufw allow 80/tcp comment 'HTTP for mail API' 2>/dev/null || true
+ufw allow 3000/tcp comment 'Mail API' 2>/dev/null || true
 
 echo "UFW rules added. Current status:"
 ufw status verbose

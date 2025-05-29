@@ -19,7 +19,7 @@ services:
     command:
       - --configFile=/etc/traefik/traefik.yml
     ports:
-      - "20000:8080"  # Traefik dashboard (internal access only)
+      - "8080:8080"  # Traefik dashboard (internal access only)
       - "80:80"  # HTTP (internal access only, cloudflared tunnels traffic)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -50,7 +50,7 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "19999:80/tcp"  # Web interface
+      - "8081:80/tcp"  # Web interface
     env_file:
       - .env
     environment:
@@ -106,10 +106,8 @@ services:
         max-file: "3"
 
   mail-api:
+    image: ghcr.io/nahuelsantos/mail-api:latest
     container_name: mail-api
-    build:
-      context: ./apis/mail-api
-      dockerfile: Dockerfile
     restart: unless-stopped
     networks:
       - traefik_network
@@ -120,10 +118,11 @@ services:
       - SMTP_HOST=mail-server
       - SMTP_PORT=25
       - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-dinky.local}
-      - PORT=20001
+      - PORT=3000
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:20001/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -133,7 +132,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mail-api.rule=Host(`mail-api.local`)"
       - "traefik.http.routers.mail-api.service=mail-api"
-      - "traefik.http.services.mail-api.loadbalancer.server.port=20001"
+      - "traefik.http.services.mail-api.loadbalancer.server.port=3000"
     logging:
       driver: "json-file"
       options:
@@ -246,8 +245,8 @@ services:
     image: otel/opentelemetry-collector-contrib:0.124.1
     restart: always
     ports:
-      - "192.168.3.2:4316:4316"  # OTLP gRPC legacy
-      - "192.168.3.2:4319:4319"  # OTLP HTTP legacy
+      - "192.168.3.2:4317:4317"  # OTLP gRPC
+      - "192.168.3.2:4318:4318"  # OTLP HTTP
       - "192.168.3.2:8888:8888"  # Metrics endpoint
     volumes:
       - ./monitoring/otel-collector:/etc/otel-collector
@@ -280,6 +279,6 @@ networks:
     driver: bridge
 
 x-common-variables: &common-variables
-  DOMAIN_NAME: ${DOMAIN_NAME:-nahuelsantos.com}
+  DOMAIN_NAME: ${DOMAIN_NAME:-example.com}
   SERVER_IP: ${SERVER_IP:-192.168.3.2}
   TZ: ${TZ:-America/Argentina/Buenos_Aires}

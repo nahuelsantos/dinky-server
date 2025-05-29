@@ -1,104 +1,385 @@
-.PHONY: help setup install test mail-setup mail-start mail-stop mail-restart mail-test mail-logs test-all
+# Dinky Server - Local Development Makefile
+# For testing and development on macOS/Linux without sudo requirements
 
-# Get architecture
-ARCH := $(shell uname -m)
-ifeq ($(ARCH),arm64)
-    # M1/M2/M3 Mac
-    export DOCKER_PLATFORM := linux/arm64
-else ifeq ($(ARCH),x86_64)
-    # Intel Mac or Linux
-    export DOCKER_PLATFORM := linux/amd64
-else
-    # Default to ARM64
-    export DOCKER_PLATFORM := linux/arm64
-endif
+.PHONY: help dev-up dev-down dev-restart dev-logs dev-status dev-clean dev-reset dev-apis dev-sites dev-monitoring dev-core
 
 # Default target
-help:
-	@echo "Dinky Server Management Commands:"
-	@echo ""
-	@echo "Installation:"
-	@echo "  make setup         - Initialize the environment (runs initialize.sh)"
-	@echo "  make install       - Install Dinky Server (runs install.sh)"
-	@echo "  make test          - Test Dinky Server installation (runs test.sh)"
-	@echo "  make test-all      - Run comprehensive tests (runs test-all-components.sh)"
-	@echo ""
-	@echo "Mail Service Management:"
-	@echo "  make mail-setup    - Setup mail services for local testing"
-	@echo "  make mail-start    - Start mail services locally"
-	@echo "  make mail-stop     - Stop mail services"
-	@echo "  make mail-restart  - Restart mail services"
-	@echo "  make mail-test     - Test mail services"
-	@echo "  make mail-logs     - View mail service logs"
-	@echo ""
-	@echo "Detected architecture: $(ARCH)"
-	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
+.DEFAULT_GOAL := help
 
-# Main installation wrappers
-setup:
-	@echo "Initializing Dinky Server environment..."
-	@sudo ./scripts/initialize.sh
+# Colors for output
+CYAN := \033[36m
+GREEN := \033[32m
+YELLOW := \033[33m
+RED := \033[31m
+NC := \033[0m
 
-install:
-	@echo "Installing Dinky Server..."
-	@sudo ./scripts/install.sh
+# Development configuration
+DEV_ENV_FILE := .env.dev
+COMPOSE_FILE := docker-compose.dev.yml
+PROJECT_NAME := dinky-dev
 
-test:
-	@echo "Testing Dinky Server installation..."
-	@sudo ./scripts/test.sh
+# Auto-detect Docker Compose command
+DOCKER_COMPOSE := $(shell if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then echo "docker compose"; elif command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; else echo ""; fi)
 
-test-all:
-	@echo "Running comprehensive tests..."
-	@sudo ./scripts/test-all-components.sh
-
-# Mail service management commands
-mail-setup:
-	@echo "Setting up mail services..."
-	@mkdir -p services/mail-server/sasl
-	@touch services/mail-server/sasl/sasl_passwd
-	@chmod 600 services/mail-server/sasl/sasl_passwd
-	@docker network inspect dinky-network >/dev/null 2>&1 || docker network create dinky-network
-	@echo "Mail services setup complete."
-
-mail-start: mail-setup
-	@echo "Starting mail services..."
-	@echo "Using Docker platform: $(DOCKER_PLATFORM)"
-	@docker compose down mail-server mail-api --remove-orphans 2>/dev/null || true
-	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose build mail-server mail-api
-	@DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 SERVER_IP=127.0.0.1 RESTART_POLICY=no docker compose up -d mail-server mail-api
-	@grep -q "mail-api.local" /etc/hosts || sudo sh -c 'echo "127.0.0.1 mail-api.local" >> /etc/hosts'
-	@echo "Mail services started successfully."
-	@echo "- Mail API available at: http://mail-api.local:20001"
-	@echo "- Mail server ports: 25, 587"
-
-mail-stop:
-	@echo "Stopping mail services..."
-	@docker compose down mail-server mail-api
-	@echo "Mail services stopped."
-
-mail-restart: mail-stop mail-start
-	@echo "Mail services restarted successfully."
-
-mail-test:
-	@echo "Testing mail services..."
-	@echo "Testing mail-api container..."
-	@docker exec -it mail-api wget -q -O- http://localhost:20001/health || echo "Mail API health check failed."
-	@echo "Testing mail-server container..."
-	@docker exec -it mail-server sh -c "postconf -n" > /dev/null || echo "Mail server configuration check failed."
-	@echo "Mail services test complete."
-
-mail-logs:
-	@echo "Viewing mail server logs..."
-	@docker logs mail-server 2>&1 || echo "Mail server not running"
-	@echo ""
-	@echo "Viewing mail API logs..."
-	@docker logs mail-api 2>&1 || echo "Mail API not running"
-
-# Send a test email - Usage: make mail-send-test EMAIL=your@email.com
-mail-send-test:
-	@if [ -z "$(EMAIL)" ]; then \
-		echo "Please specify an email address: make mail-send-test EMAIL=your@email.com"; \
+# Check if Docker Compose is available
+check-docker-compose:
+	@if [ -z "$(DOCKER_COMPOSE)" ]; then \
+		echo "$(RED)Error: Neither 'docker compose' nor 'docker-compose' is available$(NC)"; \
+		echo "$(YELLOW)Please install Docker Compose first$(NC)"; \
 		exit 1; \
 	fi
-	@echo "Sending test email to $(EMAIL)..."
-	@sudo ./scripts/send-test-email.sh $(EMAIL) 
+	@echo "$(GREEN)Using: $(DOCKER_COMPOSE)$(NC)"
+
+help: ## Show this help message
+	@echo "$(CYAN)Dinky Server - Local Development$(NC)"
+	@echo "$(CYAN)================================$(NC)"
+	@echo ""
+	@echo "$(GREEN)Main Commands:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(CYAN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(YELLOW)Service URLs (after dev-up):$(NC)"
+	@echo "  Traefik Dashboard: http://localhost:8080"
+	@echo "  Pi-hole Admin:     http://localhost:8081"
+	@echo "  Grafana:          http://localhost:3000"
+	@echo "  Prometheus:       http://localhost:9090"
+	@echo "  Example API:      http://localhost:3001"
+	@echo "  Example Site:     http://localhost:3002"
+	@echo "  Mail API:         http://localhost:3003"
+
+dev-setup: ## Initial setup for development environment
+	@echo "$(CYAN)Setting up development environment...$(NC)"
+	@if [ ! -f "$(DEV_ENV_FILE)" ]; then \
+		echo "$(YELLOW)Creating development environment file...$(NC)"; \
+		cp .env.example $(DEV_ENV_FILE) 2>/dev/null || echo "# Development Environment" > $(DEV_ENV_FILE); \
+		echo "SERVER_IP=localhost" >> $(DEV_ENV_FILE); \
+		echo "TZ=UTC" >> $(DEV_ENV_FILE); \
+		echo "DOMAIN_NAME=localhost" >> $(DEV_ENV_FILE); \
+		echo "PIHOLE_PASSWORD=admin123" >> $(DEV_ENV_FILE); \
+		echo "GRAFANA_PASSWORD=admin123" >> $(DEV_ENV_FILE); \
+		echo "MAIL_DOMAIN=localhost" >> $(DEV_ENV_FILE); \
+		echo "DEFAULT_FROM=test@localhost" >> $(DEV_ENV_FILE); \
+		echo "DEFAULT_TO=admin@localhost" >> $(DEV_ENV_FILE); \
+		echo "$(GREEN)Development environment file created: $(DEV_ENV_FILE)$(NC)"; \
+	fi
+	@if [ ! -f "$(COMPOSE_FILE)" ]; then \
+		echo "$(YELLOW)Creating development compose file...$(NC)"; \
+		$(MAKE) _create-dev-compose; \
+		echo "$(GREEN)Development compose file created: $(COMPOSE_FILE)$(NC)"; \
+	fi
+	@docker network create traefik_network 2>/dev/null || echo "$(YELLOW)Network traefik_network already exists$(NC)"
+	@echo "$(GREEN)✓ Development environment ready!$(NC)"
+
+dev-up: dev-setup check-docker-compose ## Start all development services
+	@echo "$(CYAN)Starting development services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d
+	@echo "$(GREEN)✓ Development services started!$(NC)"
+	@echo ""
+	@$(MAKE) dev-status
+
+dev-down: check-docker-compose ## Stop all development services
+	@echo "$(CYAN)Stopping development services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
+	@echo "$(GREEN)✓ Development services stopped!$(NC)"
+
+dev-restart: dev-down dev-up ## Restart all development services
+
+dev-logs: check-docker-compose ## Show logs from all services
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
+
+dev-logs-%: check-docker-compose ## Show logs from specific service (e.g., make dev-logs-traefik)
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f $*
+
+dev-status: check-docker-compose ## Show status of all services
+	@echo "$(CYAN)Development Services Status:$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) ps
+	@echo ""
+	@echo "$(CYAN)Service Health Check:$(NC)"
+	@echo -n "Traefik:    "; curl -s http://localhost:8080/api/version >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Pi-hole:    "; curl -s http://localhost:8081 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Grafana:    "; curl -s http://localhost:3000 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Prometheus: "; curl -s http://localhost:9090 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Example API:"; curl -s http://localhost:3001 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Example Site:"; curl -s http://localhost:3002 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+
+dev-clean: dev-down ## Stop services and remove containers/volumes
+	@echo "$(CYAN)Cleaning development environment...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
+	@docker system prune -f
+	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
+
+dev-reset: dev-clean dev-setup ## Complete reset of development environment
+	@echo "$(CYAN)Resetting development environment...$(NC)"
+	@rm -f $(DEV_ENV_FILE) $(COMPOSE_FILE)
+	@echo "$(GREEN)✓ Development environment reset!$(NC)"
+
+dev-core: dev-setup check-docker-compose ## Start only core services (Traefik, Pi-hole)
+	@echo "$(CYAN)Starting core services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d traefik pihole
+	@echo "$(GREEN)✓ Core services started!$(NC)"
+
+dev-monitoring: dev-setup check-docker-compose ## Start only monitoring services
+	@echo "$(CYAN)Starting monitoring services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d prometheus grafana loki tempo pyroscope
+	@echo "$(GREEN)✓ Monitoring services started!$(NC)"
+
+dev-apis: dev-setup check-docker-compose ## Start only API services
+	@echo "$(CYAN)Starting API services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d example-api
+	@echo "$(GREEN)✓ API services started!$(NC)"
+
+dev-sites: dev-setup check-docker-compose ## Start only site services
+	@echo "$(CYAN)Starting site services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d example-site
+	@echo "$(GREEN)✓ Site services started!$(NC)"
+
+dev-shell-%: check-docker-compose ## Open shell in specific service (e.g., make dev-shell-traefik)
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) exec $* sh
+
+dev-update: check-docker-compose ## Pull latest images and restart
+	@echo "$(CYAN)Updating development services...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) pull
+	@$(MAKE) dev-restart
+	@echo "$(GREEN)✓ Development services updated!$(NC)"
+
+dev-discover: check-docker-compose ## Discover and deploy additional APIs/sites
+	@echo "$(CYAN)Discovering additional services...$(NC)"
+	@if [ -d "apis" ]; then \
+		echo "$(YELLOW)Found APIs:$(NC)"; \
+		find apis -name "docker-compose.yml" -o -name "docker-compose.yaml" | while read compose_file; do \
+			service_dir=$$(dirname "$$compose_file"); \
+			service_name=$$(basename "$$service_dir"); \
+			echo "  - $$service_name ($$service_dir)"; \
+			(cd "$$service_dir" && $(DOCKER_COMPOSE) up -d) || echo "$(RED)Failed to deploy $$service_name$(NC)"; \
+		done; \
+	fi
+	@if [ -d "sites" ]; then \
+		echo "$(YELLOW)Found Sites:$(NC)"; \
+		find sites -name "docker-compose.yml" -o -name "docker-compose.yaml" | while read compose_file; do \
+			service_dir=$$(dirname "$$compose_file"); \
+			service_name=$$(basename "$$service_dir"); \
+			echo "  - $$service_name ($$service_dir)"; \
+			(cd "$$service_dir" && $(DOCKER_COMPOSE) up -d) || echo "$(RED)Failed to deploy $$service_name$(NC)"; \
+		done; \
+	fi
+	@echo "$(GREEN)✓ Additional services deployed!$(NC)"
+
+dev-add-site: check-docker-compose ## Deploy a specific site (usage: make dev-add-site SITE=site-name)
+	@if [ -z "$(SITE)" ]; then \
+		echo "$(RED)Error: Please specify SITE name$(NC)"; \
+		echo "$(YELLOW)Usage: make dev-add-site SITE=site-name$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -d "sites/$(SITE)" ]; then \
+		echo "$(RED)Error: Directory sites/$(SITE) does not exist$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "sites/$(SITE)/docker-compose.yml" ] && [ ! -f "sites/$(SITE)/docker-compose.yaml" ]; then \
+		echo "$(RED)Error: No docker-compose file found in sites/$(SITE)$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Deploying site: $(SITE)$(NC)"
+	@(cd "sites/$(SITE)" && $(DOCKER_COMPOSE) up -d) && echo "$(GREEN)✓ Site $(SITE) deployed successfully!$(NC)" || echo "$(RED)✗ Failed to deploy site $(SITE)$(NC)"
+
+dev-add-api: check-docker-compose ## Deploy a specific API (usage: make dev-add-api API=api-name)
+	@if [ -z "$(API)" ]; then \
+		echo "$(RED)Error: Please specify API name$(NC)"; \
+		echo "$(YELLOW)Usage: make dev-add-api API=api-name$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -d "apis/$(API)" ]; then \
+		echo "$(RED)Error: Directory apis/$(API) does not exist$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -f "apis/$(API)/docker-compose.yml" ] && [ ! -f "apis/$(API)/docker-compose.yaml" ]; then \
+		echo "$(RED)Error: No docker-compose file found in apis/$(API)$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Deploying API: $(API)$(NC)"
+	@(cd "apis/$(API)" && $(DOCKER_COMPOSE) up -d) && echo "$(GREEN)✓ API $(API) deployed successfully!$(NC)" || echo "$(RED)✗ Failed to deploy API $(API)$(NC)"
+
+dev-list-services: ## List all available APIs and sites
+	@echo "$(CYAN)Available Services:$(NC)"
+	@if [ -d "apis" ]; then \
+		echo "$(YELLOW)APIs:$(NC)"; \
+		find apis -name "docker-compose.yml" -o -name "docker-compose.yaml" | while read compose_file; do \
+			service_dir=$$(dirname "$$compose_file"); \
+			service_name=$$(basename "$$service_dir"); \
+			if docker ps --format "table {{.Names}}" | grep -q "$$service_name" 2>/dev/null; then \
+				echo "  $(GREEN)✓$(NC) $$service_name (running)"; \
+			else \
+				echo "  $(RED)✗$(NC) $$service_name (stopped)"; \
+			fi; \
+		done; \
+	fi
+	@if [ -d "sites" ]; then \
+		echo "$(YELLOW)Sites:$(NC)"; \
+		find sites -name "docker-compose.yml" -o -name "docker-compose.yaml" | while read compose_file; do \
+			service_dir=$$(dirname "$$compose_file"); \
+			service_name=$$(basename "$$service_dir"); \
+			if docker ps --format "table {{.Names}}" | grep -q "$$service_name" 2>/dev/null; then \
+				echo "  $(GREEN)✓$(NC) $$service_name (running)"; \
+			else \
+				echo "  $(RED)✗$(NC) $$service_name (stopped)"; \
+			fi; \
+		done; \
+	fi
+
+dev-remove-site: check-docker-compose ## Remove a specific site (usage: make dev-remove-site SITE=site-name)
+	@if [ -z "$(SITE)" ]; then \
+		echo "$(RED)Error: Please specify SITE name$(NC)"; \
+		echo "$(YELLOW)Usage: make dev-remove-site SITE=site-name$(NC)"; \
+		exit 1; \
+	fi
+	@if [ ! -d "sites/$(SITE)" ]; then \
+		echo "$(RED)Error: Directory sites/$(SITE) does not exist$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Removing site: $(SITE)$(NC)"
+	@(cd "sites/$(SITE)" && $(DOCKER_COMPOSE) down) && echo "$(GREEN)✓ Site $(SITE) removed successfully!$(NC)" || echo "$(RED)✗ Failed to remove site $(SITE)$(NC)"
+
+# Internal target to create development compose file
+_create-dev-compose:
+	@echo "# Development Docker Compose - High Ports, No Security Components" > $(COMPOSE_FILE)
+	@echo "services:" >> $(COMPOSE_FILE)
+	@echo "  # Core Infrastructure" >> $(COMPOSE_FILE)
+	@echo "  traefik:" >> $(COMPOSE_FILE)
+	@echo "    image: traefik:v3.0" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-traefik" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"8080:8080\"  # Dashboard" >> $(COMPOSE_FILE)
+	@echo "      - \"8000:80\"    # HTTP" >> $(COMPOSE_FILE)
+	@echo "      - \"8443:443\"   # HTTPS" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - /var/run/docker.sock:/var/run/docker.sock:ro" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "    command:" >> $(COMPOSE_FILE)
+	@echo "      - --api.dashboard=true" >> $(COMPOSE_FILE)
+	@echo "      - --api.insecure=true" >> $(COMPOSE_FILE)
+	@echo "      - --providers.docker=true" >> $(COMPOSE_FILE)
+	@echo "      - --providers.docker.exposedbydefault=false" >> $(COMPOSE_FILE)
+	@echo "      - --entrypoints.web.address=:80" >> $(COMPOSE_FILE)
+	@echo "      - --entrypoints.websecure.address=:443" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  pihole:" >> $(COMPOSE_FILE)
+	@echo "    image: pihole/pihole:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-pihole" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"8081:80\"    # Web interface" >> $(COMPOSE_FILE)
+	@echo "      - \"5353:53/tcp\" # DNS" >> $(COMPOSE_FILE)
+	@echo "      - \"5353:53/udp\" # DNS" >> $(COMPOSE_FILE)
+	@echo "    environment:" >> $(COMPOSE_FILE)
+	@echo "      TZ: \$${TZ:-UTC}" >> $(COMPOSE_FILE)
+	@echo "      WEBPASSWORD: \$${PIHOLE_PASSWORD:-admin123}" >> $(COMPOSE_FILE)
+	@echo "      DNSMASQ_LISTENING: all" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - pihole_etc:/etc/pihole" >> $(COMPOSE_FILE)
+	@echo "      - pihole_dnsmasq:/etc/dnsmasq.d" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  # Monitoring Stack" >> $(COMPOSE_FILE)
+	@echo "  prometheus:" >> $(COMPOSE_FILE)
+	@echo "    image: prom/prometheus:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-prometheus" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"9090:9090\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" >> $(COMPOSE_FILE)
+	@echo "      - prometheus_data:/prometheus" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "    command:" >> $(COMPOSE_FILE)
+	@echo "      - '--config.file=/etc/prometheus/prometheus.yml'" >> $(COMPOSE_FILE)
+	@echo "      - '--storage.tsdb.path=/prometheus'" >> $(COMPOSE_FILE)
+	@echo "      - '--web.console.libraries=/etc/prometheus/console_libraries'" >> $(COMPOSE_FILE)
+	@echo "      - '--web.console.templates=/etc/prometheus/consoles'" >> $(COMPOSE_FILE)
+	@echo "      - '--web.enable-lifecycle'" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  grafana:" >> $(COMPOSE_FILE)
+	@echo "    image: grafana/grafana:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-grafana" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3000:3000\"" >> $(COMPOSE_FILE)
+	@echo "    environment:" >> $(COMPOSE_FILE)
+	@echo "      GF_SECURITY_ADMIN_PASSWORD: \$${GRAFANA_PASSWORD:-admin123}" >> $(COMPOSE_FILE)
+	@echo "      GF_USERS_ALLOW_SIGN_UP: false" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - grafana_data:/var/lib/grafana" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  loki:" >> $(COMPOSE_FILE)
+	@echo "    image: grafana/loki:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-loki" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3100:3100\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - loki_data:/loki" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  tempo:" >> $(COMPOSE_FILE)
+	@echo "    image: grafana/tempo:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-tempo" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3200:3200\"" >> $(COMPOSE_FILE)
+	@echo "      - \"4317:4317\"  # OTLP gRPC" >> $(COMPOSE_FILE)
+	@echo "      - \"4318:4318\"  # OTLP HTTP" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - tempo_data:/var/tempo" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  pyroscope:" >> $(COMPOSE_FILE)
+	@echo "    image: grafana/pyroscope:latest" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-pyroscope" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"4040:4040\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - pyroscope_data:/var/lib/pyroscope" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  # Example Services" >> $(COMPOSE_FILE)
+	@echo "  example-api:" >> $(COMPOSE_FILE)
+	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-example-api" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3001:80\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./apis/example-api/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  example-site:" >> $(COMPOSE_FILE)
+	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-example-site" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3002:80\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./sites/example-site/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "networks:" >> $(COMPOSE_FILE)
+	@echo "  traefik_network:" >> $(COMPOSE_FILE)
+	@echo "    external: true" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "volumes:" >> $(COMPOSE_FILE)
+	@echo "  pihole_etc:" >> $(COMPOSE_FILE)
+	@echo "  pihole_dnsmasq:" >> $(COMPOSE_FILE)
+	@echo "  prometheus_data:" >> $(COMPOSE_FILE)
+	@echo "  grafana_data:" >> $(COMPOSE_FILE)
+	@echo "  loki_data:" >> $(COMPOSE_FILE)
+	@echo "  tempo_data:" >> $(COMPOSE_FILE)
+	@echo "  pyroscope_data:" >> $(COMPOSE_FILE) 

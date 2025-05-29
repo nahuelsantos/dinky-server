@@ -30,3 +30,7 @@ tmp/
 
 # Cached packages
 node_modules/
+
+# Development environment files (contain sensitive data)
+.env.dev*
+docker-compose.dev.yml
