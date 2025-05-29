@@ -4,62 +4,50 @@ A comprehensive self-hosted server setup with monitoring, mail services, and inf
 
 ## 🚀 Quick Start
 
-Dinky Server uses a **two-script architecture** for efficient deployment:
+Dinky Server uses a **single-script architecture** for efficient deployment:
 
-### **Step 1: System Preparation (Run Once)**
+### **Simple One-Step Deployment**
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd dinky-server
 
-# Prepare your system (one-time setup)
-sudo ./setup.sh
+# Run the unified deployment script
+sudo ./dinky.sh
 ```
 
-**What `setup.sh` does:**
-- ✅ Install dependencies (Docker, security tools)
-- ✅ Configure security (firewall, fail2ban, SSH hardening)
-- ✅ Create environment variables (.env)
-- ✅ Set up Docker networks
-- ✅ **3 Security Levels**: Basic, Standard, Comprehensive
-
-### **Step 2: Deploy Services (Fast & Flexible)**
-
-```bash
-# Deploy your selected services
-sudo ./deploy.sh
-```
-
-**What `deploy.sh` does:**
-- ⚡ **Fast service deployment** (no system setup overhead)
-- 🎯 **Interactive component selection**
-- 🔍 **Auto-discovers APIs and sites** in your directories
-- 📊 **Comprehensive monitoring setup**
-- 🌐 **Service access URLs and management commands**
+**What `dinky.sh` does:**
+- ✅ **Interactive Menu** - Choose exactly what you want to install
+- ✅ **System Preparation** - Install dependencies and configure security
+- ✅ **Service Deployment** - Deploy your selected components
+- ✅ **Auto-Discovery** - Find and deploy APIs/sites automatically
+- ✅ **Progress Tracking** - Clear step-by-step progress indicators
 
 ## 📋 Deployment Options
 
-### **🎯 Full Deployment (Recommended)**
+### **🎯 Interactive Menu (Recommended)**
 ```bash
-sudo ./setup.sh                    # Prepare system (once)
-sudo ./deploy.sh                   # Deploy services
+sudo ./dinky.sh                    # Interactive menu interface
 ```
 
-### **⚡ Quick Security Levels**
+### **⚡ Direct Commands**
 ```bash
-sudo ./setup.sh --security-level 1 # Basic security only
-sudo ./setup.sh --security-level 2 # Standard security (default)
-sudo ./setup.sh --security-level 3 # Comprehensive security
+sudo ./dinky.sh 1                  # Full setup (system + services)
+sudo ./dinky.sh 2                  # System setup only
+sudo ./dinky.sh 3                  # Deploy services only
+./dinky.sh --help                 # Show help (no sudo needed)
 ```
 
-### **🔧 Individual Service Management**
-```bash
-sudo ./deploy.sh --add-site my-blog      # Deploy specific site
-sudo ./deploy.sh --add-api user-service  # Deploy specific API
-sudo ./deploy.sh --discover              # Deploy new services only
-sudo ./deploy.sh --list                  # List all services
-```
+### **🔧 Menu Options Available**
+1. **🚀 Full Setup** - Complete system preparation and service deployment
+2. **🔧 System Setup Only** - Prepare server without deploying services
+3. **⚡ Deploy Services Only** - Deploy services on pre-configured system
+4. **📦 Add Individual Service** - Deploy specific APIs or sites
+5. **🔍 Discover New Services** - Find and deploy new services
+6. **📋 List All Services** - Show status of all services
+7. **🛠️ System Status & Health** - Complete system overview
+8. **❓ Help & Documentation** - Built-in help system
 
 ### **🧪 Local Development (macOS/Linux)**
 
@@ -91,18 +79,15 @@ make dev-down         # Stop everything
 
 ## 🏗️ Architecture
 
-### **Two-Script Architecture Benefits**
-
-| Script | Purpose | When to Run | Duration |
-|--------|---------|-------------|----------|
-| `setup.sh` | System preparation & security | **Once** per server | 5-15 minutes |
-| `deploy.sh` | Service deployment & management | **Anytime** | 1-3 minutes |
+### **Single-Script Architecture Benefits**
 
 **Benefits:**
-- ⚡ **Fast service deployment** - No repetitive system setup
-- 🛡️ **Better security flow** - No duplicate SSH prompts
-- 🎯 **Modular approach** - Deploy services as needed
+- ⚡ **All-in-one solution** - Single script handles everything
+- 🎯 **Interactive interface** - User-friendly menu system
 - 🔧 **Individual service management** - Add/remove services easily
+- 🛡️ **Enhanced security** - Better SSH key validation
+- 📊 **Progress tracking** - Clear step indicators
+- 🔍 **Service discovery** - Auto-finds new services
 
 ### **Core Components**
 
@@ -129,33 +114,40 @@ make dev-down         # Stop everything
 
 ```
 dinky-server/
-├── setup.sh                  # 🔧 System preparation & security
-├── deploy.sh                 # 🚀 Service deployment & management
-├── docker-compose.yml        # Core services configuration
-├── .env                      # Environment variables (auto-generated)
-├── infrastructure/           # Network & security infrastructure
-│   ├── traefik/              # Reverse proxy configuration
-│   ├── cloudflared/          # Cloudflare tunnel setup
-│   ├── pihole/               # DNS configuration
-│   └── firewall/             # Security scripts
-├── services/                 # Application services
-│   └── mail-server/          # Mail server setup
-├── monitoring/               # Observability stack
-│   ├── prometheus/           # Metrics configuration
-│   ├── grafana/              # Dashboard configuration
-│   ├── loki/                 # Log aggregation
-│   └── setup-monitoring.sh   # Monitoring setup script
-├── apis/                     # 🔍 Auto-discovered API services
-│   └── example-api/          # Example API with monitoring
-└── sites/                    # 🔍 Auto-discovered website services
-    └── example-site/         # Example site
+├── dinky.sh                     # 🚀 Main deployment script
+├── docker-compose.yml           # Core services configuration
+├── .env                         # Environment variables (auto-generated)
+├── Makefile                     # Development and local testing commands
+├── docs/                        # 📚 Documentation
+│   ├── apis-guide.md            # API development guide
+│   ├── sites-guide.md           # Website development guide
+│   └── README.md                # Documentation index
+├── config/                      # 🔧 Configuration templates
+│   ├── environment.template     # Environment configuration template
+│   └── README.md                # Configuration guide
+├── infrastructure/              # Network & security infrastructure
+│   ├── traefik/                 # Reverse proxy configuration
+│   ├── cloudflared/             # Cloudflare tunnel setup
+│   ├── pihole/                  # DNS configuration
+│   └── firewall/                # Security scripts
+├── services/                    # Application services
+│   └── mail-server/             # Mail server setup
+├── monitoring/                  # Observability stack
+│   ├── prometheus/              # Metrics configuration
+│   ├── grafana/                 # Dashboard configuration
+│   ├── loki/                    # Log aggregation
+│   └── setup-monitoring.sh      # Monitoring setup script
+├── apis/                        # 🔍 Auto-discovered API services
+│   └── example-api/             # Example API with monitoring
+└── sites/                       # 🔍 Auto-discovered website services
+    └── example-site/            # Example site
 ```
 
 ## 🎯 Features
 
-### **🔧 Two-Phase Deployment**
-- **System Setup** (`setup.sh`) - One-time server preparation
-- **Service Deployment** (`deploy.sh`) - Fast, flexible service management
+### **🔧 Single-Script Architecture**
+- **Interactive Menu** - User-friendly interface for all operations
+- **Progressive Setup** - Step-by-step system preparation and service deployment
 - **Progressive security** with 3 configurable levels
 - **Auto-discovery** of APIs and sites in your directories
 - **Individual service management** - Add services anytime
@@ -201,37 +193,22 @@ dinky-server/
 - **2GB+ free disk space**
 - **Internet connection** for initial setup
 
-### **Complete Setup Guide**
+### **🎯 Unified Deployment Script**
 
-#### **1. Clone Repository**
+#### **Interactive Menu Mode (Recommended)**
 ```bash
 git clone <repository-url>
 cd dinky-server
+sudo ./dinky.sh
 ```
 
-#### **2. System Preparation (Run Once)**
+#### **Direct Commands**
 ```bash
-sudo ./setup.sh
+sudo ./dinky.sh 1        # Full setup (system + services)
+sudo ./dinky.sh 2        # System setup only  
+sudo ./dinky.sh 3        # Deploy services only
+./dinky.sh --help       # Show help (no sudo needed)
 ```
-
-**Options:**
-```bash
-sudo ./setup.sh --security-level 1  # Basic security only
-sudo ./setup.sh --security-level 2  # Standard security (default)
-sudo ./setup.sh --security-level 3  # Comprehensive security
-sudo ./setup.sh --help              # Show help
-```
-
-#### **3. Deploy Services**
-```bash
-sudo ./deploy.sh
-```
-
-The deployment script will guide you through:
-1. **Component Selection** - Choose what to install
-2. **Service Discovery** - Finds APIs/sites to deploy
-3. **Infrastructure Deployment** - Starts selected services
-4. **Status Report** - Shows access URLs and next steps
 
 ## 🎮 Usage Examples
 
@@ -239,34 +216,32 @@ The deployment script will guide you through:
 
 #### **Initial Server Setup**
 ```bash
-# 1. First-time setup
-sudo ./setup.sh --security-level 2
+# Complete setup with interactive menu
+sudo ./dinky.sh
 
-# 2. Deploy core services
-sudo ./deploy.sh
-# Select: Traefik, Pi-hole, Monitoring
+# Or use direct commands:
+sudo ./dinky.sh 1                    # Full setup (recommended for new servers)
+```
 
-# 3. Later, add mail services
-sudo ./deploy.sh --add-api mail-server
+#### **System-Only Setup**
+```bash
+# Prepare system without deploying services
+sudo ./dinky.sh 2                    # System setup only
+```
+
+#### **Service-Only Deployment**
+```bash
+# Deploy services on pre-configured system
+sudo ./dinky.sh 3                    # Deploy services only
 ```
 
 #### **Adding New Services**
 ```bash
-# Create your service directory
-mkdir -p apis/my-api
-# Add docker-compose.yml to apis/my-api/
+# Use the interactive menu for service management
+sudo ./dinky.sh                     # Choose option 4 from menu
 
-# Deploy the new service
-sudo ./deploy.sh --add-api my-api
-```
-
-#### **Service Discovery**
-```bash
-# Scan and deploy any new services
-sudo ./deploy.sh --discover
-
-# List all available services
-sudo ./deploy.sh --list
+# Or use the built-in discovery feature
+sudo ./dinky.sh                     # Choose option 5 for discovery
 ```
 
 #### **Development Workflow**
@@ -275,10 +250,6 @@ sudo ./deploy.sh --list
 make dev-up                    # Start everything
 make dev-logs                  # View logs
 make dev-down                  # Stop everything
-
-# Production deployment
-sudo ./setup.sh               # Prepare system (once)
-sudo ./deploy.sh              # Deploy services
 ```
 
 ## 🔧 Service Management

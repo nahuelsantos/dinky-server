@@ -1,5 +1,11 @@
 # Environment variables
 .env
+.env.*
+
+# Configuration files with sensitive data
+config/.env*
+config/*secret*
+config/*credentials*
 
 # Operating System Files
 .DS_Store
@@ -17,11 +23,16 @@ Thumbs.db
 # Log files
 *.log
 logs/
+/var/log/dinky*.log
 
 # Temporary files
 *.tmp
 .cache/
 tmp/
+
+# Backup directories
+**/backups/
+/opt/dinky-backups/
 
 # Sensitive configuration files
 *credentials*
@@ -34,3 +45,10 @@ node_modules/
 # Development environment files (contain sensitive data)
 .env.dev*
 docker-compose.dev.yml
+
+# Generated documentation
+docs/.generated/
+
+# Runtime state files
+*.pid
+*.lock
