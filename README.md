@@ -446,6 +446,27 @@ sudo ./setup.sh
 sudo ./deploy.sh
 ```
 
+#### **Terminal Compatibility Issues**
+
+If you encounter `'xterm-ghostty': unknown terminal type` or similar terminal errors:
+
+```bash
+# The script now auto-fixes terminal compatibility issues
+# But if you still have problems, use these manual overrides:
+
+# Option 1: Override TERM environment variable (recommended)
+sudo TERM=xterm-256color ./dinky.sh
+
+# Option 2: Set in your shell permanently
+export TERM=xterm-256color
+sudo ./dinky.sh
+
+# Option 3: Use basic terminal compatibility
+sudo TERM=xterm ./dinky.sh
+```
+
+**Note**: This issue typically occurs with newer terminals like Ghostty, Alacritty, or custom terminal configurations. The script automatically detects and fixes these issues, but manual overrides are available if needed.
+
 ### **Recovery Options**
 
 #### **Rollback Setup**

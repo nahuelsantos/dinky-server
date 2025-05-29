@@ -2,6 +2,15 @@
 # Dinky Server - Unified Deployment Script
 # Provides menu-driven interface for system setup and service deployment
 
+# Terminal compatibility fix for unknown terminal types (e.g., xterm-ghostty)
+if ! tput colors >/dev/null 2>&1; then
+    export TERM=xterm-256color
+    # If that still fails, fallback to basic xterm
+    if ! tput colors >/dev/null 2>&1; then
+        export TERM=xterm
+    fi
+fi
+
 set -e
 
 # Color definitions for better UX
@@ -116,15 +125,17 @@ EOF
     echo -e "${WHITE}=========================================${NC}\n"
     
     echo -e "${CYAN}Main Menu:${NC}"
-    echo -e "  ${GREEN}1.${NC} 🚀 Full Setup (System + Services)"
-    echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only"
-    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only"
-    echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service"
+    echo -e "  ${GREEN}1.${NC} 🚀 Full Setup (System + Services) ${RED}🔐${NC}"
+    echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only ${RED}🔐${NC}"
+    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only ${RED}🔐${NC}"
+    echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service ${RED}🔐${NC}"
     echo -e "  ${GREEN}5.${NC} 🔍 Discover New Services"
     echo -e "  ${GREEN}6.${NC} 📋 List All Services"
     echo -e "  ${GREEN}7.${NC} 🛠️  System Status & Health"
     echo -e "  ${GREEN}8.${NC} ❓ Help & Documentation"
     echo -e "  ${GREEN}9.${NC} 🚪 Exit"
+    echo
+    echo -e "${YELLOW}${RED}🔐${NC} ${YELLOW}= Requires sudo privileges${NC}"
     echo
 }
 
@@ -345,33 +356,39 @@ source_deploy_functions() {
         
         echo -e "${WHITE}Select components to install:${NC}\n"
         
+        # Portainer
+        echo -e "${CYAN}1. Portainer (Container Management UI)${NC} - ${GREEN}Recommended${NC}"
+        read -p "   Install Portainer? (Y/n): " -n 1 -r; echo
+        INSTALL_PORTAINER=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
+        
         # Traefik
-        echo -e "${CYAN}1. Traefik (Reverse Proxy)${NC} - ${GREEN}Recommended${NC}"
+        echo -e "\n${CYAN}2. Traefik (Reverse Proxy)${NC} - ${GREEN}Recommended${NC}"
         read -p "   Install Traefik? (Y/n): " -n 1 -r; echo
         INSTALL_TRAEFIK=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Cloudflared
-        echo -e "\n${CYAN}2. Cloudflared (Cloudflare Tunnel)${NC} - ${YELLOW}Optional${NC}"
+        echo -e "\n${CYAN}3. Cloudflared (Cloudflare Tunnel)${NC} - ${YELLOW}Optional${NC}"
         read -p "   Install Cloudflared? (y/N): " -n 1 -r; echo
         INSTALL_CLOUDFLARED=$([[ $REPLY =~ ^[Yy]$ ]] && echo true || echo false)
         
         # Pi-hole
-        echo -e "\n${CYAN}3. Pi-hole (DNS & Ad Blocking)${NC} - ${GREEN}Recommended${NC}"
+        echo -e "\n${CYAN}4. Pi-hole (DNS & Ad Blocking)${NC} - ${GREEN}Recommended${NC}"
         read -p "   Install Pi-hole? (Y/n): " -n 1 -r; echo
         INSTALL_PIHOLE=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Monitoring
-        echo -e "\n${CYAN}4. Monitoring Stack (LGTM)${NC} - ${GREEN}Recommended${NC}"
+        echo -e "\n${CYAN}5. Monitoring Stack (LGTM)${NC} - ${GREEN}Recommended${NC}"
         read -p "   Install Monitoring? (Y/n): " -n 1 -r; echo
         INSTALL_MONITORING=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Mail server
-        echo -e "\n${CYAN}5. Mail Server (SMTP Relay + API)${NC} - ${YELLOW}Optional${NC}"
+        echo -e "\n${CYAN}6. Mail Server (SMTP Relay + API)${NC} - ${YELLOW}Optional${NC}"
         read -p "   Install Mail Server? (y/N): " -n 1 -r; echo
         INSTALL_MAIL=$([[ $REPLY =~ ^[Yy]$ ]] && echo true || echo false)
         
         # Summary
         echo -e "\n${WHITE}Selected components:${NC}"
+        $INSTALL_PORTAINER && echo -e "  ${GREEN}✓${NC} Portainer"
         $INSTALL_TRAEFIK && echo -e "  ${GREEN}✓${NC} Traefik"
         $INSTALL_CLOUDFLARED && echo -e "  ${GREEN}✓${NC} Cloudflared"
         $INSTALL_PIHOLE && echo -e "  ${GREEN}✓${NC} Pi-hole"
@@ -395,7 +412,8 @@ source_deploy_functions() {
         
         local compose_services=""
         
-        $INSTALL_TRAEFIK && compose_services="traefik"
+        $INSTALL_PORTAINER && compose_services="portainer"
+        $INSTALL_TRAEFIK && compose_services="$compose_services traefik"
         $INSTALL_CLOUDFLARED && compose_services="$compose_services cloudflared"
         $INSTALL_PIHOLE && compose_services="$compose_services pihole"
         $INSTALL_MAIL && compose_services="$compose_services mail-server mail-api"
@@ -423,6 +441,7 @@ source_deploy_functions() {
         local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" | cut -d'=' -f2 2>/dev/null || hostname -I | awk '{print $1}')
         
         echo -e "${WHITE}Service Access URLs:${NC}"
+        $INSTALL_PORTAINER && echo -e "  ${CYAN}Portainer:${NC} http://$server_ip:9000"
         $INSTALL_TRAEFIK && echo -e "  ${CYAN}Traefik Dashboard:${NC} http://$server_ip:8080"
         
         if $INSTALL_PIHOLE; then
@@ -869,7 +888,12 @@ handle_system_status() {
 handle_help() {
     header "Help & Documentation"
     
-    echo -e "${WHITE}Quick Start Guide:${NC}"
+    echo -e "${WHITE}Menu Navigation:${NC}"
+    echo -e "  ${RED}🔐${NC} = Option requires sudo privileges"
+    echo -e "  Options 1-4 need 'sudo ./dinky.sh' to run"
+    echo -e "  Options 5-9 can run without sudo"
+    
+    echo -e "\n${WHITE}Quick Start Guide:${NC}"
     echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
     echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3)"
     echo -e "  ${CYAN}3.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
@@ -880,6 +904,7 @@ handle_help() {
     echo -e "  ${CYAN}Comprehensive:${NC} Standard + Log monitoring + Security audit"
     
     echo -e "\n${WHITE}Available Services:${NC}"
+    echo -e "  ${CYAN}Portainer:${NC} Docker container management interface"
     echo -e "  ${CYAN}Traefik:${NC} Reverse proxy and load balancer"
     echo -e "  ${CYAN}Pi-hole:${NC} Network-wide ad blocking"
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
