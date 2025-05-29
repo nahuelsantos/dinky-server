@@ -23,8 +23,8 @@ sudo ufw allow from 192.168.3.0/24 to any port 53 proto udp
 # Allow Pi-hole web interface from local network only
 sudo ufw allow from 192.168.3.0/24 to any port 8081 proto tcp
 
-# Allow access to mail-api on port 20001 from local network only
-sudo ufw allow from 192.168.3.0/24 to any port 20001 proto tcp
+# Allow access to mail-api from local network only
+sudo ufw allow from 192.168.3.0/24 to any port 3000 proto tcp
 
 # Allow HTTP(S) for Traefik to handle external requests
 sudo ufw allow 80/tcp

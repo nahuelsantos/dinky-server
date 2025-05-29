@@ -8,29 +8,8 @@ mkdir -p monitoring/grafana/provisioning/{datasources,dashboards}
 
 echo "Setting up the LGTM stack configuration..."
 
-# Copy configuration files
-echo "Prometheus configuration..."
-cp -f monitoring/prometheus/prometheus.yml monitoring/prometheus/prometheus.yml
-
-echo "Loki configuration..."
-cp -f monitoring/loki/loki-config.yml monitoring/loki/loki-config.yml
-
-echo "Promtail configuration..."
-cp -f monitoring/promtail/promtail-config.yml monitoring/promtail/promtail-config.yml
-
-echo "Tempo configuration..."
-cp -f monitoring/tempo/tempo-config.yml monitoring/tempo/tempo-config.yml
-
-echo "Pyroscope configuration..."
-cp -f monitoring/pyroscope/pyroscope-config.yml monitoring/pyroscope/pyroscope-config.yml
-
-echo "OpenTelemetry Collector configuration..."
-cp -f monitoring/otel-collector/otel-collector-config.yml monitoring/otel-collector/otel-collector-config.yml
-
-echo "Grafana configuration..."
-cp -f monitoring/grafana/provisioning/datasources/datasources.yml monitoring/grafana/provisioning/datasources/datasources.yml
-cp -f monitoring/grafana/provisioning/dashboards/dashboards.yml monitoring/grafana/provisioning/dashboards/dashboards.yml
-cp -f monitoring/grafana/dashboards/node-exporter.json monitoring/grafana/dashboards/node-exporter.json
+# REMOVED: Self-referencing copy commands that served no purpose
+echo "Configuration files are already in place..."
 
 echo "Setting up cadvisor for container metrics..."
 cat << EOF > docker-compose.cadvisor.yml
@@ -46,7 +25,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "192.168.3.2:8084:20001"
+      - "192.168.3.2:8080:8080" 
     networks:
       - traefik_network
     command:

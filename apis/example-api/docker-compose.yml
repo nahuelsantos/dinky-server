@@ -1,0 +1,23 @@
+services:
+  example-api:
+    build: .
+    container_name: example-api
+    restart: unless-stopped
+    ports:
+      - "3001:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=example-api
+      - OTEL_SERVICE_VERSION=1.0.0
+    networks:
+      - traefik_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example-api.rule=Host(`api.${DOMAIN_NAME}`)"
+      - "traefik.http.services.example-api.loadbalancer.server.port=8080"
+    depends_on:
+      - otel-collector
+
+networks:
+  traefik_network:
+    external: true 

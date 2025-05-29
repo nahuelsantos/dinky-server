@@ -1,0 +1,167 @@
+# Development Docker Compose - High Ports, No Security Components
+services:
+  # Core Infrastructure
+  traefik:
+    image: traefik:v3.0
+    container_name: dinky-dev-traefik
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Dashboard
+      - "8000:80"    # HTTP
+      - "8443:443"   # HTTPS
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik_network
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: dinky-dev-pihole
+    restart: unless-stopped
+    ports:
+      - "8081:80"    # Web interface
+      - "5353:53/tcp" # DNS
+      - "5353:53/udp" # DNS
+    environment:
+      TZ: ${TZ:-UTC}
+      WEBPASSWORD: ${PIHOLE_PASSWORD:-admin123}
+      DNSMASQ_LISTENING: all
+    volumes:
+      - pihole_etc:/etc/pihole
+      - pihole_dnsmasq:/etc/dnsmasq.d
+    networks:
+      - traefik_network
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dinky-dev-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - traefik_network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dinky-dev-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - traefik_network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: dinky-dev-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    networks:
+      - traefik_network
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: dinky-dev-tempo
+    restart: unless-stopped
+    ports:
+      - "3200:3200"
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+    volumes:
+      - tempo_data:/var/tempo
+    networks:
+      - traefik_network
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: dinky-dev-pyroscope
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    volumes:
+      - pyroscope_data:/var/lib/pyroscope
+    networks:
+      - traefik_network
+
+  # OpenTelemetry Collector for development
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: dinky-dev-otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8888:8888"  # Metrics endpoint
+    volumes:
+      - ./monitoring/otel-collector:/etc/otel-collector
+    command: --config=/etc/otel-collector/otel-collector-config.yml
+    networks:
+      - traefik_network
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+
+  # Example Services
+  example-api:
+    build: ./apis/example-api
+    container_name: dinky-dev-example-api
+    restart: unless-stopped
+    ports:
+      - "3005:8080"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=example-api
+      - OTEL_SERVICE_VERSION=1.0.0
+    networks:
+      - traefik_network
+    depends_on:
+      - otel-collector
+
+  example-site:
+    image: nginx:alpine
+    container_name: dinky-dev-example-site
+    restart: unless-stopped
+    ports:
+      - "3006:80"
+    volumes:
+      - ./sites/example-site/html:/usr/share/nginx/html:ro
+    networks:
+      - traefik_network
+
+networks:
+  traefik_network:
+    external: true
+
+volumes:
+  pihole_etc:
+  pihole_dnsmasq:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+  pyroscope_data:
