@@ -487,56 +487,47 @@ setup_security() {
     
     info "Running security setup (Level $security_level)..."
     
-    # Basic security (Level 1+)
-    if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh" ]; then
-        info "Setting up firewall..."
-        bash "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh"
-    fi
-    
-    if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" ]; then
-        info "Setting up fail2ban..."
-        bash "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" || warning "Fail2ban setup had issues, continuing..."
-    fi
-    
-    if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" ]; then
-        info "Setting up Docker security..."
-        bash "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" || warning "Docker security setup had issues, continuing..."
-    fi
-    
-    # Standard security (Level 2+)
-    if [ "$security_level" -ge 2 ]; then
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" ]; then
-            info "Setting up SSH hardening..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" || warning "SSH setup had issues, continuing..."
-        fi
-        
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" ]; then
-            info "Setting up automatic security updates..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" || warning "Auto-updates setup had issues, continuing..."
-        fi
-        
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" ]; then
-            info "Setting up security cron jobs..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" || warning "Cron setup had issues, continuing..."
-        fi
-    fi
-    
-    # Comprehensive security (Level 3)
+    # For Level 3, use master-security-setup.sh which handles everything
     if [ "$security_level" -ge 3 ]; then
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-logwatch.sh" ]; then
-            info "Setting up log monitoring..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-logwatch.sh" || warning "Logwatch setup had issues, continuing..."
-        fi
-        
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/security-check.sh" ]; then
-            info "Running security audit..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/security-check.sh" || warning "Security check had issues, continuing..."
-        fi
-        
-        # Run master security setup as final comprehensive check
         if [ -f "$SCRIPT_DIR/infrastructure/firewall/master-security-setup.sh" ]; then
-            info "Running comprehensive security validation..."
+            info "Running comprehensive security setup..."
             bash "$SCRIPT_DIR/infrastructure/firewall/master-security-setup.sh" || warning "Master security setup had issues, continuing..."
+        fi
+    else
+        # For Level 1 and 2, run individual scripts to avoid duplication
+        
+        # Basic security (Level 1+)
+        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh" ]; then
+            info "Setting up firewall..."
+            bash "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh"
+        fi
+        
+        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" ]; then
+            info "Setting up fail2ban..."
+            bash "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" || warning "Fail2ban setup had issues, continuing..."
+        fi
+        
+        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" ]; then
+            info "Setting up Docker security..."
+            bash "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" || warning "Docker security setup had issues, continuing..."
+        fi
+        
+        # Standard security (Level 2+)
+        if [ "$security_level" -ge 2 ]; then
+            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" ]; then
+                info "Setting up SSH hardening..."
+                bash "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" || warning "SSH setup had issues, continuing..."
+            fi
+            
+            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" ]; then
+                info "Setting up automatic security updates..."
+                bash "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" || warning "Auto-updates setup had issues, continuing..."
+            fi
+            
+            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" ]; then
+                info "Setting up security cron jobs..."
+                bash "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" || warning "Cron setup had issues, continuing..."
+            fi
         fi
     fi
     
@@ -942,12 +933,12 @@ main() {
     # Full deployment - show ASCII art header
     echo -e "${PURPLE}"
     cat << "EOF"
-    ____  _       __            ____                            
-   / __ \(_)___  / /____  __   / __ \___  ____  ____ ___  _____ 
-  / / / / / __ \/ //_/ / / /  / / / / _ \/ __ \/ __ `__ \/ ___/ 
- / /_/ / / / / / ,< / /_/ /  / /_/ /  __/ /_/ / / / / / / /     
-/_____/_/_/ /_/_/|_|\__, /  /_____/\___/ .___/_/ /_/ /_/_/      
-                  /____/              /_/                      
+ ____  _       _            ____             _             
+|  _ \(_)_ __ | | ___   _  |  _ \  ___ _ __ | | ___  _   _ 
+| | | | | '_ \| |/ / | | | | | | |/ _ \ '_ \| |/ _ \| | | |
+| |_| | | | | |   <| |_| | | |_| |  __/ |_) | | (_) | |_| |
+|____/|_|_| |_|_|\_\\__, | |____/ \___| .__/|_|\___/ \__, |
+                    |___/             |_|            |___/ 
 EOF
     echo -e "${NC}"
     echo -e "${WHITE}Comprehensive Deployment Solution for Self-Hosted Services${NC}\n"
