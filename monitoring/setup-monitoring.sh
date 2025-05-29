@@ -12,8 +12,15 @@ echo "Setting up the LGTM stack configuration..."
 echo "Configuration files are already in place..."
 
 echo "Setting up cadvisor for container metrics..."
-cat << EOF > docker-compose.cadvisor.yml
-services:
+
+# Check if cadvisor and node-exporter are already in docker-compose.yml
+if ! grep -q "cadvisor:" docker-compose.yml; then
+    echo "Adding cadvisor and node-exporter services..."
+    
+    # Create temporary file with just the service definitions
+    cat << 'EOF' > /tmp/monitoring-services.yml
+
+  # Container Metrics (added by monitoring setup)
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
     restart: always
@@ -49,15 +56,29 @@ services:
       - "192.168.3.2:9100:9100"
     networks:
       - traefik_network
-
-networks:
-  traefik_network:
-    external: true
 EOF
-
-echo "Adding cadvisor and node-exporter to docker-compose.yml..."
-cat docker-compose.cadvisor.yml >> docker-compose.yml
-rm docker-compose.cadvisor.yml
+    
+    # Find the line number where volumes: section starts (after services but before volumes)
+    volumes_line=$(grep -n "^volumes:" docker-compose.yml | head -1 | cut -d: -f1)
+    
+    if [ -n "$volumes_line" ]; then
+        # Insert the services before the volumes section
+        head -n $((volumes_line - 1)) docker-compose.yml > /tmp/docker-compose-new.yml
+        cat /tmp/monitoring-services.yml >> /tmp/docker-compose-new.yml
+        tail -n +$volumes_line docker-compose.yml >> /tmp/docker-compose-new.yml
+        mv /tmp/docker-compose-new.yml docker-compose.yml
+    else
+        echo "Warning: Could not find volumes section, appending to end"
+        cat /tmp/monitoring-services.yml >> docker-compose.yml
+    fi
+    
+    # Clean up temp file
+    rm /tmp/monitoring-services.yml
+    
+    echo "✓ Added cadvisor and node-exporter services"
+else
+    echo "✓ Monitoring services already present in docker-compose.yml"
+fi
 
 echo "Setup complete!"
 echo ""
