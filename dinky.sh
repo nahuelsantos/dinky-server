@@ -824,15 +824,20 @@ handle_list_services() {
     # List Core Services
     echo -e "${CYAN}Core Services:${NC}"
     if command -v docker >/dev/null 2>&1; then
-        if docker compose ps >/dev/null 2>&1; then
+        # Detect Docker Compose command first
+        detect_docker_compose
+        
+        if $DOCKER_COMPOSE ps >/dev/null 2>&1; then
             # Get service status and process it properly
             local service_status
-            service_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
+            service_status=$($DOCKER_COMPOSE ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
             
             if [ -n "$service_status" ]; then
                 while IFS=$'\t' read -r name status ports; do
-                    if [[ $status == *"Up"* ]]; then
+                    if [[ "$status" == *"Up"* ]]; then
                         echo -e "  ${GREEN}✓${NC} $name - $ports"
+                    elif [[ "$status" == *"Restarting"* ]]; then
+                        echo -e "  ${YELLOW}⟳${NC} $name - restarting"
                     else
                         echo -e "  ${RED}✗${NC} $name - $status"
                     fi
@@ -870,15 +875,20 @@ handle_system_status() {
         fi
         
         echo -e "\n${WHITE}Running Services:${NC}"
-        if docker compose ps >/dev/null 2>&1; then
+        # Detect Docker Compose command first  
+        detect_docker_compose
+        
+        if $DOCKER_COMPOSE ps >/dev/null 2>&1; then
             # Get service status and process it properly
             local service_status
-            service_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
+            service_status=$($DOCKER_COMPOSE ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
             
             if [ -n "$service_status" ]; then
                 while IFS=$'\t' read -r name status ports; do
-                    if [[ $status == *"Up"* ]]; then
+                    if [[ "$status" == *"Up"* ]]; then
                         echo -e "  ${GREEN}✓${NC} $name - $ports"
+                    elif [[ "$status" == *"Restarting"* ]]; then
+                        echo -e "  ${YELLOW}⟳${NC} $name - restarting"
                     else
                         echo -e "  ${RED}✗${NC} $name - $status"
                     fi
