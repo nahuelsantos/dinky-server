@@ -272,7 +272,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "192.168.3.2:8080:8080" 
+      - "192.168.3.2:8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
     networks:
       - traefik_network
     command:
