@@ -825,13 +825,21 @@ handle_list_services() {
     echo -e "${CYAN}Core Services:${NC}"
     if command -v docker >/dev/null 2>&1; then
         if docker compose ps >/dev/null 2>&1; then
-            docker compose ps --format "table {{.Name}}\t{{.Status}}" | tail -n +2 | while IFS=$'\t' read -r name status; do
-                if [[ $status == *"Up"* ]]; then
-                    echo -e "  ${GREEN}✓${NC} $name (running)"
-                else
-                    echo -e "  ${RED}✗${NC} $name ($status)"
-                fi
-            done
+            # Get service status and process it properly
+            local service_status
+            service_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
+            
+            if [ -n "$service_status" ]; then
+                while IFS=$'\t' read -r name status ports; do
+                    if [[ $status == *"Up"* ]]; then
+                        echo -e "  ${GREEN}✓${NC} $name - $ports"
+                    else
+                        echo -e "  ${RED}✗${NC} $name - $status"
+                    fi
+                done <<< "$service_status"
+            else
+                echo -e "  ${YELLOW}No core services found${NC}"
+            fi
         else
             echo -e "  ${YELLOW}No core services running${NC}"
         fi
@@ -863,13 +871,21 @@ handle_system_status() {
         
         echo -e "\n${WHITE}Running Services:${NC}"
         if docker compose ps >/dev/null 2>&1; then
-            docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2 | while IFS=$'\t' read -r name status ports; do
-                if [[ $status == *"Up"* ]]; then
-                    echo -e "  ${GREEN}✓${NC} $name - $ports"
-                else
-                    echo -e "  ${RED}✗${NC} $name - $status"
-                fi
-            done
+            # Get service status and process it properly
+            local service_status
+            service_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
+            
+            if [ -n "$service_status" ]; then
+                while IFS=$'\t' read -r name status ports; do
+                    if [[ $status == *"Up"* ]]; then
+                        echo -e "  ${GREEN}✓${NC} $name - $ports"
+                    else
+                        echo -e "  ${RED}✗${NC} $name - $status"
+                    fi
+                done <<< "$service_status"
+            else
+                echo -e "  ${YELLOW}No services found${NC}"
+            fi
         else
             echo -e "  ${YELLOW}No services running${NC}"
         fi
