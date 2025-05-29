@@ -129,11 +129,12 @@ EOF
     echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only ${RED}🔐${NC}"
     echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only ${RED}🔐${NC}"
     echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service ${RED}🔐${NC}"
-    echo -e "  ${GREEN}5.${NC} 🔍 Discover New Services"
-    echo -e "  ${GREEN}6.${NC} 📋 List All Services"
-    echo -e "  ${GREEN}7.${NC} 🛠️  System Status & Health"
-    echo -e "  ${GREEN}8.${NC} ❓ Help & Documentation"
-    echo -e "  ${GREEN}9.${NC} 🚪 Exit"
+    echo -e "  ${GREEN}5.${NC} 🎯 Deploy Example Site & API ${RED}🔐${NC}"
+    echo -e "  ${GREEN}6.${NC} 🔍 Discover New Services"
+    echo -e "  ${GREEN}7.${NC} 📋 List All Services"
+    echo -e "  ${GREEN}8.${NC} 🛠️  System Status & Health"
+    echo -e "  ${GREEN}9.${NC} ❓ Help & Documentation"
+    echo -e "  ${GREEN}10.${NC} 🚪 Exit"
     echo
     echo -e "${YELLOW}${RED}🔐${NC} ${YELLOW}= Requires sudo privileges${NC}"
     echo
@@ -667,6 +668,119 @@ add_individual_service() {
     cd "$SCRIPT_DIR"
 }
 
+handle_deploy_examples() {
+    header "DEPLOY EXAMPLE SITE & API"
+    
+    echo -e "${WHITE}This will deploy both the example site and example API together.${NC}"
+    echo -e "${CYAN}Services to deploy:${NC}"
+    echo -e "  ${GREEN}•${NC} Example API (Go-based REST API with sample endpoints)"
+    echo -e "  ${GREEN}•${NC} Example Site (Static HTML site demonstrating the setup)"
+    echo
+    
+    read -p "Continue with deployment? (Y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        info "Deployment cancelled"
+        echo
+        read -p "Press Enter to return to main menu..."
+        return 0
+    fi
+    
+    # Detect Docker Compose command
+    detect_docker_compose
+    
+    if [ -z "$DOCKER_COMPOSE" ]; then
+        error "Docker Compose is not available. Please run system setup first."
+        echo
+        read -p "Press Enter to return to main menu..."
+        return 1
+    fi
+    
+    local deployment_success=true
+    
+    # Deploy Example API
+    step_banner "DEPLOYING EXAMPLE API"
+    if [ -d "$SCRIPT_DIR/apis/example-api" ]; then
+        cd "$SCRIPT_DIR/apis/example-api"
+        
+        # Copy .env if needed
+        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+            info "Copying environment file for example API"
+            cp "$SCRIPT_DIR/.env" ".env"
+        fi
+        
+        if $DOCKER_COMPOSE up -d; then
+            success "Example API deployed successfully!"
+            
+            # Get API port
+            local api_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
+            if [ -n "$api_port" ]; then
+                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
+                echo -e "  ${CYAN}API URL:${NC} http://$server_ip:$api_port"
+                echo -e "  ${CYAN}API Docs:${NC} http://$server_ip:$api_port/docs"
+            fi
+        else
+            error "Failed to deploy example API"
+            deployment_success=false
+        fi
+        
+        cd "$SCRIPT_DIR"
+    else
+        error "Example API directory not found: $SCRIPT_DIR/apis/example-api"
+        deployment_success=false
+    fi
+    
+    # Deploy Example Site
+    step_banner "DEPLOYING EXAMPLE SITE"
+    if [ -d "$SCRIPT_DIR/sites/example-site" ]; then
+        cd "$SCRIPT_DIR/sites/example-site"
+        
+        # Copy .env if needed
+        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+            info "Copying environment file for example site"
+            cp "$SCRIPT_DIR/.env" ".env"
+        fi
+        
+        if $DOCKER_COMPOSE up -d; then
+            success "Example Site deployed successfully!"
+            
+            # Get site port
+            local site_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
+            if [ -n "$site_port" ]; then
+                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
+                echo -e "  ${CYAN}Site URL:${NC} http://$server_ip:$site_port"
+            fi
+        else
+            error "Failed to deploy example site"
+            deployment_success=false
+        fi
+        
+        cd "$SCRIPT_DIR"
+    else
+        error "Example Site directory not found: $SCRIPT_DIR/sites/example-site"
+        deployment_success=false
+    fi
+    
+    # Summary
+    echo -e "\n${WHITE}Deployment Summary:${NC}"
+    if [ "$deployment_success" = true ]; then
+        success "Both example services deployed successfully!"
+        echo -e "\n${WHITE}Quick Start:${NC}"
+        echo -e "  ${CYAN}1.${NC} Visit the example site to see the demo interface"
+        echo -e "  ${CYAN}2.${NC} Check the API documentation for available endpoints"
+        echo -e "  ${CYAN}3.${NC} Use these as templates for your own services"
+    else
+        warning "Some deployments failed. Check the logs above for details."
+        echo -e "\n${WHITE}Troubleshooting:${NC}"
+        echo -e "  ${CYAN}•${NC} Check docker logs: docker compose logs <service-name>"
+        echo -e "  ${CYAN}•${NC} Verify port availability: netstat -tlnp"
+        echo -e "  ${CYAN}•${NC} Ensure .env file is properly configured"
+    fi
+    
+    echo
+    read -p "Press Enter to return to main menu..."
+}
+
 handle_discover_services() {
     header "DISCOVER NEW SERVICES"
     
@@ -824,29 +938,27 @@ handle_list_services() {
     # List Core Services
     echo -e "${CYAN}Core Services:${NC}"
     if command -v docker >/dev/null 2>&1; then
-        # Detect Docker Compose command first
-        detect_docker_compose
+        # Try docker-compose first, then docker compose
+        local docker_cmd=""
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker_cmd="docker-compose"
+        elif docker compose version >/dev/null 2>&1; then
+            docker_cmd="docker compose"
+        fi
         
-        if $DOCKER_COMPOSE ps >/dev/null 2>&1; then
-            # Get service status and process it properly
-            local service_status
-            service_status=$($DOCKER_COMPOSE ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
-            
-            if [ -n "$service_status" ]; then
-                while IFS=$'\t' read -r name status ports; do
-                    if [[ "$status" == *"Up"* ]]; then
-                        echo -e "  ${GREEN}✓${NC} $name - $ports"
-                    elif [[ "$status" == *"Restarting"* ]]; then
-                        echo -e "  ${YELLOW}⟳${NC} $name - restarting"
-                    else
-                        echo -e "  ${RED}✗${NC} $name - $status"
-                    fi
-                done <<< "$service_status"
-            else
-                echo -e "  ${YELLOW}No core services found${NC}"
-            fi
+        if [ -n "$docker_cmd" ] && $docker_cmd ps >/dev/null 2>&1; then
+            # Process each service directly with ports info
+            $docker_cmd ps --format "{{.Name}}\t{{.Status}}\t{{.Ports}}" | while IFS=$'\t' read -r name status ports; do
+                if [[ "$status" == *"Up"* ]]; then
+                    echo -e "  ${GREEN}✓${NC} $name - $ports"
+                elif [[ "$status" == *"Restarting"* ]]; then
+                    echo -e "  ${YELLOW}⟳${NC} $name - restarting"
+                elif [[ -n "$status" ]]; then
+                    echo -e "  ${RED}✗${NC} $name - $status"
+                fi
+            done
         else
-            echo -e "  ${YELLOW}No core services running${NC}"
+            echo -e "  ${YELLOW}No services running${NC}"
         fi
     else
         echo -e "  ${RED}✗${NC} Docker not available"
@@ -875,27 +987,25 @@ handle_system_status() {
         fi
         
         echo -e "\n${WHITE}Running Services:${NC}"
-        # Detect Docker Compose command first  
-        detect_docker_compose
+        # Try docker-compose first, then docker compose
+        local docker_cmd=""
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker_cmd="docker-compose"
+        elif docker compose version >/dev/null 2>&1; then
+            docker_cmd="docker compose"
+        fi
         
-        if $DOCKER_COMPOSE ps >/dev/null 2>&1; then
-            # Get service status and process it properly
-            local service_status
-            service_status=$($DOCKER_COMPOSE ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" | tail -n +2)
-            
-            if [ -n "$service_status" ]; then
-                while IFS=$'\t' read -r name status ports; do
-                    if [[ "$status" == *"Up"* ]]; then
-                        echo -e "  ${GREEN}✓${NC} $name - $ports"
-                    elif [[ "$status" == *"Restarting"* ]]; then
-                        echo -e "  ${YELLOW}⟳${NC} $name - restarting"
-                    else
-                        echo -e "  ${RED}✗${NC} $name - $status"
-                    fi
-                done <<< "$service_status"
-            else
-                echo -e "  ${YELLOW}No services found${NC}"
-            fi
+        if [ -n "$docker_cmd" ] && $docker_cmd ps >/dev/null 2>&1; then
+            # Process each service directly with ports info
+            $docker_cmd ps --format "{{.Name}}\t{{.Status}}\t{{.Ports}}" | while IFS=$'\t' read -r name status ports; do
+                if [[ "$status" == *"Up"* ]]; then
+                    echo -e "  ${GREEN}✓${NC} $name - $ports"
+                elif [[ "$status" == *"Restarting"* ]]; then
+                    echo -e "  ${YELLOW}⟳${NC} $name - restarting"
+                elif [[ -n "$status" ]]; then
+                    echo -e "  ${RED}✗${NC} $name - $status"
+                fi
+            done
         else
             echo -e "  ${YELLOW}No services running${NC}"
         fi
@@ -916,13 +1026,14 @@ handle_help() {
     
     echo -e "${WHITE}Menu Navigation:${NC}"
     echo -e "  ${RED}🔐${NC} = Option requires sudo privileges"
-    echo -e "  Options 1-4 need 'sudo ./dinky.sh' to run"
-    echo -e "  Options 5-9 can run without sudo"
+    echo -e "  Options 1-5 need 'sudo ./dinky.sh' to run"
+    echo -e "  Options 6-10 can run without sudo"
     
     echo -e "\n${WHITE}Quick Start Guide:${NC}"
     echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
     echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3)"
-    echo -e "  ${CYAN}3.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
+    echo -e "  ${CYAN}3.${NC} Try examples: Use ${GREEN}Deploy Example Site & API${NC} (option 5)"
+    echo -e "  ${CYAN}4.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
     
     echo -e "\n${WHITE}Security Levels:${NC}"
     echo -e "  ${CYAN}Basic:${NC} Firewall + Fail2ban + Docker security"
@@ -936,6 +1047,8 @@ handle_help() {
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
     echo -e "  ${CYAN}Cloudflared:${NC} Secure tunnel for external access"
     echo -e "  ${CYAN}Mail Server:${NC} SMTP relay with REST API"
+    echo -e "  ${CYAN}Example API:${NC} Go-based REST API with sample endpoints"
+    echo -e "  ${CYAN}Example Site:${NC} Static HTML site demonstrating the setup"
     
     echo -e "\n${WHITE}Documentation:${NC}"
     echo -e "  ${CYAN}Main README:${NC} ./README.md"
@@ -1001,7 +1114,7 @@ main() {
     # Interactive menu mode
     while true; do
         show_menu
-        read -p "Select an option (1-9): " -n 1 -r
+        read -p "Select an option (1-10): " -n 1 -r
         echo
         
         case $REPLY in
@@ -1009,16 +1122,17 @@ main() {
             2) check_root && handle_system_setup ;;
             3) check_root && handle_deploy_services ;;
             4) check_root && handle_add_service ;;
-            5) handle_discover_services ;;
-            6) handle_list_services ;;
-            7) handle_system_status ;;
-            8) handle_help ;;
-            9) 
+            5) check_root && handle_deploy_examples ;;
+            6) handle_discover_services ;;
+            7) handle_list_services ;;
+            8) handle_system_status ;;
+            9) handle_help ;;
+            10) 
                 echo -e "${GREEN}Thank you for using Dinky Server!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 1-9.${NC}"
+                echo -e "${RED}Invalid option. Please select 1-10.${NC}"
                 sleep 2
                 ;;
         esac
