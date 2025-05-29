@@ -54,7 +54,7 @@ services:
     env_file:
       - .env
     environment:
-      TZ: 'Europe/Madrid'
+      TZ: Europe/Madrid
       WEBPASSWORD: '${PIHOLE_PASSWORD}'
       ServerIP: '192.168.3.2'
       DNSMASQ_LISTENING: 'all'
@@ -89,7 +89,7 @@ services:
       - mail-data:/var/mail
       - mail-logs:/var/log/mail
     environment:
-      - TZ=America/Argentina/Buenos_Aires
+      - TZ=Europe/Madrid
       - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
       - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
       - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
@@ -259,6 +259,43 @@ services:
       - tempo
       - pyroscope
 
+
+  # Container Metrics (added by monitoring setup)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    restart: always
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "192.168.3.2:8080:8080" 
+    networks:
+      - traefik_network
+    command:
+      - '--docker_only=true'
+      - '--storage_duration=1m0s'
+      - '--housekeeping_interval=10s'
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "192.168.3.2:9100:9100"
+    networks:
+      - traefik_network
 volumes:
   cloudflared-data:
   grafana_data:
@@ -281,4 +318,4 @@ networks:
 x-common-variables: &common-variables
   DOMAIN_NAME: ${DOMAIN_NAME:-example.com}
   SERVER_IP: ${SERVER_IP:-192.168.3.2}
-  TZ: ${TZ:-America/Argentina/Buenos_Aires}
+  TZ: ${TZ:-Europe/Madrid}
