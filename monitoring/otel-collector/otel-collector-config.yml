@@ -53,11 +53,6 @@ exporters:
   
   debug:
     verbosity: detailed
-  
-  otlphttp/pyroscope:
-    endpoint: http://pyroscope:4040/ingest
-    tls:
-      insecure: true
 
 extensions:
   health_check:
@@ -85,9 +80,4 @@ service:
     logs:
       receivers: [otlp, otlp/legacy]
       processors: [memory_limiter, batch, resourcedetection]
-      exporters: [loki, debug]
-    
-    profiles:
-      receivers: [otlp, otlp/legacy]
-      processors: [memory_limiter, batch, resourcedetection]
-      exporters: [otlphttp/pyroscope, debug] 
+      exporters: [loki, debug] 

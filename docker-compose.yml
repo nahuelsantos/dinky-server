@@ -192,7 +192,6 @@ services:
   tempo:
     image: grafana/tempo:2.7.2
     restart: always
-    user: "10001:10001"
     ports:
       - "192.168.3.2:3200:3200"  # Tempo receiver
       - "192.168.3.2:4317:4317"  # OTLP gRPC receiver
@@ -200,7 +199,12 @@ services:
     volumes:
       - ./monitoring/tempo:/etc/tempo
       - tempo_data:/tmp/tempo
-    command: -config.file=/etc/tempo/tempo-config.yml
+    entrypoint: |
+      sh -c "
+        mkdir -p /tmp/tempo/blocks /tmp/tempo/generator/wal &&
+        chown -R 10001:10001 /tmp/tempo &&
+        exec /tempo -config.file=/etc/tempo/tempo-config.yml
+      "
     networks:
       - traefik_network
 

@@ -1114,7 +1114,7 @@ main() {
     # Interactive menu mode
     while true; do
         show_menu
-        read -p "Select an option (1-10): " -n 1 -r
+        read -p "Select an option (1-10): " -r REPLY
         echo
         
         case $REPLY in
