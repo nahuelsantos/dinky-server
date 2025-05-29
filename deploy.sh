@@ -1,6 +1,6 @@
 #!/bin/bash
-# Dinky Server Deployment Script
-# Comprehensive deployment solution for Raspberry Pi and other devices
+# Dinky Server Service Deployment Script
+# Handles service selection and deployment only
 
 set -e
 
@@ -17,7 +17,6 @@ NC='\033[0m' # No Color
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="/var/log/dinky-deployment.log"
-BACKUP_DIR="/opt/dinky-backups/$(date +%Y%m%d_%H%M%S)"
 DEPLOYED_COMPONENTS_FILE="/opt/dinky-server/deployed-components.txt"
 
 # Auto-detect Docker Compose command
@@ -29,7 +28,7 @@ detect_docker_compose() {
         DOCKER_COMPOSE="docker-compose"
     else
         error "Neither 'docker compose' nor 'docker-compose' is available"
-        error "Please install Docker Compose first"
+        error "Please run setup.sh first to install dependencies"
         exit 1
     fi
     info "Using Docker Compose command: $DOCKER_COMPOSE"
@@ -87,18 +86,21 @@ parse_arguments() {
 
 # Show help
 show_help() {
-    echo -e "${CYAN}Dinky Server Deployment Script${NC}"
-    echo -e "${CYAN}==============================${NC}\n"
+    echo -e "${CYAN}Dinky Server Service Deployment Script${NC}"
+    echo -e "${CYAN}=====================================${NC}\n"
     echo -e "${WHITE}Usage:${NC}"
-    echo -e "  ${GREEN}sudo ./deploy.sh${NC}                    # Full deployment"
+    echo -e "  ${GREEN}sudo ./deploy.sh${NC}                    # Full service deployment"
     echo -e "  ${GREEN}sudo ./deploy.sh --discover${NC}         # Discover and deploy new services"
     echo -e "  ${GREEN}sudo ./deploy.sh --add-site <name>${NC}  # Deploy specific site"
     echo -e "  ${GREEN}sudo ./deploy.sh --add-api <name>${NC}   # Deploy specific API"
     echo -e "  ${GREEN}sudo ./deploy.sh --list${NC}             # List all available services"
     echo -e "  ${GREEN}sudo ./deploy.sh --help${NC}             # Show this help"
     echo
+    echo -e "${WHITE}Prerequisites:${NC}"
+    echo -e "  ${YELLOW}Run setup.sh first to prepare your system${NC}"
+    echo
     echo -e "${WHITE}Examples:${NC}"
-    echo -e "  ${YELLOW}# Initial deployment${NC}"
+    echo -e "  ${YELLOW}# Full deployment${NC}"
     echo -e "  sudo ./deploy.sh"
     echo
     echo -e "  ${YELLOW}# Add a new blog site later${NC}"
@@ -142,162 +144,39 @@ header() {
     echo -e "${PURPLE}============================================================${NC}\n"
 }
 
-# Check if running as root
-check_root() {
+# Check if system is prepared
+check_prerequisites() {
+    header "Checking Prerequisites"
+    
+    # Check if running as root
     if [ "$EUID" -ne 0 ]; then
         error "This script must be run as root or with sudo"
         echo -e "${YELLOW}Please run: sudo $0${NC}"
         exit 1
     fi
-}
-
-# Create necessary directories
-setup_directories() {
-    info "Setting up directories..."
-    mkdir -p "$BACKUP_DIR"
-    mkdir -p "/opt/dinky-server"
-    mkdir -p "/var/log"
-    touch "$LOG_FILE"
-    chmod 644 "$LOG_FILE"
-    success "Directories created"
-}
-
-# Backup existing configuration
-backup_existing_config() {
-    info "Creating backup of existing configuration..."
     
-    # Backup important files
-    local files_to_backup=(
-        "/etc/docker/daemon.json"
-        "/etc/ufw/user.rules"
-        "/etc/fail2ban/jail.local"
-        "/etc/ssh/sshd_config"
-        "$SCRIPT_DIR/docker-compose.yml"
-        "$SCRIPT_DIR/.env"
-    )
-    
-    for file in "${files_to_backup[@]}"; do
-        if [ -f "$file" ]; then
-            cp "$file" "$BACKUP_DIR/" 2>/dev/null || true
-        fi
-    done
-    
-    success "Backup created at $BACKUP_DIR"
-}
-
-# Rollback function
-rollback() {
-    error "Deployment failed. Initiating rollback..."
-    
-    # Stop any running containers
-    cd "$SCRIPT_DIR"
-    docker compose down 2>/dev/null || true
-    
-    # Restore backed up files
-    if [ -d "$BACKUP_DIR" ]; then
-        info "Restoring configuration files..."
-        cp "$BACKUP_DIR"/* /etc/ 2>/dev/null || true
-        cp "$BACKUP_DIR/docker-compose.yml" "$SCRIPT_DIR/" 2>/dev/null || true
-        cp "$BACKUP_DIR/.env" "$SCRIPT_DIR/" 2>/dev/null || true
-    fi
-    
-    warning "Rollback completed. Check logs at $LOG_FILE for details."
-    exit 1
-}
-
-# Trap errors for rollback
-trap rollback ERR
-
-# Check system requirements
-check_requirements() {
-    header "Checking System Requirements"
-    
-    # Check OS
-    if ! grep -q "Raspberry Pi\|Ubuntu\|Debian" /proc/version 2>/dev/null; then
-        warning "This script is optimized for Raspberry Pi OS, Ubuntu, or Debian"
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
-        fi
-    fi
-    
-    # Check available space
-    local available_space=$(df / | awk 'NR==2 {print $4}')
-    if [ "$available_space" -lt 2097152 ]; then # 2GB in KB
-        warning "Less than 2GB free space available. Some components may fail to install."
-    fi
-    
-    # Check memory
-    local total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-    if [ "$total_mem" -lt 1048576 ]; then # 1GB in KB
-        warning "Less than 1GB RAM available. Consider enabling swap or reducing components."
-    fi
-    
-    success "System requirements check completed"
-}
-
-# Install dependencies
-install_dependencies() {
-    header "Installing Dependencies"
-    
-    info "Updating package lists..."
-    apt update
-    
-    info "Installing essential packages..."
-    apt install -y \
-        curl \
-        wget \
-        git \
-        unzip \
-        software-properties-common \
-        apt-transport-https \
-        ca-certificates \
-        gnupg \
-        lsb-release \
-        jq \
-        htop \
-        nano \
-        ufw \
-        fail2ban
-    
-    # Install Docker if not present
+    # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
-        info "Installing Docker..."
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh
-        rm get-docker.sh
-        
-        # Add current user to docker group
-        usermod -aG docker $SUDO_USER 2>/dev/null || true
-        
-        success "Docker installed"
-    else
-        success "Docker already installed"
+        error "Docker is not installed"
+        echo -e "${YELLOW}Please run setup.sh first to install dependencies${NC}"
+        exit 1
     fi
     
-    # Install Docker Compose if not present
-    if ! command -v docker compose &> /dev/null; then
-        info "Installing Docker Compose..."
-        
-        # For newer systems, Docker Compose is included with Docker
-        if ! docker compose version &> /dev/null; then
-            # Fallback to standalone installation
-            local compose_version=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
-            curl -L "https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-        fi
-        
-        success "Docker Compose installed"
-    else
-        success "Docker Compose already installed"
+    # Check if .env file exists
+    if [ ! -f "$SCRIPT_DIR/.env" ]; then
+        error ".env file not found"
+        echo -e "${YELLOW}Please run setup.sh first to create environment configuration${NC}"
+        exit 1
     fi
     
-    # Start Docker service
-    systemctl enable docker
-    systemctl start docker
+    # Check if traefik_network exists
+    if ! docker network ls | grep -q "traefik_network"; then
+        error "traefik_network not found"
+        echo -e "${YELLOW}Please run setup.sh first to create Docker networks${NC}"
+        exit 1
+    fi
     
-    success "All dependencies installed"
+    success "All prerequisites met"
 }
 
 # Component selection menu
@@ -416,124 +295,6 @@ discover_services() {
     fi
 }
 
-# Setup environment variables
-setup_environment() {
-    header "Environment Configuration"
-    
-    local env_file="$SCRIPT_DIR/.env"
-    
-    if [ ! -f "$env_file" ]; then
-        info "Creating environment configuration..."
-        
-        # Get server IP
-        local server_ip=$(hostname -I | awk '{print $1}')
-        
-        cat > "$env_file" << EOF
-# Dinky Server Environment Variables
-# Generated on $(date)
-
-# Server Configuration
-SERVER_IP=$server_ip
-TZ=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
-DOMAIN_NAME=dinky.local
-
-# Pi-hole Configuration
-PIHOLE_PASSWORD=$(openssl rand -base64 32)
-
-# Mail Server Configuration
-MAIL_DOMAIN=dinky.local
-MAIL_HOSTNAME=mail.dinky.local
-DEFAULT_FROM=noreply@dinky.local
-DEFAULT_TO=admin@dinky.local
-ALLOWED_HOSTS=dinky.local
-
-# SMTP Relay Configuration (Update with your values)
-SMTP_RELAY_HOST=smtp.gmail.com
-SMTP_RELAY_PORT=587
-SMTP_RELAY_USERNAME=your-email@gmail.com
-SMTP_RELAY_PASSWORD=your-app-password
-
-# TLS Configuration
-USE_TLS=yes
-TLS_VERIFY=yes
-
-# Grafana Configuration
-GRAFANA_PASSWORD=$(openssl rand -base64 32)
-
-# Cloudflare Tunnel (Update with your tunnel ID)
-TUNNEL_ID=your-tunnel-id-here
-EOF
-        
-        success "Environment file created at $env_file"
-        warning "Please update the SMTP and Cloudflare settings in $env_file before starting services"
-    else
-        success "Environment file already exists"
-    fi
-}
-
-# Setup security
-setup_security() {
-    header "Security Configuration"
-    
-    echo -e "${WHITE}Security Level Selection:${NC}\n"
-    echo -e "${CYAN}1. Basic${NC} - Firewall + Fail2ban + Docker security"
-    echo -e "${CYAN}2. Standard${NC} - Basic + SSH hardening + Auto-updates"
-    echo -e "${CYAN}3. Comprehensive${NC} - Standard + Log monitoring + Security audit"
-    echo
-    read -p "Select security level (1-3) [2]: " -n 1 -r
-    echo
-    
-    local security_level=${REPLY:-2}
-    
-    info "Running security setup (Level $security_level)..."
-    
-    # For Level 3, use master-security-setup.sh which handles everything
-    if [ "$security_level" -ge 3 ]; then
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/master-security-setup.sh" ]; then
-            info "Running comprehensive security setup..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/master-security-setup.sh" || warning "Master security setup had issues, continuing..."
-        fi
-    else
-        # For Level 1 and 2, run individual scripts to avoid duplication
-        
-        # Basic security (Level 1+)
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh" ]; then
-            info "Setting up firewall..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-firewall.sh"
-        fi
-        
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" ]; then
-            info "Setting up fail2ban..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-fail2ban.sh" || warning "Fail2ban setup had issues, continuing..."
-        fi
-        
-        if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" ]; then
-            info "Setting up Docker security..."
-            bash "$SCRIPT_DIR/infrastructure/firewall/setup-docker-security.sh" || warning "Docker security setup had issues, continuing..."
-        fi
-        
-        # Standard security (Level 2+)
-        if [ "$security_level" -ge 2 ]; then
-            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" ]; then
-                info "Setting up SSH hardening..."
-                bash "$SCRIPT_DIR/infrastructure/firewall/setup-ssh-keys.sh" || warning "SSH setup had issues, continuing..."
-            fi
-            
-            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" ]; then
-                info "Setting up automatic security updates..."
-                bash "$SCRIPT_DIR/infrastructure/firewall/setup-auto-updates.sh" || warning "Auto-updates setup had issues, continuing..."
-            fi
-            
-            if [ -f "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" ]; then
-                info "Setting up security cron jobs..."
-                bash "$SCRIPT_DIR/infrastructure/firewall/setup-cron.sh" || warning "Cron setup had issues, continuing..."
-            fi
-        fi
-    fi
-    
-    success "Security configuration completed (Level $security_level)"
-}
-
 # Deploy core infrastructure
 deploy_core() {
     header "Deploying Core Infrastructure"
@@ -544,10 +305,6 @@ deploy_core() {
     if [ -z "$DOCKER_COMPOSE" ]; then
         detect_docker_compose
     fi
-    
-    # Create Docker network
-    info "Creating Docker networks..."
-    docker network create traefik_network 2>/dev/null || info "traefik_network already exists"
     
     # Prepare docker-compose.yml based on selected components
     local compose_services=""
@@ -577,7 +334,7 @@ deploy_core() {
         if [ -f "$SCRIPT_DIR/monitoring/setup-monitoring.sh" ]; then
             bash "$SCRIPT_DIR/monitoring/setup-monitoring.sh"
         fi
-        compose_services="$compose_services prometheus loki promtail tempo pyroscope grafana otel-collector"
+        compose_services="$compose_services prometheus loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter"
     fi
     
     # Deploy selected services
@@ -634,6 +391,8 @@ deploy_discovered_services() {
 save_deployment_state() {
     info "Saving deployment state..."
     
+    mkdir -p "/opt/dinky-server"
+    
     cat > "$DEPLOYED_COMPONENTS_FILE" << EOF
 # Dinky Server Deployed Components
 # Generated on $(date)
@@ -658,7 +417,7 @@ EOF
 show_status() {
     header "Deployment Complete!"
     
-    echo -e "${GREEN}🎉 Dinky Server has been successfully deployed!${NC}\n"
+    echo -e "${GREEN}🎉 Dinky Server services have been successfully deployed!${NC}\n"
     
     # Show service URLs
     local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" | cut -d'=' -f2)
@@ -679,10 +438,12 @@ show_status() {
         local grafana_password=$(grep "GRAFANA_PASSWORD=" "$SCRIPT_DIR/.env" | cut -d'=' -f2)
         echo -e "  ${CYAN}Grafana:${NC} http://$server_ip:3000 (admin/$grafana_password)"
         echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
+        echo -e "  ${CYAN}Pyroscope:${NC} http://$server_ip:4040"
+        echo -e "  ${CYAN}Loki:${NC} http://$server_ip:3100"
     fi
     
     if $INSTALL_MAIL; then
-        echo -e "  ${CYAN}Mail API:${NC} http://$server_ip:3000"
+        echo -e "  ${CYAN}Mail API:${NC} http://$server_ip:3005"
     fi
     
     echo -e "\n${WHITE}Management Commands:${NC}"
@@ -908,58 +669,45 @@ main() {
         exit 0
     fi
     
-    # Handle list services flag
-    if [ "$LIST_SERVICES" = true ]; then
-        list_all_services
-        exit 0
-    fi
-    
-    # Handle individual service addition
-    if [ -n "$ADD_SERVICE" ]; then
-        # These operations don't require full root setup
-        setup_directories
-        add_individual_service "$ADD_TYPE" "$ADD_SERVICE"
-        exit 0
-    fi
-    
-    # Handle discover only flag
-    if [ "$DISCOVER_ONLY" = true ]; then
-        # These operations don't require full root setup
-        setup_directories
-        discover_new_services
-        exit 0
-    fi
-    
-    # Full deployment - show ASCII art header
+    # Show header
     echo -e "${PURPLE}"
     cat << "EOF"
  ____  _       _            ____             _             
 |  _ \(_)_ __ | | ___   _  |  _ \  ___ _ __ | | ___  _   _ 
 | | | | | '_ \| |/ / | | | | | | |/ _ \ '_ \| |/ _ \| | | |
 | |_| | | | | |   <| |_| | | |_| |  __/ |_) | | (_) | |_| |
-|____/|_|_| |_|_|\_\\__, | |____/ \___| .__/|_|\___/ \__, |
-                    |___/             |_|            |___/ 
+|____/|_|_| |_|_|\_\__, | |____/ \___| .__/|_|\___/ \__, |
+                   |___/             |_|            |___/ 
 EOF
     echo -e "${NC}"
-    echo -e "${WHITE}Comprehensive Deployment Solution for Self-Hosted Services${NC}\n"
+    echo -e "${WHITE}Service Deployment & Management${NC}\n"
+    
+    # Handle specific actions
+    if [ "$LIST_SERVICES" = true ]; then
+        list_all_services
+        exit 0
+    fi
+    
+    if [ "$DISCOVER_ONLY" = true ]; then
+        check_prerequisites
+        discover_new_services
+        exit 0
+    fi
+    
+    if [ -n "$ADD_SERVICE" ] && [ -n "$ADD_TYPE" ]; then
+        check_prerequisites
+        add_individual_service "$ADD_TYPE" "$ADD_SERVICE"
+        exit 0
+    fi
     
     # Full deployment execution flow
-    check_root
-    setup_directories
-    backup_existing_config
-    check_requirements
-    install_dependencies
+    check_prerequisites
     select_components
     discover_services
-    setup_environment
-    setup_security
     deploy_core
     deploy_discovered_services
     save_deployment_state
     show_status
-    
-    # Disable error trap for successful completion
-    trap - ERR
 }
 
 # Run main function
