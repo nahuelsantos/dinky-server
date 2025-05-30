@@ -144,7 +144,7 @@ const (
 var (
 	// Service information
 	serviceName    = "dinky-monitor"
-	serviceVersion = "3.0.0-phase3"
+	serviceVersion = "4.0.0-phase4"
 	environment    = "development"
 	startTime      = time.Now()
 
@@ -341,9 +341,85 @@ var (
 		[]string{"service", "operation"},
 	)
 
+	// Phase 4: Alerting & Incident Management Metrics
+	alertsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "alerts_total",
+			Help: "Total number of alerts fired",
+		},
+		[]string{"rule_name", "severity", "status"},
+	)
+
+	alertDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "alert_duration_seconds",
+			Help:    "Duration of alerts from firing to resolution",
+			Buckets: []float64{60, 300, 900, 1800, 3600, 7200, 14400, 28800, 86400}, // 1m to 1d
+		},
+		[]string{"rule_name", "severity"},
+	)
+
+	incidentsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "incidents_total",
+			Help: "Total number of incidents",
+		},
+		[]string{"severity", "status", "affected_service"},
+	)
+
+	incidentDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "incident_duration_seconds",
+			Help:    "Duration of incidents from creation to resolution",
+			Buckets: []float64{300, 900, 1800, 3600, 7200, 14400, 28800, 86400, 172800}, // 5m to 2d
+		},
+		[]string{"severity", "affected_service"},
+	)
+
+	mttrGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "mttr_seconds",
+			Help: "Mean Time To Recovery in seconds",
+		},
+		[]string{"service", "severity"},
+	)
+
+	notificationsSent = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "notifications_sent_total",
+			Help: "Total notifications sent by channel",
+		},
+		[]string{"channel_type", "severity", "status"},
+	)
+
+	notificationLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "notification_latency_seconds",
+			Help:    "Latency of notification delivery",
+			Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0},
+		},
+		[]string{"channel_type"},
+	)
+
+	alertRulesActive = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "alert_rules_active_total",
+			Help: "Number of active alert rules",
+		},
+	)
+
+	alertManagerHealth = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "alert_manager_health",
+			Help: "Health status of alert manager components",
+		},
+		[]string{"component"},
+	)
+
 	// Global logger and tracer
-	logger *zap.Logger
-	tracer oteltrace.Tracer
+	logger       *zap.Logger
+	tracer       oteltrace.Tracer
+	alertManager *AlertManager
 )
 
 func init() {
@@ -371,6 +447,15 @@ func init() {
 	prometheus.MustRegister(performanceAnomalies)
 	prometheus.MustRegister(traceErrorRate)
 	prometheus.MustRegister(serviceThroughput)
+	prometheus.MustRegister(alertsTotal)
+	prometheus.MustRegister(alertDuration)
+	prometheus.MustRegister(incidentsTotal)
+	prometheus.MustRegister(incidentDuration)
+	prometheus.MustRegister(mttrGauge)
+	prometheus.MustRegister(notificationsSent)
+	prometheus.MustRegister(notificationLatency)
+	prometheus.MustRegister(alertRulesActive)
+	prometheus.MustRegister(alertManagerHealth)
 }
 
 // Phase 2: Enhanced structured logging initialization
@@ -455,6 +540,40 @@ func initTracer() {
 
 	// Start continuous background metrics generation
 	startContinuousMetrics()
+}
+
+// Phase 4: Initialize Alert Manager
+func initAlertManager() {
+	alertManager = &AlertManager{
+		Rules:                make(map[string]*AlertRule),
+		ActiveAlerts:         make(map[string]*Alert),
+		AlertHistory:         make([]*Alert, 0),
+		NotificationChannels: make(map[string]*NotificationChannel),
+		Incidents:            make(map[string]*Incident),
+		SilencedRules:        make(map[string]time.Time),
+	}
+
+	// Initialize default alert rules
+	initDefaultAlertRules()
+
+	// Initialize default notification channels
+	initDefaultNotificationChannels()
+
+	// Set health indicators
+	alertManagerHealth.WithLabelValues("rule_engine").Set(1)
+	alertManagerHealth.WithLabelValues("notification_engine").Set(1)
+	alertManagerHealth.WithLabelValues("incident_manager").Set(1)
+
+	// Start alert evaluation engine
+	go alertEvaluationEngine()
+
+	// Start notification processor
+	go notificationProcessor()
+
+	logger.Info("Alert Manager initialized",
+		zap.Int("default_rules", len(alertManager.Rules)),
+		zap.Int("notification_channels", len(alertManager.NotificationChannels)),
+	)
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -1873,6 +1992,7 @@ func main() {
 	defer logger.Sync()
 
 	initTracer()
+	initAlertManager()
 
 	// Start continuous background metrics generation
 	startContinuousMetrics()
@@ -1895,6 +2015,14 @@ func main() {
 	// Health and info endpoints
 	r.HandleFunc("/health", healthHandler).Methods("GET")
 	r.HandleFunc("/", healthHandler).Methods("GET")
+
+	// Phase 4: Alerting & Incident Management test endpoints
+	r.HandleFunc("/test/alert_rules", testAlertRulesHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/fire_alert", testFireAlertHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/incident_management", testIncidentManagementHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/notification_channels", testNotificationChannelsHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/alerts/active", getActiveAlertsHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/incidents/active", getActiveIncidentsHandler).Methods("GET", "OPTIONS")
 
 	// Monitoring test endpoints
 	r.HandleFunc("/test/metrics", generateMetricsHandler).Methods("POST", "OPTIONS")
@@ -2581,4 +2709,867 @@ func calculateTotalRequests() int {
 
 func calculateAvgErrorRate() float64 {
 	return float64(rand.Intn(5)) + rand.Float64()
+}
+
+// Phase 4: Alerting & Incident Management Structures
+type AlertRule struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Query       string            `json:"query"`
+	Threshold   AlertThreshold    `json:"threshold"`
+	Severity    string            `json:"severity"` // "info", "warning", "critical"
+	Duration    time.Duration     `json:"duration"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Enabled     bool              `json:"enabled"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+type AlertThreshold struct {
+	Operator string  `json:"operator"` // "gt", "lt", "eq", "gte", "lte"
+	Value    float64 `json:"value"`
+}
+
+type Alert struct {
+	ID           string            `json:"id"`
+	RuleID       string            `json:"rule_id"`
+	RuleName     string            `json:"rule_name"`
+	Status       string            `json:"status"` // "firing", "resolved", "silenced"
+	Severity     string            `json:"severity"`
+	Message      string            `json:"message"`
+	Description  string            `json:"description"`
+	StartsAt     time.Time         `json:"starts_at"`
+	EndsAt       *time.Time        `json:"ends_at,omitempty"`
+	Duration     time.Duration     `json:"duration"`
+	Labels       map[string]string `json:"labels"`
+	Annotations  map[string]string `json:"annotations"`
+	Value        float64           `json:"value"`
+	Threshold    float64           `json:"threshold"`
+	GeneratorURL string            `json:"generator_url"`
+}
+
+type Incident struct {
+	ID              string           `json:"id"`
+	Title           string           `json:"title"`
+	Description     string           `json:"description"`
+	Status          string           `json:"status"` // "open", "investigating", "resolved", "closed"
+	Severity        string           `json:"severity"`
+	Priority        string           `json:"priority"` // "low", "medium", "high", "critical"
+	AssignedTo      string           `json:"assigned_to"`
+	CreatedBy       string           `json:"created_by"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+	ResolvedAt      *time.Time       `json:"resolved_at,omitempty"`
+	AffectedService string           `json:"affected_service"`
+	RelatedAlerts   []string         `json:"related_alerts"`
+	Tags            []string         `json:"tags"`
+	Timeline        []IncidentUpdate `json:"timeline"`
+	Metrics         IncidentMetrics  `json:"metrics"`
+	PostMortem      *PostMortem      `json:"post_mortem,omitempty"`
+}
+
+type IncidentUpdate struct {
+	ID        string    `json:"id"`
+	Timestamp time.Time `json:"timestamp"`
+	Author    string    `json:"author"`
+	Type      string    `json:"type"` // "status_change", "comment", "escalation", "resolution"
+	Message   string    `json:"message"`
+	OldValue  string    `json:"old_value,omitempty"`
+	NewValue  string    `json:"new_value,omitempty"`
+}
+
+type IncidentMetrics struct {
+	TimeToDetection   time.Duration `json:"time_to_detection"`
+	TimeToAcknowledge time.Duration `json:"time_to_acknowledge"`
+	TimeToResolve     time.Duration `json:"time_to_resolve"`
+	MTTR              time.Duration `json:"mttr"` // Mean Time To Recovery
+	Downtime          time.Duration `json:"downtime"`
+}
+
+type PostMortem struct {
+	ID             string    `json:"id"`
+	IncidentID     string    `json:"incident_id"`
+	Summary        string    `json:"summary"`
+	RootCause      string    `json:"root_cause"`
+	Timeline       string    `json:"timeline"`
+	Impact         string    `json:"impact"`
+	ActionItems    []string  `json:"action_items"`
+	LessonsLearned []string  `json:"lessons_learned"`
+	CreatedBy      string    `json:"created_by"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type NotificationChannel struct {
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Type       string            `json:"type"` // "email", "slack", "webhook", "pagerduty"
+	Config     map[string]string `json:"config"`
+	Enabled    bool              `json:"enabled"`
+	Conditions []string          `json:"conditions"` // severity levels or labels
+	RateLimits RateLimit         `json:"rate_limits"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
+}
+
+type RateLimit struct {
+	MaxAlerts    int           `json:"max_alerts"`
+	TimeWindow   time.Duration `json:"time_window"`
+	GroupByLabel string        `json:"group_by_label"`
+}
+
+type AlertManager struct {
+	Rules                map[string]*AlertRule
+	ActiveAlerts         map[string]*Alert
+	AlertHistory         []*Alert
+	NotificationChannels map[string]*NotificationChannel
+	Incidents            map[string]*Incident
+	SilencedRules        map[string]time.Time // ruleID -> until when
+}
+
+// Phase 4: Alerting & Incident Management Implementation
+
+// Initialize default alert rules
+func initDefaultAlertRules() {
+	rules := []*AlertRule{
+		{
+			ID:          "high-cpu-usage",
+			Name:        "High CPU Usage",
+			Description: "CPU usage is above 80% for more than 5 minutes",
+			Query:       "simulated_cpu_usage_percent > 80",
+			Threshold:   AlertThreshold{Operator: "gt", Value: 80},
+			Severity:    "warning",
+			Duration:    5 * time.Minute,
+			Labels:      map[string]string{"team": "infrastructure", "component": "cpu"},
+			Annotations: map[string]string{"runbook": "https://docs.company.com/runbooks/high-cpu"},
+			Enabled:     true,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "high-memory-usage",
+			Name:        "High Memory Usage",
+			Description: "Memory usage is above 2GB for more than 3 minutes",
+			Query:       "simulated_memory_usage_bytes > 2147483648",
+			Threshold:   AlertThreshold{Operator: "gt", Value: 2147483648},
+			Severity:    "critical",
+			Duration:    3 * time.Minute,
+			Labels:      map[string]string{"team": "infrastructure", "component": "memory"},
+			Annotations: map[string]string{"runbook": "https://docs.company.com/runbooks/high-memory"},
+			Enabled:     true,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "high-error-rate",
+			Name:        "High Error Rate",
+			Description: "Error rate is above 5% for more than 2 minutes",
+			Query:       "error_rate_percent > 5",
+			Threshold:   AlertThreshold{Operator: "gt", Value: 5},
+			Severity:    "critical",
+			Duration:    2 * time.Minute,
+			Labels:      map[string]string{"team": "backend", "component": "api"},
+			Annotations: map[string]string{"runbook": "https://docs.company.com/runbooks/high-error-rate"},
+			Enabled:     true,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          "low-throughput",
+			Name:        "Low Service Throughput",
+			Description: "Service throughput is below 10 RPS for more than 5 minutes",
+			Query:       "service_throughput_rps < 10",
+			Threshold:   AlertThreshold{Operator: "lt", Value: 10},
+			Severity:    "warning",
+			Duration:    5 * time.Minute,
+			Labels:      map[string]string{"team": "backend", "component": "performance"},
+			Annotations: map[string]string{"runbook": "https://docs.company.com/runbooks/low-throughput"},
+			Enabled:     true,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}
+
+	for _, rule := range rules {
+		alertManager.Rules[rule.ID] = rule
+	}
+
+	alertRulesActive.Set(float64(len(alertManager.Rules)))
+}
+
+// Initialize default notification channels
+func initDefaultNotificationChannels() {
+	channels := []*NotificationChannel{
+		{
+			ID:   "slack-critical",
+			Name: "Slack Critical Alerts",
+			Type: "slack",
+			Config: map[string]string{
+				"webhook_url": "https://hooks.slack.com/services/EXAMPLE/CRITICAL",
+				"channel":     "#alerts-critical",
+				"username":    "AlertBot",
+			},
+			Enabled:    true,
+			Conditions: []string{"critical"},
+			RateLimits: RateLimit{MaxAlerts: 10, TimeWindow: 5 * time.Minute, GroupByLabel: "severity"},
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+		{
+			ID:   "email-infrastructure",
+			Name: "Infrastructure Team Email",
+			Type: "email",
+			Config: map[string]string{
+				"smtp_server": "smtp.company.com:587",
+				"recipients":  "infrastructure@company.com,oncall@company.com",
+				"from":        "alerts@company.com",
+			},
+			Enabled:    true,
+			Conditions: []string{"critical", "warning"},
+			RateLimits: RateLimit{MaxAlerts: 5, TimeWindow: 10 * time.Minute, GroupByLabel: "team"},
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+		{
+			ID:   "webhook-incident",
+			Name: "Incident Management Webhook",
+			Type: "webhook",
+			Config: map[string]string{
+				"url":     "https://api.company.com/incidents/webhook",
+				"method":  "POST",
+				"headers": "Content-Type:application/json,Authorization:Bearer TOKEN",
+			},
+			Enabled:    true,
+			Conditions: []string{"critical"},
+			RateLimits: RateLimit{MaxAlerts: 20, TimeWindow: 1 * time.Minute, GroupByLabel: "rule_name"},
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+	}
+
+	for _, channel := range channels {
+		alertManager.NotificationChannels[channel.ID] = channel
+	}
+}
+
+// Alert evaluation engine - runs continuously to check alert conditions
+func alertEvaluationEngine() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	logger.Info("Alert evaluation engine started", zap.Duration("interval", 30*time.Second))
+
+	for {
+		select {
+		case <-ticker.C:
+			evaluateAlertRules()
+		}
+	}
+}
+
+// Evaluate all active alert rules
+func evaluateAlertRules() {
+	for _, rule := range alertManager.Rules {
+		if !rule.Enabled {
+			continue
+		}
+
+		// Check if rule is silenced
+		if silencedUntil, exists := alertManager.SilencedRules[rule.ID]; exists {
+			if time.Now().Before(silencedUntil) {
+				continue
+			} else {
+				// Remove expired silence
+				delete(alertManager.SilencedRules, rule.ID)
+			}
+		}
+
+		// Simulate alert evaluation (in real implementation, this would query metrics)
+		shouldFire := evaluateRule(rule)
+
+		if shouldFire {
+			fireAlert(rule)
+		} else {
+			resolveAlert(rule.ID)
+		}
+	}
+}
+
+// Simulate rule evaluation based on current metrics
+func evaluateRule(rule *AlertRule) bool {
+	switch rule.ID {
+	case "high-cpu-usage":
+		// Simulate checking CPU usage
+		return rand.Float64() < 0.2 // 20% chance of firing
+	case "high-memory-usage":
+		return rand.Float64() < 0.1 // 10% chance of firing
+	case "high-error-rate":
+		return rand.Float64() < 0.15 // 15% chance of firing
+	case "low-throughput":
+		return rand.Float64() < 0.05 // 5% chance of firing
+	}
+	return false
+}
+
+// Fire an alert
+func fireAlert(rule *AlertRule) {
+	alertID := fmt.Sprintf("%s-%d", rule.ID, time.Now().Unix())
+
+	// Check if alert is already active
+	if existingAlert, exists := alertManager.ActiveAlerts[rule.ID]; exists {
+		// Update existing alert duration
+		existingAlert.Duration = time.Since(existingAlert.StartsAt)
+		return
+	}
+
+	alert := &Alert{
+		ID:           alertID,
+		RuleID:       rule.ID,
+		RuleName:     rule.Name,
+		Status:       "firing",
+		Severity:     rule.Severity,
+		Message:      fmt.Sprintf("%s: %s", rule.Name, rule.Description),
+		Description:  rule.Description,
+		StartsAt:     time.Now(),
+		Duration:     0,
+		Labels:       rule.Labels,
+		Annotations:  rule.Annotations,
+		Value:        rand.Float64() * 100, // Simulated current value
+		Threshold:    rule.Threshold.Value,
+		GeneratorURL: fmt.Sprintf("http://localhost:3001/alerts/%s", alertID),
+	}
+
+	alertManager.ActiveAlerts[rule.ID] = alert
+	alertManager.AlertHistory = append(alertManager.AlertHistory, alert)
+
+	// Update metrics
+	alertsTotal.WithLabelValues(rule.Name, rule.Severity, "firing").Inc()
+
+	// Send notifications
+	sendNotification(alert)
+
+	// Create incident for critical alerts
+	if rule.Severity == "critical" {
+		createIncident(alert)
+	}
+
+	logger.Warn("Alert fired",
+		zap.String("alert_id", alertID),
+		zap.String("rule_name", rule.Name),
+		zap.String("severity", rule.Severity),
+		zap.Float64("value", alert.Value),
+		zap.Float64("threshold", alert.Threshold),
+	)
+}
+
+// Resolve an alert
+func resolveAlert(ruleID string) {
+	if alert, exists := alertManager.ActiveAlerts[ruleID]; exists {
+		now := time.Now()
+		alert.Status = "resolved"
+		alert.EndsAt = &now
+		alert.Duration = time.Since(alert.StartsAt)
+
+		// Update metrics
+		alertsTotal.WithLabelValues(alert.RuleName, alert.Severity, "resolved").Inc()
+		alertDuration.WithLabelValues(alert.RuleName, alert.Severity).Observe(alert.Duration.Seconds())
+
+		// Send resolution notification
+		sendResolutionNotification(alert)
+
+		// Remove from active alerts
+		delete(alertManager.ActiveAlerts, ruleID)
+
+		logger.Info("Alert resolved",
+			zap.String("alert_id", alert.ID),
+			zap.String("rule_name", alert.RuleName),
+			zap.Duration("duration", alert.Duration),
+		)
+	}
+}
+
+// Notification processor - handles sending notifications
+func notificationProcessor() {
+	logger.Info("Notification processor started")
+	// In a real implementation, this would process a notification queue
+	// For now, notifications are sent synchronously in sendNotification()
+}
+
+// Send notification for a fired alert
+func sendNotification(alert *Alert) {
+	for _, channel := range alertManager.NotificationChannels {
+		if !channel.Enabled {
+			continue
+		}
+
+		// Check if channel should receive this alert based on conditions
+		shouldSend := false
+		for _, condition := range channel.Conditions {
+			if condition == alert.Severity {
+				shouldSend = true
+				break
+			}
+		}
+
+		if !shouldSend {
+			continue
+		}
+
+		// Simulate sending notification
+		start := time.Now()
+		success := simulateNotificationSend(channel, alert)
+		duration := time.Since(start)
+
+		status := "success"
+		if !success {
+			status = "failed"
+		}
+
+		// Update metrics
+		notificationsSent.WithLabelValues(channel.Type, alert.Severity, status).Inc()
+		notificationLatency.WithLabelValues(channel.Type).Observe(duration.Seconds())
+
+		logger.Info("Notification sent",
+			zap.String("channel_id", channel.ID),
+			zap.String("channel_type", channel.Type),
+			zap.String("alert_id", alert.ID),
+			zap.String("status", status),
+			zap.Duration("latency", duration),
+		)
+	}
+}
+
+// Send resolution notification
+func sendResolutionNotification(alert *Alert) {
+	for _, channel := range alertManager.NotificationChannels {
+		if !channel.Enabled {
+			continue
+		}
+
+		simulateNotificationSend(channel, alert)
+	}
+}
+
+// Simulate sending a notification
+func simulateNotificationSend(channel *NotificationChannel, alert *Alert) bool {
+	// Simulate network latency
+	time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+
+	// 95% success rate
+	return rand.Float64() < 0.95
+}
+
+// Create an incident from a critical alert
+func createIncident(alert *Alert) {
+	incidentID := uuid.New().String()
+
+	incident := &Incident{
+		ID:              incidentID,
+		Title:           fmt.Sprintf("Critical Alert: %s", alert.RuleName),
+		Description:     fmt.Sprintf("Auto-generated incident from critical alert: %s", alert.Description),
+		Status:          "open",
+		Severity:        alert.Severity,
+		Priority:        "high",
+		AssignedTo:      "oncall-engineer",
+		CreatedBy:       "alert-manager",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		AffectedService: serviceName,
+		RelatedAlerts:   []string{alert.ID},
+		Tags:            []string{"auto-generated", "critical-alert"},
+		Timeline: []IncidentUpdate{
+			{
+				ID:        uuid.New().String(),
+				Timestamp: time.Now(),
+				Author:    "alert-manager",
+				Type:      "status_change",
+				Message:   "Incident created from critical alert",
+				NewValue:  "open",
+			},
+		},
+		Metrics: IncidentMetrics{
+			TimeToDetection: time.Since(alert.StartsAt),
+		},
+	}
+
+	alertManager.Incidents[incidentID] = incident
+
+	// Update metrics
+	incidentsTotal.WithLabelValues(incident.Severity, incident.Status, incident.AffectedService).Inc()
+
+	logger.Warn("Incident created",
+		zap.String("incident_id", incidentID),
+		zap.String("alert_id", alert.ID),
+		zap.String("severity", incident.Severity),
+	)
+}
+
+// Phase 4: Alerting & Incident Management Test Handlers
+
+// Test alert rules functionality
+func testAlertRulesHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_alert_rules")
+	defer span.End()
+
+	// Get all current alert rules
+	rules := make([]*AlertRule, 0, len(alertManager.Rules))
+	for _, rule := range alertManager.Rules {
+		rules = append(rules, rule)
+	}
+
+	// Get active alerts count
+	activeAlertsCount := len(alertManager.ActiveAlerts)
+
+	// Get alert history summary
+	alertHistoryCount := len(alertManager.AlertHistory)
+
+	// Calculate alert statistics
+	var criticalCount, warningCount, infoCount int
+	for _, alert := range alertManager.AlertHistory {
+		switch alert.Severity {
+		case "critical":
+			criticalCount++
+		case "warning":
+			warningCount++
+		case "info":
+			infoCount++
+		}
+	}
+
+	span.SetAttributes(
+		attribute.Int("alert_rules.total", len(rules)),
+		attribute.Int("alerts.active", activeAlertsCount),
+		attribute.Int("alerts.history", alertHistoryCount),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":       "Alert rules test completed",
+		"status":        "success",
+		"alert_rules":   rules,
+		"active_alerts": activeAlertsCount,
+		"alert_history": alertHistoryCount,
+		"alert_stats": map[string]int{
+			"critical": criticalCount,
+			"warning":  warningCount,
+			"info":     infoCount,
+		},
+		"rules_enabled": len(alertManager.Rules),
+		"trace_id":      extractTraceID(ctx),
+	})
+}
+
+// Test firing alerts manually
+func testFireAlertHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_fire_alert")
+	defer span.End()
+
+	// Parse request parameters
+	alertType := r.URL.Query().Get("type")
+	if alertType == "" {
+		alertType = "high-cpu-usage" // default
+	}
+
+	severity := r.URL.Query().Get("severity")
+	if severity == "" {
+		severity = "warning" // default
+	}
+
+	// Find the rule to fire
+	rule, exists := alertManager.Rules[alertType]
+	if !exists {
+		// Create a temporary test rule
+		rule = &AlertRule{
+			ID:          "test-alert-" + alertType,
+			Name:        "Test Alert: " + strings.Title(strings.ReplaceAll(alertType, "-", " ")),
+			Description: fmt.Sprintf("Manual test alert of type %s", alertType),
+			Query:       fmt.Sprintf("test_metric_%s > 1", alertType),
+			Threshold:   AlertThreshold{Operator: "gt", Value: 1},
+			Severity:    severity,
+			Duration:    1 * time.Minute,
+			Labels:      map[string]string{"team": "test", "component": "manual"},
+			Annotations: map[string]string{"runbook": "https://docs.company.com/test"},
+			Enabled:     true,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+	}
+
+	// Force fire the alert
+	fireAlert(rule)
+
+	// Count current active alerts
+	activeCount := len(alertManager.ActiveAlerts)
+
+	span.SetAttributes(
+		attribute.String("alert.type", alertType),
+		attribute.String("alert.severity", severity),
+		attribute.Int("alerts.active_total", activeCount),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":       "Test alert fired successfully",
+		"status":        "success",
+		"alert_type":    alertType,
+		"severity":      severity,
+		"rule_name":     rule.Name,
+		"active_alerts": activeCount,
+		"trace_id":      extractTraceID(ctx),
+	})
+}
+
+// Test incident management functionality
+func testIncidentManagementHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_incident_management")
+	defer span.End()
+
+	// Create a test incident manually
+	incidentID := uuid.New().String()
+
+	testIncident := &Incident{
+		ID:              incidentID,
+		Title:           "Test Incident: Service Degradation",
+		Description:     "Manual test incident to verify incident management functionality",
+		Status:          "open",
+		Severity:        "critical",
+		Priority:        "high",
+		AssignedTo:      "test-engineer",
+		CreatedBy:       "test-system",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		AffectedService: serviceName,
+		RelatedAlerts:   []string{},
+		Tags:            []string{"test", "manual", "service-degradation"},
+		Timeline: []IncidentUpdate{
+			{
+				ID:        uuid.New().String(),
+				Timestamp: time.Now(),
+				Author:    "test-system",
+				Type:      "status_change",
+				Message:   "Test incident created for validation",
+				NewValue:  "open",
+			},
+		},
+		Metrics: IncidentMetrics{
+			TimeToDetection: 30 * time.Second,
+		},
+	}
+
+	alertManager.Incidents[incidentID] = testIncident
+
+	// Update incident metrics
+	incidentsTotal.WithLabelValues(testIncident.Severity, testIncident.Status, testIncident.AffectedService).Inc()
+
+	// Get incident statistics
+	totalIncidents := len(alertManager.Incidents)
+	var openCount, resolvedCount int
+	for _, incident := range alertManager.Incidents {
+		switch incident.Status {
+		case "open", "investigating":
+			openCount++
+		case "resolved", "closed":
+			resolvedCount++
+		}
+	}
+
+	span.SetAttributes(
+		attribute.String("incident.id", incidentID),
+		attribute.String("incident.severity", testIncident.Severity),
+		attribute.Int("incidents.total", totalIncidents),
+		attribute.Int("incidents.open", openCount),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":  "Test incident created successfully",
+		"status":   "success",
+		"incident": testIncident,
+		"incident_stats": map[string]int{
+			"total":    totalIncidents,
+			"open":     openCount,
+			"resolved": resolvedCount,
+		},
+		"trace_id": extractTraceID(ctx),
+	})
+}
+
+// Test notification channels functionality
+func testNotificationChannelsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_notification_channels")
+	defer span.End()
+
+	// Get all notification channels
+	channels := make([]*NotificationChannel, 0, len(alertManager.NotificationChannels))
+	for _, channel := range alertManager.NotificationChannels {
+		channels = append(channels, channel)
+	}
+
+	// Create a test alert to send notifications
+	testAlert := &Alert{
+		ID:           "test-notification-" + strconv.FormatInt(time.Now().Unix(), 10),
+		RuleID:       "test-rule",
+		RuleName:     "Test Notification Alert",
+		Status:       "firing",
+		Severity:     "warning",
+		Message:      "Test notification to verify channel functionality",
+		Description:  "This is a test alert for notification testing",
+		StartsAt:     time.Now(),
+		Duration:     0,
+		Labels:       map[string]string{"test": "true", "component": "notification"},
+		Annotations:  map[string]string{"test_purpose": "notification_validation"},
+		Value:        85.5,
+		Threshold:    80.0,
+		GeneratorURL: "http://localhost:3001/test/notification",
+	}
+
+	// Test sending notifications through all channels
+	var notificationResults []map[string]interface{}
+	for _, channel := range channels {
+		start := time.Now()
+		success := simulateNotificationSend(channel, testAlert)
+		duration := time.Since(start)
+
+		status := "success"
+		if !success {
+			status = "failed"
+		}
+
+		result := map[string]interface{}{
+			"channel_id":   channel.ID,
+			"channel_name": channel.Name,
+			"channel_type": channel.Type,
+			"status":       status,
+			"latency_ms":   float64(duration.Nanoseconds()) / 1e6,
+			"enabled":      channel.Enabled,
+		}
+		notificationResults = append(notificationResults, result)
+	}
+
+	span.SetAttributes(
+		attribute.Int("channels.total", len(channels)),
+		attribute.String("test_alert.id", testAlert.ID),
+		attribute.Int("notifications.sent", len(notificationResults)),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":              "Notification channels tested successfully",
+		"status":               "success",
+		"channels":             channels,
+		"notification_results": notificationResults,
+		"test_alert":           testAlert,
+		"trace_id":             extractTraceID(ctx),
+	})
+}
+
+// Get active alerts
+func getActiveAlertsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "get_active_alerts")
+	defer span.End()
+
+	// Convert map to slice for JSON response
+	activeAlerts := make([]*Alert, 0, len(alertManager.ActiveAlerts))
+	for _, alert := range alertManager.ActiveAlerts {
+		// Update duration for active alerts
+		alert.Duration = time.Since(alert.StartsAt)
+		activeAlerts = append(activeAlerts, alert)
+	}
+
+	// Get recent alert history (last 10)
+	recentHistory := alertManager.AlertHistory
+	if len(recentHistory) > 10 {
+		recentHistory = recentHistory[len(recentHistory)-10:]
+	}
+
+	span.SetAttributes(
+		attribute.Int("alerts.active_count", len(activeAlerts)),
+		attribute.Int("alerts.history_count", len(alertManager.AlertHistory)),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":        "Active alerts retrieved successfully",
+		"status":         "success",
+		"active_alerts":  activeAlerts,
+		"recent_history": recentHistory,
+		"total_active":   len(activeAlerts),
+		"total_history":  len(alertManager.AlertHistory),
+		"trace_id":       extractTraceID(ctx),
+	})
+}
+
+// Get active incidents
+func getActiveIncidentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "get_active_incidents")
+	defer span.End()
+
+	// Get all incidents
+	allIncidents := make([]*Incident, 0, len(alertManager.Incidents))
+	activeIncidents := make([]*Incident, 0)
+
+	for _, incident := range alertManager.Incidents {
+		allIncidents = append(allIncidents, incident)
+
+		// Consider incidents as active if they're not resolved or closed
+		if incident.Status == "open" || incident.Status == "investigating" {
+			activeIncidents = append(activeIncidents, incident)
+		}
+	}
+
+	// Calculate incident statistics
+	var criticalCount, highCount, mediumCount, lowCount int
+	var avgResolutionTime time.Duration
+	var resolvedCount int
+
+	for _, incident := range allIncidents {
+		switch incident.Priority {
+		case "critical":
+			criticalCount++
+		case "high":
+			highCount++
+		case "medium":
+			mediumCount++
+		case "low":
+			lowCount++
+		}
+
+		if incident.Status == "resolved" && incident.ResolvedAt != nil {
+			resolvedCount++
+			avgResolutionTime += incident.Metrics.TimeToResolve
+		}
+	}
+
+	if resolvedCount > 0 {
+		avgResolutionTime = avgResolutionTime / time.Duration(resolvedCount)
+	}
+
+	span.SetAttributes(
+		attribute.Int("incidents.active_count", len(activeIncidents)),
+		attribute.Int("incidents.total_count", len(allIncidents)),
+		attribute.Int("incidents.critical", criticalCount),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":          "Active incidents retrieved successfully",
+		"status":           "success",
+		"active_incidents": activeIncidents,
+		"all_incidents":    allIncidents,
+		"total_active":     len(activeIncidents),
+		"total_incidents":  len(allIncidents),
+		"incident_stats": map[string]interface{}{
+			"by_priority": map[string]int{
+				"critical": criticalCount,
+				"high":     highCount,
+				"medium":   mediumCount,
+				"low":      lowCount,
+			},
+			"resolved_count":         resolvedCount,
+			"avg_resolution_time":    avgResolutionTime.String(),
+			"avg_resolution_minutes": avgResolutionTime.Minutes(),
+		},
+		"trace_id": extractTraceID(ctx),
+	})
 }

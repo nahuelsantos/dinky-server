@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dinky Monitor - Phase 3 APM Dashboard</title>
+    <title>Dinky Monitor - Phase 4 Alerting Dashboard</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -245,15 +245,94 @@
     <div class="container">
         <div class="header">
             <h1 class="title">DINKY MONITOR</h1>
-            <p class="subtitle">Advanced APM & Distributed Tracing Dashboard</p>
+            <p class="subtitle">Advanced Alerting & Incident Management Dashboard</p>
             <div>
                 <span class="phase-badge">Phase 1: Metrics ✓</span>
                 <span class="phase-badge">Phase 2: Logging ✓</span>
-                <span class="phase-badge">Phase 3: APM & Tracing 🚀</span>
+                <span class="phase-badge">Phase 3: APM ✓</span>
+                <span class="phase-badge">Phase 4: Alerting 🚀</span>
             </div>
         </div>
 
         <div class="monitoring-grid">
+            <!-- Phase 4: Alerting & Incident Management -->
+            <div class="monitoring-card phase3-highlight">
+                <div class="phase-indicator">Phase 4 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">🚨</span>
+                    <h2 class="card-title">Alerting & Incident Management</h2>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="test-title">Alert Rules & Notifications</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/alert_rules"
+                                hx-target="#alert-response"
+                                hx-indicator="#alert-loading">
+                            Test Alert Rules
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/fire_alert?type=high-cpu-usage&severity=critical"
+                                hx-target="#alert-response"
+                                hx-indicator="#alert-loading">
+                            Fire Test Alert
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/incident_management"
+                                hx-target="#alert-response"
+                                hx-indicator="#alert-loading">
+                            Test Incidents
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/notification_channels"
+                                hx-target="#alert-response"
+                                hx-indicator="#alert-loading">
+                            Test Notifications
+                        </button>
+                    </div>
+                    <div id="alert-loading" class="loading htmx-indicator">
+                        Processing alerts...
+                    </div>
+                    <div id="alert-response" class="response-area">
+                        Click buttons to test alerting and incident management features
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: Active Monitoring -->
+            <div class="monitoring-card phase3-highlight">
+                <div class="phase-indicator">Phase 4 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">📋</span>
+                    <h2 class="card-title">Active Alerts & Incidents</h2>
+                </div>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Real-time Monitoring</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/alerts/active"
+                                hx-target="#monitoring-response"
+                                hx-indicator="#monitoring-loading">
+                            Active Alerts
+                        </button>
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/incidents/active"
+                                hx-target="#monitoring-response"
+                                hx-indicator="#monitoring-loading">
+                            Active Incidents
+                        </button>
+                    </div>
+                    <div id="monitoring-loading" class="loading htmx-indicator">
+                        Loading monitoring data...
+                    </div>
+                    <div id="monitoring-response" class="response-area">
+                        Click "Active Alerts" or "Active Incidents" to view current status
+                    </div>
+                </div>
+            </div>
+
             <!-- Phase 3: APM Tracing -->
             <div class="monitoring-card phase3-highlight">
                 <div class="phase-indicator">Phase 3 🆕</div>
