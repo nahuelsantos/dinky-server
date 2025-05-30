@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -573,9 +574,163 @@ func docsHandler(w http.ResponseWriter, r *http.Request) {
 		attribute.String("http.path", r.URL.Path),
 	)
 
+	// Check if HTML format is requested
+	if r.URL.Query().Get("format") == "html" || r.Header.Get("Accept") == "text/html" {
+		docsHTMLHandler(w, r, docs)
+		return
+	}
+
+	// Return formatted JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(docs)
+
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ") // Pretty print with 2-space indentation
+	encoder.Encode(docs)
+}
+
+func docsHTMLHandler(w http.ResponseWriter, r *http.Request, docs map[string]interface{}) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+
+	html := `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example API Documentation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        h3 { color: #7f8c8d; }
+        .endpoint { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #3498db; }
+        .method { font-weight: bold; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px; }
+        .get { background: #27ae60; }
+        .post { background: #e74c3c; }
+        .path { font-family: monospace; background: #ecf0f1; padding: 2px 6px; border-radius: 3px; }
+        .feature { background: #e8f5e8; padding: 5px 10px; margin: 5px; border-radius: 3px; display: inline-block; }
+        .monitoring { background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .badge { background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        .usage { background: #f1f2f6; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        code { background: #f1f2f6; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+        .example { background: #263238; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ` + docs["api_name"].(string) + `</h1>
+        <p><strong>Version:</strong> <span class="badge">` + docs["version"].(string) + `</span></p>
+        <p><strong>Base URL:</strong> <code>` + docs["base_url"].(string) + `</code></p>
+        <p>` + docs["description"].(string) + `</p>
+        
+        <h2>📡 API Endpoints</h2>
+        
+        <h3>📖 Documentation & Health</h3>`
+
+	// Add GET endpoints
+	endpoints := docs["endpoints"].(map[string]interface{})
+	getEndpoints := []string{"health", "root", "docs", "ui", "metrics"}
+	for _, ep := range getEndpoints {
+		if endpoint, ok := endpoints[ep].(map[string]interface{}); ok {
+			html += fmt.Sprintf(`
+        <div class="endpoint">
+            <span class="method get">%s</span> 
+            <span class="path">%s</span>
+            <p>%s</p>
+            <small><strong>Response:</strong> %s</small>
+        </div>`,
+				endpoint["method"].(string),
+				endpoint["path"].(string),
+				endpoint["description"].(string),
+				endpoint["response"].(string))
+		}
+	}
+
+	html += `
+        <h3>🧪 Testing Endpoints</h3>`
+
+	// Add POST endpoints
+	postEndpoints := []string{"test_metrics", "test_logs", "test_error", "test_cpu", "test_memory", "test_trace"}
+	for _, ep := range postEndpoints {
+		if endpoint, ok := endpoints[ep].(map[string]interface{}); ok {
+			params := ""
+			if p, ok := endpoint["parameters"].(string); ok && p != "None" {
+				params = fmt.Sprintf("<br><small><strong>Parameters:</strong> %s</small>", p)
+			}
+			html += fmt.Sprintf(`
+        <div class="endpoint">
+            <span class="method post">%s</span> 
+            <span class="path">%s</span>
+            <p>%s</p>%s
+            <small><strong>Response:</strong> %s</small>
+        </div>`,
+				endpoint["method"].(string),
+				endpoint["path"].(string),
+				endpoint["description"].(string),
+				params,
+				endpoint["response"].(string))
+		}
+	}
+
+	html += `
+        <h2>🎯 Usage Examples</h2>
+        <div class="usage">
+            <h4>Get API Documentation (JSON)</h4>
+            <div class="example">curl ` + docs["base_url"].(string) + `/docs | jq</div>
+        </div>
+        
+        <div class="usage">
+            <h4>Generate Test Data</h4>
+            <div class="example"># Generate metrics<br>curl -X POST ` + docs["base_url"].(string) + `/test/metrics<br><br># Generate logs<br>curl -X POST ` + docs["base_url"].(string) + `/test/logs<br><br># Create error<br>curl -X POST ` + docs["base_url"].(string) + `/test/error</div>
+        </div>
+        
+        <div class="usage">
+            <h4>Load Testing</h4>
+            <div class="example"># CPU test (10 seconds)<br>curl -X POST "` + docs["base_url"].(string) + `/test/cpu?duration=10s"<br><br># Memory test (200MB)<br>curl -X POST "` + docs["base_url"].(string) + `/test/memory?size=200"</div>
+        </div>
+
+        <h2>✨ Features</h2>
+        <div>`
+
+	features := docs["features"].([]string)
+	for _, feature := range features {
+		html += fmt.Sprintf(`<span class="feature">%s</span>`, feature)
+	}
+
+	html += `</div>
+        
+        <h2>📊 Monitoring Integration</h2>
+        <div class="monitoring">`
+
+	monitoring := docs["monitoring"].(map[string]string)
+	for key, value := range monitoring {
+		html += fmt.Sprintf(`<p><strong>%s:</strong> %s</p>`,
+			strings.Title(key), value)
+	}
+
+	html += `</div>
+        
+        <h2>🔗 Quick Links</h2>
+        <p>
+            <a href="/">🏠 Home</a> | 
+            <a href="/health">💓 Health</a> | 
+            <a href="/ui">🎮 Interactive UI</a> | 
+            <a href="/metrics">📊 Metrics</a> |
+            <a href="/docs?format=html">📖 HTML Docs</a> |
+            <a href="/docs">📋 JSON Docs</a>
+        </p>
+        
+        <hr style="margin: 30px 0;">
+        <p style="text-align: center; color: #7f8c8d;">
+            <small>Perfect for testing your LGTM monitoring stack! 🚀</small>
+        </p>
+    </div>
+</body>
+</html>`
+
+	w.Write([]byte(html))
 }
 
 func main() {
