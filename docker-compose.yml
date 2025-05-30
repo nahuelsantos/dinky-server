@@ -198,13 +198,8 @@ services:
       - "192.168.3.2:4318:4318"  # OTLP HTTP receiver
     volumes:
       - ./monitoring/tempo:/etc/tempo
-      - tempo_data:/tmp/tempo
-    entrypoint: |
-      sh -c "
-        mkdir -p /tmp/tempo/blocks /tmp/tempo/generator/wal &&
-        chown -R 10001:10001 /tmp/tempo &&
-        exec /tempo -config.file=/etc/tempo/tempo-config.yml
-      "
+      - tempo_data:/var/tempo
+    command: -config.file=/etc/tempo/tempo-config.yml
     networks:
       - traefik_network
 

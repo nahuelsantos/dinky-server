@@ -15,8 +15,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.example-api.rule=Host(`api.${DOMAIN_NAME}`)"
       - "traefik.http.services.example-api.loadbalancer.server.port=8080"
-    depends_on:
-      - otel-collector
 
 networks:
   traefik_network:

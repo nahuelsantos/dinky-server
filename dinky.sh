@@ -241,47 +241,19 @@ source_setup_functions() {
         local env_file="$SCRIPT_DIR/.env"
         
         if [ ! -f "$env_file" ]; then
-            info "Creating environment configuration..."
-            local server_ip=$(hostname -I | awk '{print $1}')
-            
-            cat > "$env_file" << EOF
-# Dinky Server Environment Variables
-# Generated on $(date)
-
-# Server Configuration
-SERVER_IP=$server_ip
-TZ=Europe/Madrid
-DOMAIN_NAME=dinky.local
-
-# Pi-hole Configuration
-PIHOLE_PASSWORD=$(openssl rand -base64 32)
-
-# Mail Server Configuration
-MAIL_DOMAIN=dinky.local
-MAIL_HOSTNAME=mail.dinky.local
-DEFAULT_FROM=noreply@dinky.local
-DEFAULT_TO=admin@dinky.local
-ALLOWED_HOSTS=dinky.local
-
-# SMTP Relay Configuration (Update with your values)
-SMTP_RELAY_HOST=smtp.gmail.com
-SMTP_RELAY_PORT=587
-SMTP_RELAY_USERNAME=your-email@gmail.com
-SMTP_RELAY_PASSWORD=your-app-password
-
-# TLS Configuration
-USE_TLS=yes
-TLS_VERIFY=yes
-
-# Grafana Configuration
-GRAFANA_PASSWORD=$(openssl rand -base64 32)
-
-# Cloudflare Tunnel (Update with your tunnel ID)
-TUNNEL_ID=your-tunnel-id-here
-EOF
-            
-            success "Environment file created at $env_file"
-            warning "Please update the SMTP and Cloudflare settings in $env_file before deploying services"
+            if [ -f "$SCRIPT_DIR/.env.example" ]; then
+                info "Creating environment configuration from .env.example..."
+                cp "$SCRIPT_DIR/.env.example" "$env_file"
+                # Add SERVER_IP for dinky server
+                echo "" >> "$env_file"
+                echo "# Server Configuration" >> "$env_file"
+                echo "SERVER_IP=dinky" >> "$env_file"
+                success "Environment file created from .env.example"
+                warning "Please update the configuration values in $env_file as needed"
+            else
+                error ".env.example file not found. Cannot create environment configuration."
+                return 1
+            fi
         else
             success "Environment file already exists"
         fi
