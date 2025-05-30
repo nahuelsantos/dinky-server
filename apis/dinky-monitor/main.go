@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.uber.org/zap"
 
 	"dinky-monitor/internal/config"
 	"dinky-monitor/internal/handlers"
@@ -17,7 +16,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Dinky Monitor Service v5.0.0-phase5...")
+	fmt.Println("Starting Dinky Monitor Service v5.0.0-simplified...")
 
 	// Initialize configuration
 	serviceConfig := config.GetServiceConfig()
@@ -32,24 +31,17 @@ func main() {
 	alertingService := services.NewAlertingService()
 	alertingService.InitAlertManager()
 
-	// Phase 5: Initialize Intelligence Service
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-	intelligenceService := services.NewIntelligenceService(logger)
-
-	// Register Prometheus metrics (all phases)
+	// Register Prometheus metrics
 	metrics.RegisterMetrics()
-	metrics.RegisterIntelligenceMetrics() // Phase 5 metrics
 
 	// Initialize handlers
 	basicHandlers := handlers.NewBasicHandlers(loggingService, tracingService)
 	alertingHandlers := handlers.NewAlertingHandlers(loggingService, alertingService)
-	intelligenceHandler := handlers.NewIntelligenceHandler(logger, intelligenceService) // Phase 5
 
 	// Create HTTP mux
 	mux := http.NewServeMux()
 
-	// Basic endpoints
+	// Core monitoring test endpoints
 	mux.HandleFunc("/health", basicHandlers.HealthHandler)
 	mux.HandleFunc("/generate-metrics", basicHandlers.GenerateMetricsHandler)
 	mux.HandleFunc("/generate-logs", basicHandlers.GenerateLogsHandler)
@@ -57,16 +49,13 @@ func main() {
 	mux.HandleFunc("/cpu-load", basicHandlers.CPULoadHandler)
 	mux.HandleFunc("/memory-load", basicHandlers.MemoryLoadHandler)
 
-	// Phase 4: Alerting endpoints
+	// Alerting test endpoints
 	mux.HandleFunc("/test-alert-rules", alertingHandlers.TestAlertRulesHandler)
 	mux.HandleFunc("/test-fire-alert", alertingHandlers.TestFireAlertHandler)
 	mux.HandleFunc("/test-incident-management", alertingHandlers.TestIncidentManagementHandler)
 	mux.HandleFunc("/test-notification-channels", alertingHandlers.TestNotificationChannelsHandler)
 	mux.HandleFunc("/active-alerts", alertingHandlers.GetActiveAlertsHandler)
 	mux.HandleFunc("/active-incidents", alertingHandlers.GetActiveIncidentsHandler)
-
-	// Phase 5: Intelligence & Analytics endpoints 🧠
-	intelligenceHandler.RegisterRoutes(mux)
 
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", promhttp.Handler())
@@ -75,48 +64,35 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		endpoints := map[string]string{
 			"health":                     "Service health check",
-			"generate-metrics":           "Generate sample metrics",
-			"generate-logs":              "Generate sample logs",
-			"generate-error":             "Generate sample errors",
-			"cpu-load":                   "Simulate CPU load",
-			"memory-load":                "Simulate memory load",
+			"generate-metrics":           "Generate test metrics for Prometheus",
+			"generate-logs":              "Generate test logs for Loki",
+			"generate-error":             "Generate test errors for alerting",
+			"cpu-load":                   "Simulate CPU load for testing",
+			"memory-load":                "Simulate memory load for testing",
 			"test-alert-rules":           "Test alert rules functionality",
 			"test-fire-alert":            "Fire a test alert",
-			"test-incident-management":   "Test incident management",
+			"test-incident-management":   "Test incident management workflow",
 			"test-notification-channels": "Test notification channels",
-			"active-alerts":              "View active alerts",
-			"active-incidents":           "View active incidents",
-			// Phase 5: Intelligence & Analytics
-			"test-anomaly-detection":    "Test ML anomaly detection",
-			"test-predictive-alerts":    "Test predictive alerting",
-			"test-root-cause-analysis":  "Test automated root cause analysis",
-			"test-performance-insights": "Test performance insights",
-			"test-capacity-planning":    "Test capacity planning",
-			"anomaly-models":            "View ML models",
-			"predictive-alerts":         "View predictive alerts",
-			"recommendations":           "View recommendations",
-			"intelligence-dashboard":    "Intelligence dashboard",
-			"metrics":                   "Prometheus metrics",
+			"active-alerts":              "View currently active alerts",
+			"active-incidents":           "View currently active incidents",
+			"metrics":                    "Prometheus metrics endpoint",
 		}
 
 		response := map[string]interface{}{
-			"service": serviceConfig.Name,
-			"version": "v5.0.0-phase5",
-			"phase":   "5",
+			"service":     serviceConfig.Name,
+			"version":     "v5.0.0-simplified",
+			"purpose":     "Generate test data for LGTM monitoring stack",
+			"description": "Focused on testing Loki, Grafana, Tempo, and Prometheus integration",
 			"features": []string{
-				"comprehensive_logging",
+				"test_metrics_generation",
+				"test_logs_generation",
+				"test_error_simulation",
+				"system_load_simulation",
+				"alert_testing",
+				"incident_testing",
+				"notification_testing",
 				"prometheus_metrics",
 				"opentelemetry_tracing",
-				"alert_management",
-				"incident_management",
-				"notification_channels",
-				// Phase 5 features
-				"ml_anomaly_detection",
-				"predictive_alerting",
-				"root_cause_analysis",
-				"performance_insights",
-				"capacity_planning",
-				"cost_optimization",
 			},
 			"endpoints": endpoints,
 		}
@@ -137,38 +113,34 @@ func main() {
 	)
 
 	fmt.Printf("🚀 Dinky Monitor Service started on port %s\n", serviceConfig.Port)
+	fmt.Println("🎯 Purpose: Generate test data for LGTM monitoring stack")
 	fmt.Println("📊 Features enabled:")
-	fmt.Println("  ✅ Comprehensive Logging (Zap)")
-	fmt.Println("  ✅ Prometheus Metrics")
-	fmt.Println("  ✅ OpenTelemetry Tracing")
-	fmt.Println("  ✅ Alert Management")
-	fmt.Println("  ✅ Incident Management")
-	fmt.Println("  ✅ Notification Channels")
-	fmt.Println("  🧠 ML-Powered Anomaly Detection")
-	fmt.Println("  🔮 Predictive Alerting")
-	fmt.Println("  🕵️ Automated Root Cause Analysis")
-	fmt.Println("  📊 Performance Insights")
-	fmt.Println("  📈 Capacity Planning")
-	fmt.Println("  💰 Cost Optimization")
+	fmt.Println("  ✅ Test Metrics Generation (Prometheus)")
+	fmt.Println("  ✅ Test Logs Generation (Loki)")
+	fmt.Println("  ✅ Test Error Simulation")
+	fmt.Println("  ✅ System Load Simulation")
+	fmt.Println("  ✅ Alert Testing")
+	fmt.Println("  ✅ Incident Management Testing")
+	fmt.Println("  ✅ Notification Testing")
+	fmt.Println("  ✅ OpenTelemetry Tracing (Tempo)")
 	fmt.Println()
-	fmt.Println("📍 Available endpoints:")
+	fmt.Println("📍 Test endpoints:")
 	fmt.Println("  🔗 http://localhost:3001/ - Service information")
 	fmt.Println("  🩺 http://localhost:3001/health - Health check")
 	fmt.Println("  📈 http://localhost:3001/metrics - Prometheus metrics")
-	fmt.Println("  🚨 http://localhost:3001/test-alert-rules - Test alerting")
+	fmt.Println("  📊 http://localhost:3001/generate-metrics - Generate test metrics")
+	fmt.Println("  📝 http://localhost:3001/generate-logs - Generate test logs")
+	fmt.Println("  ⚠️  http://localhost:3001/generate-error - Generate test errors")
+	fmt.Println("  🔥 http://localhost:3001/cpu-load - Simulate CPU load")
+	fmt.Println("  💾 http://localhost:3001/memory-load - Simulate memory load")
+	fmt.Println("  🚨 http://localhost:3001/test-alert-rules - Test alert rules")
 	fmt.Println("  🎯 http://localhost:3001/test-fire-alert - Fire test alert")
 	fmt.Println("  🛠️  http://localhost:3001/test-incident-management - Test incidents")
 	fmt.Println("  📬 http://localhost:3001/test-notification-channels - Test notifications")
 	fmt.Println("  🔥 http://localhost:3001/active-alerts - View active alerts")
 	fmt.Println("  📋 http://localhost:3001/active-incidents - View active incidents")
-	fmt.Println("  🧠 http://localhost:3001/test-anomaly-detection - Test ML anomaly detection")
-	fmt.Println("  🔮 http://localhost:3001/test-predictive-alerts - Test predictive alerts")
-	fmt.Println("  🕵️ http://localhost:3001/test-root-cause-analysis - Test root cause analysis")
-	fmt.Println("  📊 http://localhost:3001/test-performance-insights - Test performance insights")
-	fmt.Println("  📈 http://localhost:3001/test-capacity-planning - Test capacity planning")
-	fmt.Println("  💡 http://localhost:3001/recommendations - View recommendations")
-	fmt.Println("  🎛️  http://localhost:3001/intelligence-dashboard - Intelligence dashboard")
 	fmt.Println()
+	fmt.Println("🎯 Focus: Testing that your LGTM stack (Loki, Grafana, Tempo, Prometheus) works correctly!")
 
 	log.Fatal(http.ListenAndServe(serviceConfig.Port, handler))
 }

@@ -17,7 +17,7 @@ type ServiceConfig struct {
 func GetServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		Name:        "dinky-monitor",
-		Version:     "5.0.0-phase5",
+		Version:     "5.0.0-simplified",
 		Environment: "development",
 		StartTime:   time.Now(),
 		Port:        ":3001",

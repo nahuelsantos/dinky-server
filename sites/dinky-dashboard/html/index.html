@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dinky Monitor - Phase 5 Intelligence & Analytics Dashboard</title>
+    <title>Dinky Monitor - LGTM Stack Testing Dashboard</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <!-- HTMX 2.0 Configuration: Allow cross-origin requests -->
     <meta name="htmx-config" content='{"selfRequestsOnly": false}'>
     <script>
-        // Additional HTMX 2.0 configuration for cross-origin requests
         document.addEventListener('DOMContentLoaded', function() {
             htmx.config.selfRequestsOnly = false;
         });
@@ -53,22 +51,16 @@
             font-size: 1.2rem;
         }
 
-        .phase-badge {
+        .purpose-badge {
             display: inline-block;
             padding: 8px 16px;
-            background: linear-gradient(45deg, #9966ff, #00d4ff);
+            background: linear-gradient(45deg, #00ff9f, #00d4ff);
             color: white;
             border-radius: 20px;
             font-size: 0.9rem;
             font-weight: bold;
             margin: 10px 5px;
-            box-shadow: 0 4px 15px rgba(153, 102, 255, 0.3);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .phase-badge.phase5 {
-            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb);
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 255, 159, 0.3);
         }
 
         .monitoring-grid {
@@ -183,89 +175,40 @@
             animation: pulse 1s ease-in-out infinite alternate;
         }
 
-        .phase-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: linear-gradient(45deg, #9966ff, #00d4ff);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-
-        .phase5-highlight {
-            border-color: #ff6b6b !important;
-        }
-
-        .phase5-highlight .card-title {
-            color: #ff6b6b;
-        }
-
-        .phase5-highlight .phase-indicator {
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-        }
-
-        .phase4-highlight {
-            border-color: #9966ff !important;
-        }
-
-        .phase4-highlight .card-title {
-            color: #9966ff;
-        }
-
-        .phase3-highlight {
-            border-color: #48dbfb !important;
-        }
-
-        .phase3-highlight .card-title {
-            color: #48dbfb;
-        }
-
-        .tools-section {
-            text-align: center;
-            margin-top: 40px;
-            padding: 30px;
-            background: rgba(10, 10, 10, 0.8);
-            border-radius: 15px;
-            border: 1px solid #333;
-        }
-
-        .tools-title {
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-            color: #00d4ff;
-        }
-
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
+            margin-top: 40px;
+        }
+
+        .tool-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-3px);
         }
 
         .tool-link {
-            display: block;
-            padding: 15px;
-            background: linear-gradient(45deg, #1a1a2e, #16213e);
-            border: 1px solid #00ff9f;
-            border-radius: 10px;
-            color: #00ff9f;
+            color: #00d4ff;
             text-decoration: none;
-            transition: all 0.3s ease;
             font-weight: bold;
         }
 
         .tool-link:hover {
-            background: linear-gradient(45deg, #00ff9f, #00d4ff);
-            color: #000;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 255, 159, 0.3);
+            color: #00ff9f;
         }
 
         @keyframes pulse {
-            0% { opacity: 0.8; }
-            100% { opacity: 1; }
+            from { opacity: 0.8; }
+            to { opacity: 1; }
         }
 
         @keyframes float {
@@ -277,359 +220,215 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">DINKY MONITOR</h1>
-            <p class="subtitle">AI-Powered Intelligence & Analytics Dashboard</p>
-            <div>
-                <span class="phase-badge">Phase 1: Metrics ✓</span>
-                <span class="phase-badge">Phase 2: Logging ✓</span>
-                <span class="phase-badge">Phase 3: APM ✓</span>
-                <span class="phase-badge">Phase 4: Alerting ✓</span>
-                <span class="phase-badge phase5">Phase 5: Intelligence 🧠</span>
-            </div>
+            <h1 class="title">Dinky Monitor</h1>
+            <p class="subtitle">LGTM Stack Testing Dashboard</p>
+            <div class="purpose-badge">Test Data Generator for Loki, Grafana, Tempo & Prometheus</div>
         </div>
 
         <div class="monitoring-grid">
-            <!-- Phase 5: ML-Powered Anomaly Detection -->
-            <div class="monitoring-card phase5-highlight">
-                <div class="phase-indicator">Phase 5 🆕</div>
+            <!-- Prometheus Testing -->
+            <div class="monitoring-card">
                 <div class="card-header">
-                    <span class="card-icon">🧠</span>
-                    <h2 class="card-title">ML Anomaly Detection</h2>
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">Prometheus Testing</div>
                 </div>
-
+                
                 <div class="test-section">
-                    <h3 class="test-title">Machine Learning Models</h3>
+                    <div class="test-title">Generate Test Metrics</div>
                     <div class="test-buttons">
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-anomaly-detection"
-                                hx-target="#anomaly-response"
-                                hx-indicator="#anomaly-loading">
-                            Test Anomaly Detection
+                            hx-post="http://localhost:3001/generate-metrics" 
+                            hx-target="#prometheus-response">
+                            Generate Sample Metrics
                         </button>
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/anomaly-models"
-                                hx-target="#anomaly-response"
-                                hx-indicator="#anomaly-loading">
-                            View ML Models
+                            hx-post="http://localhost:3001/cpu-load" 
+                            hx-target="#prometheus-response">
+                            Simulate CPU Load
+                        </button>
+                        <button class="test-btn" 
+                            hx-post="http://localhost:3001/memory-load" 
+                            hx-target="#prometheus-response">
+                            Simulate Memory Load
                         </button>
                     </div>
-                    <div id="anomaly-loading" class="loading htmx-indicator">
-                        Processing ML models...
-                    </div>
-                    <div id="anomaly-response" class="response-area">
-                        Click buttons to test ML-powered anomaly detection (Statistical, Isolation Forest, LSTM)
-                    </div>
+                    <div id="prometheus-response" class="response-area">Click buttons above to generate test metrics for Prometheus...</div>
                 </div>
             </div>
 
-            <!-- Phase 5: Predictive Analytics -->
-            <div class="monitoring-card phase5-highlight">
-                <div class="phase-indicator">Phase 5 🆕</div>
+            <!-- Loki Testing -->
+            <div class="monitoring-card">
                 <div class="card-header">
-                    <span class="card-icon">🔮</span>
-                    <h2 class="card-title">Predictive Analytics</h2>
+                    <div class="card-icon">📝</div>
+                    <div class="card-title">Loki Testing</div>
                 </div>
-            
+                
                 <div class="test-section">
-                    <h3 class="test-title">Forecasting & Predictions</h3>
+                    <div class="test-title">Generate Test Logs</div>
                     <div class="test-buttons">
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-predictive-alerts"
-                                hx-target="#predictive-response"
-                                hx-indicator="#predictive-loading">
-                            Test Predictive Alerts
+                            hx-post="http://localhost:3001/generate-logs" 
+                            hx-target="#loki-response">
+                            Generate Sample Logs
                         </button>
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-capacity-planning"
-                                hx-target="#predictive-response"
-                                hx-indicator="#predictive-loading">
-                            Capacity Planning
-                        </button>
-                        <button class="test-btn" 
-                                hx-get="http://localhost:3001/predictive-alerts"
-                                hx-target="#predictive-response"
-                                hx-indicator="#predictive-loading">
-                            View Predictions
+                            hx-post="http://localhost:3001/generate-error" 
+                            hx-target="#loki-response">
+                            Generate Error Logs
                         </button>
                     </div>
-                    <div id="predictive-loading" class="loading htmx-indicator">
-                        Generating predictions...
-                        </div>
-                    <div id="predictive-response" class="response-area">
-                        Click buttons to test predictive alerting and capacity planning
-                    </div>
+                    <div id="loki-response" class="response-area">Click buttons above to generate test logs for Loki...</div>
                 </div>
             </div>
 
-            <!-- Phase 5: Root Cause Analysis -->
-            <div class="monitoring-card phase5-highlight">
-                <div class="phase-indicator">Phase 5 🆕</div>
+            <!-- Alerting Testing -->
+            <div class="monitoring-card">
                 <div class="card-header">
-                    <span class="card-icon">🕵️</span>
-                    <h2 class="card-title">Root Cause Analysis</h2>
+                    <div class="card-icon">🚨</div>
+                    <div class="card-title">Alert Testing</div>
                 </div>
-
+                
                 <div class="test-section">
-                    <h3 class="test-title">Automated Investigation</h3>
+                    <div class="test-title">Test Alert System</div>
                     <div class="test-buttons">
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-root-cause-analysis"
-                                hx-target="#rca-response"
-                                hx-indicator="#rca-loading">
-                            Test Root Cause Analysis
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-performance-insights"
-                                hx-target="#rca-response"
-                                hx-indicator="#rca-loading">
-                            Performance Insights
-                        </button>
-                    </div>
-                    <div id="rca-loading" class="loading htmx-indicator">
-                        Analyzing incidents...
-                        </div>
-                    <div id="rca-response" class="response-area">
-                        Click buttons to test automated root cause analysis and performance insights
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 5: Intelligence Dashboard -->
-            <div class="monitoring-card phase5-highlight">
-                <div class="phase-indicator">Phase 5 🆕</div>
-                <div class="card-header">
-                    <span class="card-icon">📊</span>
-                    <h2 class="card-title">Intelligence Dashboard</h2>
-                </div>
-
-                <div class="test-section">
-                    <h3 class="test-title">AI Insights & Recommendations</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-get="http://localhost:3001/intelligence-dashboard"
-                                hx-target="#intelligence-response"
-                                hx-indicator="#intelligence-loading">
-                            Intelligence Dashboard
-                        </button>
-                        <button class="test-btn" 
-                                hx-get="http://localhost:3001/recommendations"
-                                hx-target="#intelligence-response"
-                                hx-indicator="#intelligence-loading">
-                            View Recommendations
-                        </button>
-                    </div>
-                    <div id="intelligence-loading" class="loading htmx-indicator">
-                        Loading intelligence data...
-                        </div>
-                    <div id="intelligence-response" class="response-area">
-                        Click buttons to view AI-powered insights and optimization recommendations
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 4: Alerting & Incident Management -->
-            <div class="monitoring-card phase4-highlight">
-                <div class="phase-indicator">Phase 4</div>
-                <div class="card-header">
-                    <span class="card-icon">🚨</span>
-                    <h2 class="card-title">Alerting & Incident Management</h2>
-                </div>
-
-                <div class="test-section">
-                    <h3 class="test-title">Alert Rules & Notifications</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-alert-rules"
-                                hx-target="#alert-response"
-                                hx-indicator="#alert-loading">
+                            hx-post="http://localhost:3001/test-alert-rules" 
+                            hx-target="#alert-response">
                             Test Alert Rules
                         </button>
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-fire-alert?type=high-cpu-usage&severity=critical"
-                                hx-target="#alert-response"
-                                hx-indicator="#alert-loading">
+                            hx-post="http://localhost:3001/test-fire-alert?type=high-cpu-usage&severity=critical" 
+                            hx-target="#alert-response">
                             Fire Test Alert
                         </button>
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-incident-management"
-                                hx-target="#alert-response"
-                                hx-indicator="#alert-loading">
+                            hx-post="http://localhost:3001/test-incident-management" 
+                            hx-target="#alert-response">
                             Test Incidents
                         </button>
                         <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-notification-channels"
-                                hx-target="#alert-response"
-                                hx-indicator="#alert-loading">
+                            hx-post="http://localhost:3001/test-notification-channels" 
+                            hx-target="#alert-response">
                             Test Notifications
                         </button>
                     </div>
-                    <div id="alert-loading" class="loading htmx-indicator">
-                        Processing alerts...
-                        </div>
-                    <div id="alert-response" class="response-area">
-                        Click buttons to test alerting and incident management features
-                    </div>
+                    <div id="alert-response" class="response-area">Click buttons above to test alert system...</div>
                 </div>
-            </div>
 
-            <!-- Phase 4: Active Monitoring -->
-            <div class="monitoring-card phase4-highlight">
-                <div class="phase-indicator">Phase 4</div>
-                <div class="card-header">
-                    <span class="card-icon">📋</span>
-                    <h2 class="card-title">Active Alerts & Incidents</h2>
-                </div>
-                
                 <div class="test-section">
-                    <h3 class="test-title">Real-time Monitoring</h3>
+                    <div class="test-title">View Active Alerts</div>
                     <div class="test-buttons">
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/active-alerts"
-                                hx-target="#monitoring-response"
-                                hx-indicator="#monitoring-loading">
-                            Active Alerts
+                            hx-get="http://localhost:3001/active-alerts" 
+                            hx-target="#active-alerts-response">
+                            View Active Alerts
                         </button>
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/active-incidents"
-                                hx-target="#monitoring-response"
-                                hx-indicator="#monitoring-loading">
-                            Active Incidents
+                            hx-get="http://localhost:3001/active-incidents" 
+                            hx-target="#active-alerts-response">
+                            View Active Incidents
                         </button>
                     </div>
-                    <div id="monitoring-loading" class="loading htmx-indicator">
-                        Loading monitoring data...
-                        </div>
-                    <div id="monitoring-response" class="response-area">
-                        Click "Active Alerts" or "Active Incidents" to view current status
-                    </div>
+                    <div id="active-alerts-response" class="response-area">Click buttons above to view alerts and incidents...</div>
                 </div>
             </div>
 
-            <!-- Phase 3: APM Tracing -->
-            <div class="monitoring-card phase3-highlight">
-                <div class="phase-indicator">Phase 3</div>
-                <div class="card-header">
-                    <span class="card-icon">🔍</span>
-                    <h2 class="card-title">APM & Distributed Tracing</h2>
-                </div>
-                
-                <div class="test-section">
-                    <h3 class="test-title">Advanced Performance Monitoring</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-apm-trace"
-                                hx-target="#apm-response"
-                                hx-indicator="#apm-loading">
-                            Generate APM Trace
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-service-dependency"
-                                hx-target="#apm-response"
-                                hx-indicator="#apm-loading">
-                            Service Dependencies
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-performance-analysis"
-                                hx-target="#apm-response"
-                                hx-indicator="#apm-loading">
-                            Performance Analysis
-                        </button>
-                    </div>
-                    <div id="apm-loading" class="loading htmx-indicator">
-                        Processing APM data...
-                        </div>
-                    <div id="apm-response" class="response-area">
-                        Click buttons to test APM and distributed tracing features
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Health -->
+            <!-- Service Status -->
             <div class="monitoring-card">
-                <div class="phase-indicator">All Phases</div>
                 <div class="card-header">
-                    <span class="card-icon">💚</span>
-                    <h2 class="card-title">System Health</h2>
+                    <div class="card-icon">🩺</div>
+                    <div class="card-title">Service Status</div>
                 </div>
                 
                 <div class="test-section">
-                    <h3 class="test-title">Health & Documentation</h3>
+                    <div class="test-title">Service Health</div>
                     <div class="test-buttons">
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/health"
-                                hx-target="#health-response"
-                                hx-indicator="#health-loading">
+                            hx-get="http://localhost:3001/health" 
+                            hx-target="#status-response">
                             Health Check
                         </button>
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/"
-                                hx-target="#health-response"
-                                hx-indicator="#health-loading">
+                            hx-get="http://localhost:3001/" 
+                            hx-target="#status-response">
                             Service Info
                         </button>
                     </div>
-                    <div id="health-loading" class="loading htmx-indicator">
-                        Checking system health...
-                    </div>
-                    <div id="health-response" class="response-area">
-                        Click "Health Check" to verify system status
-                    </div>
+                    <div id="status-response" class="response-area">Click buttons above to check service status...</div>
                 </div>
             </div>
         </div>
 
         <!-- LGTM Stack Tools -->
-        <div class="tools-section">
-            <h2 class="tools-title">🔧 LGTM Observability Stack</h2>
-            <div class="tools-grid">
-                <a href="http://localhost:3000" class="tool-link" target="_blank">
-                    📊 Grafana<br><small>Dashboards & Visualization</small>
-                </a>
-                <a href="http://localhost:9090" class="tool-link" target="_blank">
-                    📈 Prometheus<br><small>Metrics & Alerting</small>
-                </a>
-                <a href="http://localhost:3000/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D" class="tool-link" target="_blank">
-                    📝 Loki Logs<br><small>Log Aggregation</small>
-                </a>
-                <a href="http://localhost:3000/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22%7D" class="tool-link" target="_blank">
-                    🔍 Tempo Tracing<br><small>Distributed Tracing</small>
-                </a>
-                <a href="http://localhost:4040" class="tool-link" target="_blank">
-                    🔥 Pyroscope<br><small>Continuous Profiling</small>
-                </a>
-                <a href="http://localhost:3001/metrics" class="tool-link" target="_blank">
-                    📊 Raw Metrics<br><small>Prometheus Endpoint</small>
-                </a>
+        <div class="tools-grid">
+            <div class="tool-card">
+                <h3>📊 Prometheus</h3>
+                <p>View metrics and queries</p>
+                <a href="http://localhost:9090" class="tool-link" target="_blank">Open Prometheus</a>
+            </div>
+            
+            <div class="tool-card">
+                <h3>📈 Grafana</h3>
+                <p>Visualize dashboards</p>
+                <a href="http://localhost:3000" class="tool-link" target="_blank">Open Grafana</a>
+            </div>
+            
+            <div class="tool-card">
+                <h3>📝 Loki</h3>
+                <p>Log aggregation system</p>
+                <a href="http://localhost:3100" class="tool-link" target="_blank">Open Loki</a>
+            </div>
+            
+            <div class="tool-card">
+                <h3>🔍 Tempo</h3>
+                <p>Distributed tracing</p>
+                <a href="http://localhost:3200" class="tool-link" target="_blank">Open Tempo</a>
+            </div>
+            
+            <div class="tool-card">
+                <h3>📊 Dinky Metrics</h3>
+                <p>Generated test metrics</p>
+                <a href="http://localhost:3001/metrics" class="tool-link" target="_blank">View Metrics</a>
+            </div>
+
+            <div class="tool-card">
+                <h3>🚦 Traefik</h3>
+                <p>Reverse proxy dashboard</p>
+                <a href="http://localhost:8080" class="tool-link" target="_blank">Open Traefik</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Enhanced HTMX response handling
+        // Add success/error classes based on response
         document.body.addEventListener('htmx:afterRequest', function(event) {
-            const target = event.target;
-            const response = event.detail.xhr.responseText;
-            
-            try {
-                const data = JSON.parse(response);
-                if (data.status === 'success' || data.success === true) {
-                    target.classList.add('success');
-                    target.classList.remove('error');
+            const responseArea = event.target;
+            if (responseArea.classList.contains('response-area')) {
+                if (event.detail.xhr.status >= 200 && event.detail.xhr.status < 300) {
+                    responseArea.classList.add('success');
+                    responseArea.classList.remove('error');
                 } else {
-                    target.classList.add('error');
-                    target.classList.remove('success');
-                }
-            } catch (e) {
-                if (event.detail.xhr.status === 200) {
-                    target.classList.add('success');
-                } else {
-                    target.classList.add('error');
+                    responseArea.classList.add('error');
+                    responseArea.classList.remove('success');
                 }
             }
         });
 
-        console.log('🧠 Dinky Monitor Phase 5 Dashboard Loaded!');
-        console.log('🚀 Features: ML Anomaly Detection, Predictive Analytics, Root Cause Analysis, Intelligence Dashboard');
+        // Add loading indicator
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            const responseArea = event.target;
+            if (responseArea.classList.contains('response-area')) {
+                responseArea.textContent = 'Loading...';
+                responseArea.classList.add('loading');
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const responseArea = event.target;
+            if (responseArea.classList.contains('response-area')) {
+                responseArea.classList.remove('loading');
+            }
+        });
     </script>
 </body>
 </html> 
