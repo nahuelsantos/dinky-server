@@ -86,11 +86,29 @@ The system automatically finds and deploys new services!
 
 After deployment, visit:
 - **Traefik Dashboard**: http://[SERVER_IP]:8080
-- **Pi-hole Admin**: http://[SERVER_IP]:8081  
+- **Pi-hole Admin**: http://[SERVER_IP]:8081
 - **Grafana**: http://[SERVER_IP]:3000
 - **Portainer**: http://[SERVER_IP]:9000
+- **Prometheus**: http://[SERVER_IP]:9090
+- **Loki**: http://[SERVER_IP]:3100
+- **Tempo**: http://[SERVER_IP]:3200
+- **Pyroscope**: http://[SERVER_IP]:4040
+- **OTEL Collector (gRPC)**: http://[SERVER_IP]:4317
+- **OTEL Collector (HTTP)**: http://[SERVER_IP]:4318
+- **OTEL Collector Metrics**: http://[SERVER_IP]:8888
+- **cAdvisor**: http://[SERVER_IP]:8082
+- **Node Exporter**: http://[SERVER_IP]:9100
 
 *(SERVER_IP is auto-detected and shown in the script)*
+
+**Core Infrastructure Ports** (no web UI):
+- **HTTP**: 80 (internal, via Traefik)
+- **HTTPS**: 443 (internal, via Traefik) 
+- **DNS**: 53 (Pi-hole)
+- **SMTP**: 25, 587 (Mail server)
+
+**Example Services:**
+- **Example Site**: http://[SERVER_IP]:3002
 
 ## 📡 Example API Endpoints
 
@@ -110,6 +128,50 @@ The included Example API (port 3001) provides comprehensive testing endpoints:
 - `/test/trace` - Distributed tracing simulation
 
 Perfect for testing your monitoring stack and learning the system!
+
+## 🔍 Complete Port Reference
+
+**Web UI Services:**
+```
+8080 - Traefik Dashboard
+8081 - Pi-hole Admin  
+9000 - Portainer
+3000 - Grafana
+9090 - Prometheus
+3100 - Loki
+3200 - Tempo
+4040 - Pyroscope
+8082 - cAdvisor
+9100 - Node Exporter
+```
+
+**Monitoring Endpoints:**
+```
+4317 - OTEL Collector (gRPC)
+4318 - OTEL Collector (HTTP)
+8888 - OTEL Collector Metrics
+```
+
+**Core Infrastructure:**
+```
+25   - SMTP
+53   - DNS (Pi-hole)
+80   - HTTP (Traefik, internal)
+443  - HTTPS (Traefik, internal)
+587  - SMTP Submission
+```
+
+**Example Services:**
+```
+3001 - Example API
+3002 - Example Site
+```
+
+**Available for Your Services:**
+```
+3003-3099 - Recommended for APIs
+8003-8099 - Recommended for Sites
+```
 
 ## 🛠️ Basic Commands
 

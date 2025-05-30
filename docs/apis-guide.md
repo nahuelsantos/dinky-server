@@ -2,43 +2,48 @@
 
 This directory contains API services that are **automatically discovered** and can be deployed by the Dinky Server deployment system.
 
-## 🚀 New Two-Script Architecture
+## 🚀 Unified Architecture
 
-Dinky Server now uses a **two-script system** for efficient deployment:
+Dinky Server uses a **single unified script** for all operations:
 
-1. **`setup.sh`** - System preparation (run once)
-2. **`deploy.sh`** - Service deployment and management
+**`dinky.sh`** - Complete system setup and service deployment
 
 ## How Auto-Discovery Works
 
-The `deploy.sh` script automatically scans this directory for:
+The `dinky.sh` script automatically scans this directory for:
 - Subdirectories containing `docker-compose.yml` or `docker-compose.yaml` files
 - Each discovered service can be deployed individually or as part of a full deployment
 
 ## 🎯 Deployment Options
 
-### **Full Deployment with Discovery**
+### **Full Setup (New Server)**
 ```bash
-sudo ./deploy.sh
-# Will discover and offer to deploy all APIs
+sudo ./dinky.sh
+# Choose option 1: Full Setup (System + Services)
+```
+
+### **Deploy Services Only**
+```bash
+sudo ./dinky.sh
+# Choose option 3: Deploy Services Only
 ```
 
 ### **Individual API Deployment**
 ```bash
-sudo ./deploy.sh --add-api my-api
-# Deploy specific API by name
+sudo ./dinky.sh
+# Choose option 4: Add Individual Service → API
 ```
 
-### **Discovery Only**
+### **Discover New Services**
 ```bash
-sudo ./deploy.sh --discover
-# Find and deploy only new/stopped APIs
+sudo ./dinky.sh
+# Choose option 6: Discover New Services
 ```
 
-### **List All APIs**
+### **List All Services**
 ```bash
-sudo ./deploy.sh --list
-# Show all APIs with running status
+sudo ./dinky.sh
+# Choose option 7: List All Services
 ```
 
 ## Example Structure
@@ -77,8 +82,6 @@ Each API service should:
 
 ### **Basic API Setup**
 ```yaml
-version: '3.8'
-
 services:
   my-api:
     image: my-api:latest
@@ -99,8 +102,6 @@ networks:
 
 ### **API with Traefik Integration**
 ```yaml
-version: '3.8'
-
 services:
   my-api:
     image: my-api:latest
@@ -125,8 +126,6 @@ networks:
 
 ### **API with Database**
 ```yaml
-version: '3.8'
-
 services:
   my-api:
     image: my-api:latest
@@ -203,7 +202,6 @@ cd apis/my-new-api
 
 2. **Create docker-compose.yml**:
 ```yaml
-version: '3.8'
 services:
   my-new-api:
     image: node:18-alpine
@@ -224,17 +222,20 @@ networks:
 
 3. **Deploy the API**:
 ```bash
-sudo ./deploy.sh --add-api my-new-api
+sudo ./dinky.sh
+# Choose option 4: Add Individual Service → API
 ```
 
 ### **Managing Existing APIs**
 
 ```bash
 # List all APIs with status
-sudo ./deploy.sh --list
+sudo ./dinky.sh
+# Choose option 7: List All Services
 
 # Deploy only new APIs
-sudo ./deploy.sh --discover
+sudo ./dinky.sh
+# Choose option 6: Discover New Services
 
 # Check API logs
 docker compose logs -f my-api
@@ -245,6 +246,33 @@ docker compose restart my-api
 
 ## 🔍 Port Management
 
+### **Current Port Allocations**
+
+**Core Infrastructure:**
+- `80` - Traefik HTTP (internal)
+- `443` - Traefik HTTPS (internal) 
+- `53` - Pi-hole DNS (TCP/UDP)
+- `25, 587` - Mail SMTP
+- `8080` - Traefik Dashboard
+- `8081` - Pi-hole Admin
+- `9000` - Portainer
+
+**LGTM Monitoring Stack:**
+- `3000` - Grafana
+- `3100` - Loki
+- `3200` - Tempo
+- `4040` - Pyroscope
+- `4317` - OTEL Collector (OTLP gRPC)
+- `4318` - OTEL Collector (OTLP HTTP)
+- `8082` - cAdvisor
+- `8888` - OTEL Collector metrics
+- `9090` - Prometheus
+- `9100` - Node Exporter
+
+**Example Services:**
+- `3001` - Example API
+- `3002` - Example Site
+
 ### **Recommended Port Ranges**
 - **3001-3099**: Custom APIs
 - **3100+**: Reserved for monitoring services
@@ -253,7 +281,8 @@ docker compose restart my-api
 If you get port conflicts:
 1. Check existing services: `docker compose ps`
 2. Update your API's port mapping
-3. Redeploy: `sudo ./deploy.sh --add-api your-api`
+3. Redeploy: `sudo ./dinky.sh
+# Choose option 4: Add Individual Service → API`
 
 ## 🚨 Troubleshooting
 
@@ -269,7 +298,7 @@ cd apis/my-api && docker compose config
 ### **Deployment Fails**
 ```bash
 # Check deployment logs
-tail -f /var/log/dinky-deployment.log
+tail -f /var/log/dinky.log
 
 # Check API-specific logs
 cd apis/my-api && docker compose logs

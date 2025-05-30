@@ -1,44 +1,49 @@
 # Sites Directory
 
-This directory contains website and web application services that are **automatically discovered** and can be deployed by the Dinky Server deployment system.
+This directory contains website services that are **automatically discovered** and can be deployed by the Dinky Server deployment system.
 
-## 🚀 New Two-Script Architecture
+## 🚀 Unified Architecture
 
-Dinky Server now uses a **two-script system** for efficient deployment:
+Dinky Server uses a **single unified script** for all operations:
 
-1. **`setup.sh`** - System preparation (run once)
-2. **`deploy.sh`** - Service deployment and management
+**`dinky.sh`** - Complete system setup and service deployment
 
 ## How Auto-Discovery Works
 
-The `deploy.sh` script automatically scans this directory for:
+The `dinky.sh` script automatically scans this directory for:
 - Subdirectories containing `docker-compose.yml` or `docker-compose.yaml` files
-- Each discovered site can be deployed individually or as part of a full deployment
+- Each discovered service can be deployed individually or as part of a full deployment
 
 ## 🎯 Deployment Options
 
-### **Full Deployment with Discovery**
+### **Full Setup (New Server)**
 ```bash
-sudo ./deploy.sh
-# Will discover and offer to deploy all sites
+sudo ./dinky.sh
+# Choose option 1: Full Setup (System + Services)
+```
+
+### **Deploy Services Only**
+```bash
+sudo ./dinky.sh
+# Choose option 3: Deploy Services Only
 ```
 
 ### **Individual Site Deployment**
 ```bash
-sudo ./deploy.sh --add-site my-blog
-# Deploy specific site by name
+sudo ./dinky.sh
+# Choose option 4: Add Individual Service → Site
 ```
 
-### **Discovery Only**
+### **Discover New Services**
 ```bash
-sudo ./deploy.sh --discover
-# Find and deploy only new/stopped sites
+sudo ./dinky.sh
+# Choose option 6: Discover New Services
 ```
 
-### **List All Sites**
+### **List All Services**
 ```bash
-sudo ./deploy.sh --list
-# Show all sites with running status
+sudo ./dinky.sh
+# Choose option 7: List All Services
 ```
 
 ## Example Structure
@@ -80,8 +85,6 @@ Each site service should:
 
 ### **Static Site (Basic)**
 ```yaml
-version: '3.8'
-
 services:
   my-website:
     image: nginx:alpine
@@ -101,8 +104,6 @@ networks:
 
 ### **Static Site with Traefik Integration**
 ```yaml
-version: '3.8'
-
 services:
   my-website:
     image: nginx:alpine
@@ -128,8 +129,6 @@ networks:
 
 ### **Node.js Application**
 ```yaml
-version: '3.8'
-
 services:
   node-app:
     image: node:18-alpine
@@ -159,8 +158,6 @@ networks:
 
 ### **WordPress Site**
 ```yaml
-version: '3.8'
-
 services:
   wordpress:
     image: wordpress:latest
@@ -212,8 +209,6 @@ networks:
 
 ### **Hugo/Jekyll Static Site Generator**
 ```yaml
-version: '3.8'
-
 services:
   hugo-site:
     image: nginx:alpine
@@ -281,7 +276,6 @@ echo "<h1>Welcome to My Blog</h1>" > public/index.html
 
 3. **Create docker-compose.yml**:
 ```yaml
-version: '3.8'
 services:
   my-blog:
     image: nginx:alpine
@@ -300,17 +294,20 @@ networks:
 
 4. **Deploy the site**:
 ```bash
-sudo ./deploy.sh --add-site my-new-blog
+sudo ./dinky.sh
+# Choose option 4: Add Individual Service → Site
 ```
 
 ### **Managing Existing Sites**
 
 ```bash
 # List all sites with status
-sudo ./deploy.sh --list
+sudo ./dinky.sh
+# Choose option 7: List All Services
 
 # Deploy only new sites
-sudo ./deploy.sh --discover
+sudo ./dinky.sh
+# Choose option 6: Discover New Services
 
 # Check site logs
 docker compose logs -f my-site
@@ -321,6 +318,33 @@ docker compose restart my-site
 
 ## 🔍 Port Management
 
+### **Current Port Allocations**
+
+**Core Infrastructure:**
+- `80` - Traefik HTTP (internal)
+- `443` - Traefik HTTPS (internal)
+- `53` - Pi-hole DNS (TCP/UDP)
+- `25, 587` - Mail SMTP
+- `8080` - Traefik Dashboard
+- `8081` - Pi-hole Admin
+- `9000` - Portainer
+
+**LGTM Monitoring Stack:**
+- `3000` - Grafana
+- `3100` - Loki
+- `3200` - Tempo
+- `4040` - Pyroscope
+- `4317` - OTEL Collector (OTLP gRPC)
+- `4318` - OTEL Collector (OTLP HTTP)
+- `8082` - cAdvisor
+- `8888` - OTEL Collector metrics
+- `9090` - Prometheus
+- `9100` - Node Exporter
+
+**Example Services:**
+- `3001` - Example API
+- `3002` - Example Site
+
 ### **Recommended Port Ranges**
 - **8000-8099**: Static sites and web applications
 - **8100-8199**: CMS and dynamic sites
@@ -330,7 +354,7 @@ docker compose restart my-site
 If you get port conflicts:
 1. Check existing services: `docker compose ps`
 2. Update your site's port mapping
-3. Redeploy: `sudo ./deploy.sh --add-site your-site`
+3. Redeploy: `sudo ./dinky.sh`
 
 ## 🌐 Domain Configuration
 
@@ -402,7 +426,7 @@ cd sites/my-site && docker compose config
 ### **Deployment Fails**
 ```bash
 # Check deployment logs
-tail -f /var/log/dinky-deployment.log
+tail -f /var/log/dinky.log
 
 # Check site-specific logs
 cd sites/my-site && docker compose logs

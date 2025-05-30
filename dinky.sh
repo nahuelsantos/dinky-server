@@ -429,8 +429,6 @@ source_deploy_functions() {
             echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
         fi
         
-        $INSTALL_MAIL && echo -e "  ${CYAN}Mail API:${NC} http://$server_ip:3005"
-        
         echo -e "\n${WHITE}Next Steps:${NC}"
         $INSTALL_CLOUDFLARED && echo -e "  ${YELLOW}1.${NC} Update TUNNEL_ID in .env"
         $INSTALL_MAIL && echo -e "  ${YELLOW}2.${NC} Configure SMTP relay settings in .env"
@@ -1034,6 +1032,12 @@ handle_help() {
     echo -e "  ${CYAN}View Logs:${NC} docker compose logs -f"
     echo -e "  ${CYAN}Restart Service:${NC} docker compose restart <service>"
     echo -e "  ${CYAN}Stop All:${NC} docker compose down"
+    
+    echo -e "\n${WHITE}Port Reference:${NC}"
+    echo -e "  ${CYAN}Web UIs:${NC} 8080 (Traefik), 8081 (Pi-hole), 9000 (Portainer)"
+    echo -e "  ${CYAN}Monitoring:${NC} 3000 (Grafana), 9090 (Prometheus), 4040 (Pyroscope)"
+    echo -e "  ${CYAN}Examples:${NC} 3001 (API), 3002 (Site)"
+    echo -e "  ${CYAN}Available:${NC} 3003-3099 (APIs), 8003-8099 (Sites)"
     
     echo
     read -p "Press Enter to return to main menu..."

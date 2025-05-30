@@ -6,13 +6,13 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 
 ### **🚀 Getting Started**
 - **[Main README](../README.md)** - Complete setup guide and overview
-- **[Quick Start](../README.md#getting-started)** - Fast deployment instructions
-- **[Configuration Guide](../config/README.md)** - Environment and service configuration
+- **[Quick Start](../README.md#-quick-start)** - Fast deployment instructions
 
 ### **🔧 Development Guides**
 - **[APIs Guide](apis-guide.md)** - Building and deploying API services
 - **[Sites Guide](sites-guide.md)** - Creating and managing websites
-- **[Local Development](../README.md#local-development)** - Testing with Makefile commands
+- **[Example API](apis-guide.md#-example-api-reference)** - Hands-on learning
+- **[Local Development](../README.md#-local-development)** - Testing with Makefile commands
 
 ### **🛠️ Advanced Topics**
 - **[Infrastructure Components](../infrastructure/)** - Network and security setup
@@ -24,7 +24,6 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 ### **For New Users**
 1. Start with the **[Main README](../README.md)**
 2. Run `sudo ./dinky.sh` for interactive setup
-3. Follow the **[Configuration Guide](../config/README.md)** for customization
 
 ### **For Developers**
 1. Read the **[APIs Guide](apis-guide.md)** for API development
@@ -41,10 +40,9 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 
 ### **Common Tasks**
 - **Deploy new service** → [APIs Guide](apis-guide.md) or [Sites Guide](sites-guide.md)
-- **Configure environment** → [Configuration Guide](../config/README.md)
-- **Security setup** → [Main README - Security](../README.md#security-levels)
-- **Troubleshooting** → [Main README - Troubleshooting](../README.md#troubleshooting)
-- **Local development** → [Main README - Development](../README.md#local-development)
+- **Security setup** → [Main README - Security Features](../README.md#-what-you-get)
+- **Troubleshooting** → [Main README - Troubleshooting](../README.md#-troubleshooting)
+- **Local development** → [Main README - Development](../README.md#-local-development)
 
 ### **Service-Specific Documentation**
 - **Traefik** → `infrastructure/traefik/`
