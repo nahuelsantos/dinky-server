@@ -85,7 +85,7 @@ ssh_key_prompt() {
     
     local attempts=0
     while [ $attempts -lt 3 ]; do
-        read -p "${WHITE}Have you verified SSH key authentication is working? (yes/no): ${NC}" -r ssh_response
+        read -p "${WHITE}Have you verified SSH key authentication is working? (yes/no): ${NC}" -n 1 -r ssh_response
         case $ssh_response in
             yes|YES|y|Y)
                 success "Proceeding with SSH hardening..."
@@ -134,7 +134,7 @@ EOF
     echo -e "  ${GREEN}7.${NC} 📋 List All Services"
     echo -e "  ${GREEN}8.${NC} 🛠️  System Status & Health"
     echo -e "  ${GREEN}9.${NC} ❓ Help & Documentation"
-    echo -e "  ${GREEN}10.${NC} 🚪 Exit"
+    echo -e "  ${GREEN}0.${NC} 🚪 Exit"
     echo
     echo -e "${YELLOW}${RED}🔐${NC} ${YELLOW}= Requires sudo privileges${NC}"
     echo
@@ -1087,7 +1087,7 @@ main() {
     # Interactive menu mode
     while true; do
         show_menu
-        read -p "Select an option (1-10): " -r REPLY
+        read -p "Select an option (0-9): " -n 1 -r REPLY
         echo
         
         case $REPLY in
@@ -1100,12 +1100,12 @@ main() {
             7) handle_list_services ;;
             8) handle_system_status ;;
             9) handle_help ;;
-            10) 
+            0) 
                 echo -e "${GREEN}Thank you for using Dinky Server!${NC}"
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid option. Please select 1-10.${NC}"
+                echo -e "${RED}Invalid option. Please select 0-9.${NC}"
                 sleep 2
                 ;;
         esac
