@@ -128,6 +128,10 @@ dev-status: dev-setup check-docker-compose ## Show status of all services
 dev-clean: dev-setup dev-down ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
+	@echo "$(YELLOW)Removing any orphaned dinky-dev containers...$(NC)"
+	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop 2>/dev/null || true
+	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm 2>/dev/null || true
+	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
 
