@@ -129,7 +129,7 @@ EOF
     echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only ${RED}🔐${NC}"
     echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only ${RED}🔐${NC}"
     echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service ${RED}🔐${NC}"
-    echo -e "  ${GREEN}5.${NC} 🎯 Deploy Example Site & API ${RED}🔐${NC}"
+    echo -e "  ${GREEN}5.${NC} 🎯 Deploy All Services (Dinky + Examples) ${RED}🔐${NC}"
     echo -e "  ${GREEN}6.${NC} 🔍 Discover New Services"
     echo -e "  ${GREEN}7.${NC} 📋 List All Services"
     echo -e "  ${GREEN}8.${NC} 🛠️  System Status & Health"
@@ -639,12 +639,14 @@ add_individual_service() {
 }
 
 handle_deploy_examples() {
-    header "DEPLOY EXAMPLE SITE & API"
+    header "DEPLOY ALL DINKY & EXAMPLE SERVICES"
     
-    echo -e "${WHITE}This will deploy both the example site and example API together.${NC}"
+    echo -e "${WHITE}This will deploy both the advanced Dinky services and simple examples.${NC}"
     echo -e "${CYAN}Services to deploy:${NC}"
-    echo -e "  ${GREEN}•${NC} Example API (Go-based REST API with sample endpoints)"
-    echo -e "  ${GREEN}•${NC} Example Site (Static HTML site demonstrating the setup)"
+    echo -e "  ${GREEN}•${NC} Dinky Monitor (Advanced monitoring API with system insights)"
+    echo -e "  ${GREEN}•${NC} Dinky Dashboard (Advanced observability control center)"
+    echo -e "  ${GREEN}•${NC} Example API (Simple Go REST API with basic endpoints)"
+    echo -e "  ${GREEN}•${NC} Example Site (Simple static HTML site for learning)"
     echo
     
     read -p "Continue with deployment? (Y/n): " -n 1 -r
@@ -668,8 +670,71 @@ handle_deploy_examples() {
     
     local deployment_success=true
     
-    # Deploy Example API
-    step_banner "DEPLOYING EXAMPLE API"
+    # Deploy Dinky Monitor (Advanced Monitoring API)
+    step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
+    if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
+        cd "$SCRIPT_DIR/apis/dinky-monitor"
+        
+        # Copy .env if needed
+        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+            info "Copying environment file for Dinky Monitor"
+            cp "$SCRIPT_DIR/.env" ".env"
+        fi
+        
+        if $DOCKER_COMPOSE up -d; then
+            success "Dinky Monitor deployed successfully!"
+            
+            # Get API port
+            local api_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
+            if [ -n "$api_port" ]; then
+                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
+                echo -e "  ${CYAN}Monitor URL:${NC} http://$server_ip:$api_port"
+                echo -e "  ${CYAN}System Metrics:${NC} http://$server_ip:$api_port/system"
+                echo -e "  ${CYAN}Docker Stats:${NC} http://$server_ip:$api_port/docker"
+            fi
+        else
+            error "Failed to deploy Dinky Monitor"
+            deployment_success=false
+        fi
+        
+        cd "$SCRIPT_DIR"
+    else
+        warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
+    fi
+
+    # Deploy Dinky Dashboard (Advanced Observability Dashboard)
+    step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
+    if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
+        cd "$SCRIPT_DIR/sites/dinky-dashboard"
+        
+        # Copy .env if needed
+        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+            info "Copying environment file for Dinky Dashboard"
+            cp "$SCRIPT_DIR/.env" ".env"
+        fi
+        
+        if $DOCKER_COMPOSE up -d; then
+            success "Dinky Dashboard deployed successfully!"
+            
+            # Get site port
+            local site_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
+            if [ -n "$site_port" ]; then
+                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
+                echo -e "  ${CYAN}Dashboard URL:${NC} http://$server_ip:$site_port"
+                echo -e "  ${CYAN}Real-time Monitoring:${NC} System metrics & container stats"
+            fi
+        else
+            error "Failed to deploy Dinky Dashboard"
+            deployment_success=false
+        fi
+        
+        cd "$SCRIPT_DIR"
+    else
+        warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
+    fi
+
+    # Deploy Example API (Simple)
+    step_banner "DEPLOYING EXAMPLE API (Simple REST API)"
     if [ -d "$SCRIPT_DIR/apis/example-api" ]; then
         cd "$SCRIPT_DIR/apis/example-api"
         
@@ -687,8 +752,8 @@ handle_deploy_examples() {
             if [ -n "$api_port" ]; then
                 local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
                 echo -e "  ${CYAN}API URL:${NC} http://$server_ip:$api_port"
-                echo -e "  ${CYAN}API Docs:${NC} http://$server_ip:$api_port/docs"
-                echo -e "  ${CYAN}API UI:${NC} http://$server_ip:$api_port/ui"
+                echo -e "  ${CYAN}Health Check:${NC} http://$server_ip:$api_port/health"
+                echo -e "  ${CYAN}Hello Endpoint:${NC} http://$server_ip:$api_port/hello"
             fi
         else
             error "Failed to deploy example API"
@@ -697,12 +762,11 @@ handle_deploy_examples() {
         
         cd "$SCRIPT_DIR"
     else
-        error "Example API directory not found: $SCRIPT_DIR/apis/example-api"
-        deployment_success=false
+        warning "Example API directory not found: $SCRIPT_DIR/apis/example-api"
     fi
-    
-    # Deploy Example Site
-    step_banner "DEPLOYING EXAMPLE SITE"
+
+    # Deploy Example Site (Simple)
+    step_banner "DEPLOYING EXAMPLE SITE (Simple Static Site)"
     if [ -d "$SCRIPT_DIR/sites/example-site" ]; then
         cd "$SCRIPT_DIR/sites/example-site"
         
@@ -728,18 +792,20 @@ handle_deploy_examples() {
         
         cd "$SCRIPT_DIR"
     else
-        error "Example Site directory not found: $SCRIPT_DIR/sites/example-site"
-        deployment_success=false
+        warning "Example Site directory not found: $SCRIPT_DIR/sites/example-site"
     fi
     
     # Summary
     echo -e "\n${WHITE}Deployment Summary:${NC}"
     if [ "$deployment_success" = true ]; then
-        success "Both example services deployed successfully!"
+        success "All services deployed successfully!"
+        echo -e "\n${WHITE}What you have now:${NC}"
+        echo -e "  ${CYAN}🔥 Advanced:${NC} Dinky Monitor & Dashboard for comprehensive monitoring"
+        echo -e "  ${CYAN}📚 Learning:${NC} Example API & Site for understanding the setup"
         echo -e "\n${WHITE}Quick Start:${NC}"
-        echo -e "  ${CYAN}1.${NC} Visit the example site to see the demo interface"
-        echo -e "  ${CYAN}2.${NC} Check the API documentation for available endpoints"
-        echo -e "  ${CYAN}3.${NC} Use these as templates for your own services"
+        echo -e "  ${CYAN}1.${NC} Visit Dinky Dashboard for real-time system monitoring"
+        echo -e "  ${CYAN}2.${NC} Check Dinky Monitor API for system metrics & Docker stats"
+        echo -e "  ${CYAN}3.${NC} Try all services: Use ${GREEN}Deploy All Services${NC} (option 5)"
     else
         warning "Some deployments failed. Check the logs above for details."
         echo -e "\n${WHITE}Troubleshooting:${NC}"
@@ -1003,7 +1069,7 @@ handle_help() {
     echo -e "\n${WHITE}Quick Start Guide:${NC}"
     echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
     echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3)"
-    echo -e "  ${CYAN}3.${NC} Try examples: Use ${GREEN}Deploy Example Site & API${NC} (option 5)"
+    echo -e "  ${CYAN}3.${NC} Try all services: Use ${GREEN}Deploy All Services${NC} (option 5)"
     echo -e "  ${CYAN}4.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
     
     echo -e "\n${WHITE}Security Levels:${NC}"
@@ -1018,8 +1084,10 @@ handle_help() {
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
     echo -e "  ${CYAN}Cloudflared:${NC} Secure tunnel for external access"
     echo -e "  ${CYAN}Mail Server:${NC} SMTP relay with REST API"
-    echo -e "  ${CYAN}Example API:${NC} Go-based REST API with sample endpoints"
-    echo -e "  ${CYAN}Example Site:${NC} Static HTML site demonstrating the setup"
+    echo -e "  ${CYAN}Dinky Monitor:${NC} Advanced monitoring API with system insights"
+    echo -e "  ${CYAN}Dinky Dashboard:${NC} Advanced observability control center"
+    echo -e "  ${CYAN}Example API:${NC} Simple Go REST API for learning"
+    echo -e "  ${CYAN}Example Site:${NC} Simple static HTML site for learning"
     
     echo -e "\n${WHITE}Documentation:${NC}"
     echo -e "  ${CYAN}Main README:${NC} ./README.md"
@@ -1036,7 +1104,8 @@ handle_help() {
     echo -e "\n${WHITE}Port Reference:${NC}"
     echo -e "  ${CYAN}Web UIs:${NC} 8080 (Traefik), 8081 (Pi-hole), 9000 (Portainer)"
     echo -e "  ${CYAN}Monitoring:${NC} 3000 (Grafana), 9090 (Prometheus), 4040 (Pyroscope)"
-    echo -e "  ${CYAN}Examples:${NC} 3001 (API), 3002 (Site)"
+    echo -e "  ${CYAN}Dinky Services:${NC} 3001 (Monitor), 3002 (Dashboard)"
+    echo -e "  ${CYAN}Examples:${NC} 8080 (API), 8081 (Site) in production"
     echo -e "  ${CYAN}Available:${NC} 3003-3099 (APIs), 8003-8099 (Sites)"
     
     echo

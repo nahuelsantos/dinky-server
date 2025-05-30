@@ -56,8 +56,10 @@ help: ## Show this help message
 	@echo "  Loki:             http://localhost:3100"
 	@echo "  Tempo:            http://localhost:3200"
 	@echo "  Pyroscope:        http://localhost:4040"
-	@echo "  Example API:      http://localhost:3001"
-	@echo "  Example Site:     http://localhost:3002"
+	@echo "  Dinky Monitor:    http://localhost:3001"
+	@echo "  Dinky Dashboard:  http://localhost:3002"
+	@echo "  Example API:      http://localhost:3003"
+	@echo "  Example Site:     http://localhost:3004"
 	@echo ""
 	@echo "$(YELLOW)Tip: Use 'make dev-up' to start everything, 'make dev-status' to check health$(NC)"
 	@echo "$(GREEN)Note: All files auto-created on first run - perfect for new developers!$(NC)"
@@ -118,8 +120,10 @@ dev-status: dev-setup check-docker-compose ## Show status of all services
 	@echo -n "Tempo:      "; curl -s http://localhost:3200/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Pyroscope:  "; curl -s http://localhost:4040 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "OTEL Collector: "; docker ps | grep -q dinky-dev-otel-collector && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not running$(NC)"
-	@echo -n "Example API:"; curl -s http://localhost:3001 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
-	@echo -n "Example Site:"; curl -s http://localhost:3002 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Dinky Monitor:"; curl -s http://localhost:3001 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Dinky Dashboard:"; curl -s http://localhost:3002 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Example API:"; curl -s http://localhost:3003 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Example Site:"; curl -s http://localhost:3004 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 
 dev-clean: dev-setup dev-down ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
@@ -144,12 +148,12 @@ dev-monitoring: dev-setup check-docker-compose ## Start only monitoring services
 
 dev-apis: dev-setup check-docker-compose ## Start only API services
 	@echo "$(CYAN)Starting API services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d example-api
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d dinky-monitor example-api
 	@echo "$(GREEN)✓ API services started!$(NC)"
 
 dev-sites: dev-setup check-docker-compose ## Start only site services
 	@echo "$(CYAN)Starting site services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d example-site
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d dinky-dashboard example-site
 	@echo "$(GREEN)✓ Site services started!$(NC)"
 
 # Internal target to create development compose file
@@ -281,13 +285,38 @@ _create-dev-compose:
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)
+	@echo "  # Dinky Services" >> $(COMPOSE_FILE)
+	@echo "  dinky-monitor:" >> $(COMPOSE_FILE)
+	@echo "    build:" >> $(COMPOSE_FILE)
+	@echo "      context: ./apis/dinky-monitor" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-dinky-monitor" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3001:8080\"" >> $(COMPOSE_FILE)
+	@echo "    environment:" >> $(COMPOSE_FILE)
+	@echo "      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318" >> $(COMPOSE_FILE)
+	@echo "      - OTEL_SERVICE_NAME=dinky-monitor" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  dinky-dashboard:" >> $(COMPOSE_FILE)
+	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-dinky-dashboard" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"3002:80\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./sites/dinky-dashboard/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
 	@echo "  # Example Services" >> $(COMPOSE_FILE)
 	@echo "  example-api:" >> $(COMPOSE_FILE)
 	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
 	@echo "    container_name: dinky-dev-example-api" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3001:80\"" >> $(COMPOSE_FILE)
+	@echo "      - \"3003:80\"" >> $(COMPOSE_FILE)
 	@echo "    volumes:" >> $(COMPOSE_FILE)
 	@echo "      - ./apis/example-api/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
 	@echo "    networks:" >> $(COMPOSE_FILE)
@@ -298,7 +327,7 @@ _create-dev-compose:
 	@echo "    container_name: dinky-dev-example-site" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3002:80\"" >> $(COMPOSE_FILE)
+	@echo "      - \"3004:80\"" >> $(COMPOSE_FILE)
 	@echo "    volumes:" >> $(COMPOSE_FILE)
 	@echo "      - ./sites/example-site/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
 	@echo "    networks:" >> $(COMPOSE_FILE)

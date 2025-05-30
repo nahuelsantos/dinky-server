@@ -1,0 +1,23 @@
+services:
+  dinky-dashboard:
+    image: nginx:alpine
+    container_name: dinky-dashboard
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    networks:
+      - traefik_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dinky-dashboard.rule=Host(`dashboard.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.dinky-dashboard.service=dinky-dashboard"
+      - "traefik.http.services.dinky-dashboard.loadbalancer.server.port=80"
+    environment:
+      - SITE_NAME=Dinky Dashboard
+      - VERSION=1.0.0
+
+networks:
+  traefik_network:
+    external: true 
