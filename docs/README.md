@@ -29,7 +29,8 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 ### **For Developers**
 1. Read the **[APIs Guide](apis-guide.md)** for API development
 2. Check the **[Sites Guide](sites-guide.md)** for website hosting
-3. Use `make dev-up` for local testing
+3. Try the **[Example API](apis-guide.md#-example-api-reference)** for hands-on learning
+4. Use `make dev-up` for local testing
 
 ### **For System Administrators**
 1. Review **[Infrastructure Documentation](../infrastructure/)**

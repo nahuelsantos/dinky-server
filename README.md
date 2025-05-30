@@ -92,6 +92,25 @@ After deployment, visit:
 
 *(SERVER_IP is auto-detected and shown in the script)*
 
+## 📡 Example API Endpoints
+
+The included Example API (port 3001) provides comprehensive testing endpoints:
+
+- **📖 API Documentation**: http://[SERVER_IP]:3001/docs
+- **🎮 Web UI**: http://[SERVER_IP]:3001/ui  
+- **💓 Health Check**: http://[SERVER_IP]:3001/health
+- **📊 Metrics**: http://[SERVER_IP]:3001/metrics
+
+**Testing Endpoints** (POST requests):
+- `/test/metrics` - Generate custom metrics
+- `/test/logs` - Generate log entries  
+- `/test/error` - Create intentional errors
+- `/test/cpu` - CPU load testing
+- `/test/memory` - Memory allocation testing
+- `/test/trace` - Distributed tracing simulation
+
+Perfect for testing your monitoring stack and learning the system!
+
 ## 🛠️ Basic Commands
 
 ```bash

@@ -339,6 +339,64 @@ Check the `example-api/` directory for:
 - Proper Traefik configuration
 - Environment variable usage examples
 
+## 🎯 Example API Reference
+
+The included `example-api` provides a comprehensive demonstration of API capabilities and monitoring integration.
+
+### **📡 Available Endpoints**
+
+**Documentation & Health:**
+- `GET /docs` - Complete API documentation in JSON format
+- `GET /ui` - Interactive web interface for testing
+- `GET /health` - Service health check with uptime
+- `GET /metrics` - Prometheus metrics endpoint
+
+**Testing Endpoints (POST):**
+- `/test/metrics` - Generate custom business metrics
+- `/test/logs` - Generate log entries at different levels
+- `/test/error` - Create intentional errors (returns 500)
+- `/test/cpu?duration=5s` - CPU load testing
+- `/test/memory?size=100` - Memory allocation testing (MB)
+- `/test/trace` - Distributed tracing simulation
+
+### **🔧 Quick Usage Examples**
+
+```bash
+# Access from your server (port 3001)
+curl http://dinky:3001/docs | jq
+
+# Generate test data for monitoring
+curl -X POST http://dinky:3001/test/metrics
+curl -X POST http://dinky:3001/test/logs
+curl -X POST http://dinky:3001/test/error
+
+# Load testing
+curl -X POST "http://dinky:3001/test/cpu?duration=10s"
+curl -X POST "http://dinky:3001/test/memory?size=200"
+
+# Distributed tracing
+curl -X POST http://dinky:3001/test/trace
+```
+
+### **📊 Monitoring Features**
+
+The Example API demonstrates:
+- **OpenTelemetry Tracing** → Exported to Tempo
+- **Prometheus Metrics** → Custom + HTTP metrics  
+- **Structured Logging** → JSON logs to Loki
+- **CORS Support** → Cross-origin requests
+- **Health Checks** → Kubernetes-ready endpoints
+
+### **🎮 Interactive Testing**
+
+Visit the web UI at `http://dinky:3001/ui` to:
+- Test endpoints interactively
+- View real-time API responses
+- Generate monitoring data for your dashboards
+- Learn API capabilities hands-on
+
+Perfect for testing your LGTM monitoring stack!
+
 ## 🎯 Best Practices
 
 1. **Use semantic versioning** for your API images

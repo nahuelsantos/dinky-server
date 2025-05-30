@@ -465,6 +465,119 @@ func simulateServiceCall(ctx context.Context, serviceName string, duration time.
 
 var startTime = time.Now()
 
+func docsHandler(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "api_docs")
+	defer span.End()
+
+	logger.Info("API documentation requested",
+		zap.String("method", r.Method),
+		zap.String("path", r.URL.Path),
+	)
+
+	docs := map[string]interface{}{
+		"api_name":    "Example API",
+		"version":     "1.0.0",
+		"description": "A comprehensive example API for testing monitoring, logging, and tracing",
+		"base_url":    fmt.Sprintf("http://%s", r.Host),
+		"endpoints": map[string]interface{}{
+			"health": map[string]interface{}{
+				"path":        "/health",
+				"method":      "GET",
+				"description": "Health check endpoint",
+				"response":    "JSON with status and system info",
+			},
+			"root": map[string]interface{}{
+				"path":        "/",
+				"method":      "GET",
+				"description": "Root endpoint (same as health)",
+				"response":    "JSON with status and system info",
+			},
+			"docs": map[string]interface{}{
+				"path":        "/docs",
+				"method":      "GET",
+				"description": "API documentation (this endpoint)",
+				"response":    "JSON with API documentation",
+			},
+			"ui": map[string]interface{}{
+				"path":        "/ui",
+				"method":      "GET",
+				"description": "Web UI for testing the API",
+				"response":    "HTML interface",
+			},
+			"metrics": map[string]interface{}{
+				"path":        "/metrics",
+				"method":      "GET",
+				"description": "Prometheus metrics endpoint",
+				"response":    "Prometheus format metrics",
+			},
+			"test_metrics": map[string]interface{}{
+				"path":        "/test/metrics",
+				"method":      "POST",
+				"description": "Generate test metrics data",
+				"parameters":  "Optional: count, value, labels",
+				"response":    "JSON confirmation",
+			},
+			"test_logs": map[string]interface{}{
+				"path":        "/test/logs",
+				"method":      "POST",
+				"description": "Generate test log entries",
+				"parameters":  "Optional: level, count, message",
+				"response":    "JSON confirmation",
+			},
+			"test_error": map[string]interface{}{
+				"path":        "/test/error",
+				"method":      "POST",
+				"description": "Generate intentional errors for testing",
+				"parameters":  "Optional: error_type",
+				"response":    "500 error with details",
+			},
+			"test_cpu": map[string]interface{}{
+				"path":        "/test/cpu",
+				"method":      "POST",
+				"description": "CPU load test for performance monitoring",
+				"parameters":  "Optional: duration (e.g. 5s, 1m)",
+				"response":    "JSON with test results",
+			},
+			"test_memory": map[string]interface{}{
+				"path":        "/test/memory",
+				"method":      "POST",
+				"description": "Memory allocation test",
+				"parameters":  "Optional: size (MB)",
+				"response":    "JSON with allocation details",
+			},
+			"test_trace": map[string]interface{}{
+				"path":        "/test/trace",
+				"method":      "POST",
+				"description": "Distributed tracing simulation",
+				"parameters":  "None",
+				"response":    "JSON with trace details",
+			},
+		},
+		"features": []string{
+			"OpenTelemetry tracing",
+			"Prometheus metrics",
+			"Structured logging with Zap",
+			"CORS support",
+			"Health checks",
+			"Performance testing endpoints",
+		},
+		"monitoring": map[string]string{
+			"traces":  "Exported to OpenTelemetry Collector",
+			"metrics": "Available at /metrics for Prometheus",
+			"logs":    "Structured JSON logs to stdout",
+		},
+	}
+
+	span.SetAttributes(
+		attribute.String("http.method", r.Method),
+		attribute.String("http.path", r.URL.Path),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(docs)
+}
+
 func main() {
 	initLogger()
 	defer logger.Sync()
@@ -503,6 +616,9 @@ func main() {
 	r.HandleFunc("/ui", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./static/index.html")
 	})
+
+	// Add docs handler
+	r.HandleFunc("/docs", docsHandler).Methods("GET")
 
 	logger.Info("Server starting on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

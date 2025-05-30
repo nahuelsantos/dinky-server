@@ -690,6 +690,7 @@ handle_deploy_examples() {
                 local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
                 echo -e "  ${CYAN}API URL:${NC} http://$server_ip:$api_port"
                 echo -e "  ${CYAN}API Docs:${NC} http://$server_ip:$api_port/docs"
+                echo -e "  ${CYAN}API UI:${NC} http://$server_ip:$api_port/ui"
             fi
         else
             error "Failed to deploy example API"
