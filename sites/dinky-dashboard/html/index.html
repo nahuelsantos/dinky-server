@@ -3,36 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Dinky Dashboard - Phase 2: Structured Logging & Log Aggregation</title>
+    <title>Dinky Monitor - Phase 3 APM Dashboard</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0f0f23;
-            --bg-secondary: #151537;
-            --bg-tertiary: #1e1e3f;
-            --text-primary: #cccccc;
-            --text-secondary: #888888;
-            --accent-green: #00ff9f;
-            --accent-blue: #00d4ff;
-            --accent-purple: #9966ff;
-            --accent-yellow: #ffff00;
-            --accent-red: #ff4444;
-            --accent-orange: #ff9900;
-            --border-color: #333366;
-            --shadow: 0 4px 20px rgba(0, 255, 159, 0.1);
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-            color: var(--text-primary);
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            line-height: 1.6;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff9f;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -46,637 +25,471 @@
         .header {
             text-align: center;
             margin-bottom: 40px;
-            padding: 30px;
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
             position: relative;
-            overflow: hidden;
         }
 
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(0, 255, 159, 0.05), transparent);
-            animation: rotate 20s linear infinite;
-        }
-
-        .logo {
-            font-size: 2.5rem;
+        .title {
+            font-size: 3rem;
             font-weight: bold;
-            background: linear-gradient(45deg, var(--accent-green), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            background: linear-gradient(45deg, #00ff9f, #00d4ff, #9966ff);
             background-clip: text;
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(0, 255, 159, 0.5);
+            animation: pulse 2s ease-in-out infinite alternate;
         }
 
         .subtitle {
+            color: #888;
+            margin-top: 10px;
             font-size: 1.2rem;
-            color: var(--text-secondary);
-            position: relative;
-            z-index: 1;
         }
 
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            position: relative;
-            z-index: 1;
+        .phase-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: linear-gradient(45deg, #9966ff, #00d4ff);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 10px 5px;
+            box-shadow: 0 4px 15px rgba(153, 102, 255, 0.3);
+            animation: float 3s ease-in-out infinite;
         }
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--accent-green);
-            animation: pulse 2s infinite;
-            box-shadow: 0 0 20px var(--accent-green);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-        }
-
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .monitoring-links {
-            margin-bottom: 40px;
-            padding: 25px;
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
-        }
-
-        .links-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .monitoring-link {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px 20px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            text-decoration: none;
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .monitoring-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 255, 159, 0.2);
-            border-color: var(--accent-green);
-        }
-
-        .monitoring-link::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(0, 255, 159, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .monitoring-link:hover::before {
-            left: 100%;
-        }
-
-        .link-icon {
-            font-size: 1.5rem;
-            filter: drop-shadow(0 0 10px currentColor);
-        }
-
-        .test-sections {
+        .monitoring-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 30px;
             margin-bottom: 40px;
         }
 
-        .test-card {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
+        .monitoring-card {
+            background: rgba(10, 10, 10, 0.8);
+            border: 2px solid #00ff9f;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 8px 32px rgba(0, 255, 159, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
-        }
-
-        .test-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 30px rgba(0, 255, 159, 0.15);
-        }
-
-        .card-header {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-header .emoji {
-            font-size: 1.5rem;
-            filter: drop-shadow(0 0 10px currentColor);
-        }
-
-        .phase-badge {
-            background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue));
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-left: auto;
-        }
-
-        .test-button {
-            background: linear-gradient(45deg, var(--accent-green), var(--accent-blue));
-            color: var(--bg-primary);
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 8px 8px 8px 0;
-            transition: all 0.3s ease;
-            font-family: inherit;
             position: relative;
             overflow: hidden;
         }
 
-        .test-button:hover {
+        .monitoring-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 15px 40px rgba(0, 255, 159, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            border-color: #00d4ff;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .test-section {
+            margin-bottom: 25px;
+        }
+
+        .test-title {
+            color: #00d4ff;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .test-btn {
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            border: 1px solid #00ff9f;
+            color: #00ff9f;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .test-btn:hover {
+            background: linear-gradient(45deg, #00ff9f, #00d4ff);
+            color: #000;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 255, 159, 0.4);
-        }
-
-        .test-button:active {
-            transform: translateY(0);
-        }
-
-        .test-button.loading {
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-
-        .test-button.loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            border: 2px solid transparent;
-            border-top: 2px solid var(--bg-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            transform: translate(-50%, -50%);
-        }
-
-        @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
+            box-shadow: 0 5px 15px rgba(0, 255, 159, 0.3);
         }
 
         .response-area {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: var(--shadow);
-        }
-
-        .response-content {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 15px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9rem;
-            max-height: 400px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .success { color: var(--accent-green); }
-        .error { color: var(--accent-red); }
-        .warning { color: var(--accent-orange); }
-        .info { color: var(--accent-blue); }
-
-        .htmx-request {
-            opacity: 0.8;
-        }
-
-        .htmx-request .test-button {
-            pointer-events: none;
-        }
-
-        .log-analysis {
-            background: var(--bg-secondary);
-            border: 1px solid var(--accent-purple);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .log-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .metric-item {
-            background: var(--bg-tertiary);
-            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
             border-radius: 8px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .metric-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent-green);
-        }
-
-        .metric-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 5px;
-        }
-
-        .correlation-info {
-            background: var(--bg-primary);
-            border-left: 4px solid var(--accent-blue);
             padding: 15px;
-            margin: 15px 0;
-            border-radius: 0 8px 8px 0;
+            min-height: 80px;
+            color: #ccc;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 200px;
         }
 
-        .scrollbar {
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-green) var(--bg-secondary);
+        .response-area.success {
+            border-color: #00ff9f;
+            color: #00ff9f;
         }
 
-        .scrollbar::-webkit-scrollbar {
-            width: 8px;
+        .response-area.error {
+            border-color: #ff4757;
+            color: #ff4757;
         }
 
-        .scrollbar::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 4px;
+        .loading {
+            color: #00d4ff;
+            animation: pulse 1s ease-in-out infinite alternate;
         }
 
-        .scrollbar::-webkit-scrollbar-thumb {
-            background: var(--accent-green);
-            border-radius: 4px;
+        .phase-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #9966ff, #00d4ff);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
         }
 
-        .scrollbar::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-blue);
+        .phase3-highlight {
+            border-color: #9966ff !important;
+        }
+
+        .phase3-highlight .card-title {
+            color: #9966ff;
+        }
+
+        .tools-section {
+            text-align: center;
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(10, 10, 10, 0.8);
+            border-radius: 15px;
+            border: 1px solid #333;
+        }
+
+        .tools-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .tool-link {
+            display: block;
+            padding: 15px;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            border: 1px solid #00ff9f;
+            border-radius: 10px;
+            color: #00ff9f;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .tool-link:hover {
+            background: linear-gradient(45deg, #00ff9f, #00d4ff);
+            color: #000;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 159, 0.3);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <div class="logo">🚀 Dinky Dashboard</div>
-            <div class="subtitle">Phase 2: Structured Logging & Log Aggregation</div>
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Enhanced Monitoring Stack Active</span>
+            <h1 class="title">DINKY MONITOR</h1>
+            <p class="subtitle">Advanced APM & Distributed Tracing Dashboard</p>
+            <div>
+                <span class="phase-badge">Phase 1: Metrics ✓</span>
+                <span class="phase-badge">Phase 2: Logging ✓</span>
+                <span class="phase-badge">Phase 3: APM & Tracing 🚀</span>
             </div>
         </div>
 
-        <!-- Quick Access Links -->
-        <div class="monitoring-links">
-            <h3 style="margin-bottom: 15px; color: var(--text-primary);">📊 Quick Access to LGTM Stack</h3>
-            <div class="links-grid">
-                <a href="http://localhost:3000" target="_blank" class="monitoring-link">
-                    <span class="link-icon">📊</span>
-                    <div>
-                        <div>Grafana Dashboard</div>
-                        <small style="color: var(--text-secondary);">Dashboards & Alerting</small>
-                    </div>
-                </a>
-                <a href="http://localhost:9090" target="_blank" class="monitoring-link">
-                    <span class="link-icon">📈</span>
-                    <div>
-                        <div>Prometheus Metrics</div>
-                        <small style="color: var(--text-secondary);">Metrics & Queries</small>
-                    </div>
-                </a>
-                <a href="http://localhost:3000/explore" target="_blank" class="monitoring-link">
-                    <span class="link-icon">📋</span>
-                    <div>
-                        <div>Loki Log Explorer</div>
-                        <small style="color: var(--text-secondary);">Log Aggregation & Search</small>
-                    </div>
-                </a>
-                <a href="http://localhost:3001/metrics" target="_blank" class="monitoring-link">
-                    <span class="link-icon">🔍</span>
-                    <div>
-                        <div>Dinky Monitor Metrics</div>
-                        <small style="color: var(--text-secondary);">Application Metrics</small>
-                    </div>
-                </a>
-                <a href="http://localhost:3000/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22%7D%5D,%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D" target="_blank" class="monitoring-link">
-                    <span class="link-icon">🔗</span>
-                    <div>
-                        <div>Tempo Tracing</div>
-                        <small style="color: var(--text-secondary);">Distributed Traces</small>
-                    </div>
-                </a>
-                <a href="http://localhost:4040" target="_blank" class="monitoring-link">
-                    <span class="link-icon">🔥</span>
-                    <div>
-                        <div>Pyroscope Profiling</div>
-                        <small style="color: var(--text-secondary);">Continuous Profiling</small>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <!-- Test Sections -->
-        <div class="test-sections">
-            <!-- Phase 1: Metrics Foundation -->
-            <div class="test-card">
+        <div class="monitoring-grid">
+            <!-- Phase 3: APM Tracing -->
+            <div class="monitoring-card phase3-highlight">
+                <div class="phase-indicator">Phase 3 🆕</div>
                 <div class="card-header">
-                    <span class="emoji">📊</span>
-                    Business Metrics
-                    <span class="phase-badge">Phase 1</span>
+                    <span class="card-icon">🔍</span>
+                    <h2 class="card-title">APM & Distributed Tracing</h2>
                 </div>
-                <p style="margin-bottom: 20px; color: var(--text-secondary);">Generate synthetic business metrics for testing LGTM stack</p>
-                <button hx-post="http://localhost:3001/test/business_metrics" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate Business Metrics
-                </button>
-                <button hx-post="http://localhost:3001/test/system_metrics" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate System Metrics
-                </button>
-                <button hx-post="http://localhost:3001/test/load_simulation" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Simulate Load
-                </button>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Advanced Performance Monitoring</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/apm_trace"
+                                hx-target="#apm-response"
+                                hx-indicator="#apm-loading">
+                            Generate APM Trace
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/service_dependency"
+                                hx-target="#apm-response"
+                                hx-indicator="#apm-loading">
+                            Service Dependencies
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/performance_analysis"
+                                hx-target="#apm-response"
+                                hx-indicator="#apm-loading">
+                            Performance Analysis
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/anomaly_detection"
+                                hx-target="#apm-response"
+                                hx-indicator="#apm-loading">
+                            Anomaly Detection
+                        </button>
+                    </div>
+                    <div id="apm-loading" class="loading htmx-indicator">
+                        Processing APM data...
+                    </div>
+                    <div id="apm-response" class="response-area">
+                        Click buttons to test APM and distributed tracing features
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: Service Map -->
+            <div class="monitoring-card phase3-highlight">
+                <div class="phase-indicator">Phase 3 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">🗺️</span>
+                    <h2 class="card-title">Service Map & Topology</h2>
+                </div>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Service Architecture Visualization</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/apm/service_map"
+                                hx-target="#map-response"
+                                hx-indicator="#map-loading">
+                            Generate Service Map
+                        </button>
+                    </div>
+                    <div id="map-loading" class="loading htmx-indicator">
+                        Building service map...
+                    </div>
+                    <div id="map-response" class="response-area">
+                        Click "Generate Service Map" to visualize service topology
+                    </div>
+                </div>
             </div>
 
             <!-- Phase 2: Structured Logging -->
-            <div class="test-card">
+            <div class="monitoring-card">
+                <div class="phase-indicator">Phase 2</div>
                 <div class="card-header">
-                    <span class="emoji">📋</span>
-                    Structured Logging
-                    <span class="phase-badge">Phase 2</span>
+                    <span class="card-icon">📝</span>
+                    <h2 class="card-title">Structured Logging</h2>
                 </div>
-                <p style="margin-bottom: 20px; color: var(--text-secondary);">Test enhanced structured logging with correlation and categorization</p>
-                <button hx-post="http://localhost:3001/test/structured_logs" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate Structured Logs
-                </button>
-                <button hx-post="http://localhost:3001/test/log_correlation" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Test Log Correlation
-                </button>
-                <button hx-post="http://localhost:3001/test/error_categorization" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Test Error Categorization
-                </button>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Log Correlation & Structure</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/structured_logs"
+                                hx-target="#logs-response"
+                                hx-indicator="#logs-loading">
+                            Generate Logs
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/log_correlation"
+                                hx-target="#logs-response"
+                                hx-indicator="#logs-loading">
+                            Test Correlation
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/error_categorization"
+                                hx-target="#logs-response"
+                                hx-indicator="#logs-loading">
+                            Error Categories
+                        </button>
+                    </div>
+                    <div id="logs-loading" class="loading htmx-indicator">
+                        Processing structured logs...
+                    </div>
+                    <div id="logs-response" class="response-area">
+                        Click buttons to test structured logging features
+                    </div>
+                </div>
             </div>
 
-            <!-- Performance Testing -->
-            <div class="test-card">
+            <!-- Phase 1: Business & System Metrics -->
+            <div class="monitoring-card">
+                <div class="phase-indicator">Phase 1</div>
                 <div class="card-header">
-                    <span class="emoji">⚡</span>
-                    Performance Testing
+                    <span class="card-icon">📊</span>
+                    <h2 class="card-title">Business & System Metrics</h2>
                 </div>
-                <p style="margin-bottom: 20px; color: var(--text-secondary);">Stress test system resources and observability</p>
-                <button hx-post="http://localhost:3001/test/cpu" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    CPU Load Test
-                </button>
-                <button hx-post="http://localhost:3001/test/memory" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Memory Load Test
-                </button>
-                <button hx-post="http://localhost:3001/test/trace" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Distributed Trace Test
-                </button>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Core Metrics Generation</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/business_metrics"
+                                hx-target="#metrics-response"
+                                hx-indicator="#metrics-loading">
+                            Business Metrics
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/system_metrics"
+                                hx-target="#metrics-response"
+                                hx-indicator="#metrics-loading">
+                            System Metrics
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test/load_simulation"
+                                hx-target="#metrics-response"
+                                hx-indicator="#metrics-loading">
+                            Load Simulation
+                        </button>
+                    </div>
+                    <div id="metrics-loading" class="loading htmx-indicator">
+                        Generating metrics...
+                    </div>
+                    <div id="metrics-response" class="response-area">
+                        Click buttons to generate business and system metrics
+                    </div>
+                </div>
             </div>
 
-            <!-- Error Generation -->
-            <div class="test-card">
+            <!-- System Health -->
+            <div class="monitoring-card">
+                <div class="phase-indicator">All Phases</div>
                 <div class="card-header">
-                    <span class="emoji">🚨</span>
-                    Error Simulation
+                    <span class="card-icon">💚</span>
+                    <h2 class="card-title">System Health</h2>
                 </div>
-                <p style="margin-bottom: 20px; color: var(--text-secondary);">Generate various error conditions for alert testing</p>
-                <button hx-post="http://localhost:3001/test/error" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate Errors
-                </button>
-                <button hx-post="http://localhost:3001/test/logs" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate Log Entries
-                </button>
-                <button hx-post="http://localhost:3001/test/metrics" 
-                        hx-target="#responses" 
-                        hx-swap="innerHTML"
-                        class="test-button">
-                    Generate Custom Metrics
-                </button>
-            </div>
-        </div>
-
-        <!-- Log Analysis Dashboard -->
-        <div class="log-analysis">
-            <h3 style="margin-bottom: 15px; color: var(--accent-purple);">📊 Phase 2: Log Analysis Dashboard</h3>
-            
-            <div class="correlation-info">
-                <h4 style="color: var(--accent-blue); margin-bottom: 10px;">🔗 Log Correlation Features</h4>
-                <ul style="margin-left: 20px; color: var(--text-secondary);">
-                    <li>Request ID correlation across all log entries</li>
-                    <li>Trace ID integration with OpenTelemetry</li>
-                    <li>User and session tracking</li>
-                    <li>Business event categorization</li>
-                    <li>Performance metrics correlation</li>
-                </ul>
-            </div>
-
-            <div class="log-metrics">
-                <div class="metric-item">
-                    <div class="metric-value" id="log-entries-count">-</div>
-                    <div class="metric-label">Log Entries</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="error-count">-</div>
-                    <div class="metric-label">Error Count</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="correlation-rate">-</div>
-                    <div class="metric-label">Correlation Rate</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="processing-time">-</div>
-                    <div class="metric-label">Avg Processing (ms)</div>
-                </div>
-            </div>
-
-            <div style="margin-top: 20px; padding: 15px; background: var(--bg-primary); border-radius: 8px;">
-                <h4 style="color: var(--accent-green); margin-bottom: 10px;">🎯 Phase 2 Key Features</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9rem;">
-                    <div>✅ Structured JSON logging</div>
-                    <div>✅ Request correlation</div>
-                    <div>✅ Error categorization</div>
-                    <div>✅ Performance tracking</div>
-                    <div>✅ Business event logging</div>
-                    <div>✅ Log-based metrics</div>
-                    <div>✅ Trace correlation</div>
-                    <div>✅ Multi-level logging</div>
+                
+                <div class="test-section">
+                    <h3 class="test-title">Health & Documentation</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/health"
+                                hx-target="#health-response"
+                                hx-indicator="#health-loading">
+                            Health Check
+                        </button>
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/docs"
+                                hx-target="#health-response"
+                                hx-indicator="#health-loading">
+                            API Documentation
+                        </button>
+                    </div>
+                    <div id="health-loading" class="loading htmx-indicator">
+                        Checking system health...
+                    </div>
+                    <div id="health-response" class="response-area">
+                        Click "Health Check" to verify system status
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Response Area -->
-        <div class="response-area">
-            <h3>📋 Test Results & Log Output</h3>
-            <div class="response-content scrollbar" id="responses">
-                <div class="info">
-🚀 Phase 2: Structured Logging & Log Aggregation Ready!
-
-📊 Enhanced Features:
-• Structured JSON logging with correlation IDs
-• Request/trace correlation across services  
-• Error categorization and metrics
-• Performance logging and analysis
-• Business event tracking
-• Log-based alerting capabilities
-
-🔍 Test the logging features above and watch the logs in:
-• Loki via Grafana Explore
-• Container logs via Docker
-• Structured output here
-
-💡 Tip: Check Grafana Explore to see correlated logs and traces!
-                </div>
+        <!-- LGTM Stack Tools -->
+        <div class="tools-section">
+            <h2 class="tools-title">🔧 LGTM Observability Stack</h2>
+            <div class="tools-grid">
+                <a href="http://localhost:3000" class="tool-link" target="_blank">
+                    📊 Grafana<br><small>Dashboards & Visualization</small>
+                </a>
+                <a href="http://localhost:9090" class="tool-link" target="_blank">
+                    📈 Prometheus<br><small>Metrics & Alerting</small>
+                </a>
+                <a href="http://localhost:3000/explore?orgId=1&left=%7B%22datasource%22:%22loki%22%7D" class="tool-link" target="_blank">
+                    📝 Loki Logs<br><small>Log Aggregation</small>
+                </a>
+                <a href="http://localhost:3000/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22%7D" class="tool-link" target="_blank">
+                    🔍 Tempo Tracing<br><small>Distributed Tracing</small>
+                </a>
+                <a href="http://localhost:4040" class="tool-link" target="_blank">
+                    🔥 Pyroscope<br><small>Continuous Profiling</small>
+                </a>
+                <a href="http://localhost:3001/metrics" class="tool-link" target="_blank">
+                    📊 Raw Metrics<br><small>Prometheus Endpoint</small>
+                </a>
             </div>
         </div>
     </div>
 
     <script>
-        // Add loading states and enhanced interactions
-        document.addEventListener('htmx:beforeRequest', function(event) {
-            const button = event.detail.elt;
-            button.classList.add('loading');
-            button.style.pointerEvents = 'none';
-        });
-
-        document.addEventListener('htmx:afterRequest', function(event) {
-            const button = event.detail.elt;
-            button.classList.remove('loading');
-            button.style.pointerEvents = 'auto';
+        // Enhanced HTMX response handling
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const target = event.target;
+            const response = event.detail.xhr.responseText;
             
-            // Update metrics if response contains them
             try {
-                const response = JSON.parse(event.detail.xhr.responseText);
-                if (response.logs_generated) {
-                    updateLogMetrics(response);
+                const data = JSON.parse(response);
+                if (data.status === 'success') {
+                    target.classList.add('success');
+                    target.classList.remove('error');
+                } else {
+                    target.classList.add('error');
+                    target.classList.remove('success');
                 }
             } catch (e) {
-                // Response might not be JSON
-            }
-        });
-
-        function updateLogMetrics(data) {
-            if (data.logs_generated) {
-                const current = parseInt(document.getElementById('log-entries-count').textContent) || 0;
-                document.getElementById('log-entries-count').textContent = current + data.logs_generated;
-            }
-            
-            if (data.errors_generated) {
-                const current = parseInt(document.getElementById('error-count').textContent) || 0;
-                document.getElementById('error-count').textContent = current + data.errors_generated;
-            }
-            
-            // Simulate correlation rate
-            document.getElementById('correlation-rate').textContent = '98%';
-            
-            // Simulate processing time
-            const processingTime = Math.round(Math.random() * 10 + 2);
-            document.getElementById('processing-time').textContent = processingTime;
-        }
-
-        // Initialize metrics
-        document.getElementById('log-entries-count').textContent = '0';
-        document.getElementById('error-count').textContent = '0';
-        document.getElementById('correlation-rate').textContent = '100%';
-        document.getElementById('processing-time').textContent = '<5';
-
-        // Format JSON responses
-        document.addEventListener('htmx:afterSwap', function(event) {
-            const target = event.detail.target;
-            if (target.id === 'responses') {
-                try {
-                    const content = target.textContent;
-                    const jsonData = JSON.parse(content);
-                    target.innerHTML = `<div class="success">✅ Success!</div><pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
-                } catch (e) {
-                    // Keep original content if not JSON
+                if (event.detail.xhr.status === 200) {
+                    target.classList.add('success');
+                } else {
+                    target.classList.add('error');
                 }
             }
         });
+
+        console.log('🚀 Dinky Monitor Phase 3 Dashboard Loaded!');
+        console.log('📊 Features: APM, Distributed Tracing, Service Maps, Performance Analysis');
     </script>
 </body>
 </html> 

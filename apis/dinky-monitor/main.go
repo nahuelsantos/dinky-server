@@ -28,6 +28,62 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Phase 3: Advanced Tracing & APM Structures
+type ServiceDependency struct {
+	ServiceName      string            `json:"service_name"`
+	Operation        string            `json:"operation"`
+	ResponseTime     time.Duration     `json:"response_time"`
+	StatusCode       int               `json:"status_code"`
+	ErrorRate        float64           `json:"error_rate"`
+	RequestCount     int64             `json:"request_count"`
+	Dependencies     []string          `json:"dependencies"`
+	CustomAttributes map[string]string `json:"custom_attributes"`
+}
+
+type APMData struct {
+	ServiceName   string              `json:"service_name"`
+	TraceID       string              `json:"trace_id"`
+	SpanID        string              `json:"span_id"`
+	OperationName string              `json:"operation_name"`
+	StartTime     time.Time           `json:"start_time"`
+	Duration      time.Duration       `json:"duration"`
+	StatusCode    int                 `json:"status_code"`
+	ResourceUsage ResourceMetrics     `json:"resource_usage"`
+	Dependencies  []ServiceDependency `json:"dependencies"`
+	ErrorDetails  *APMError           `json:"error_details,omitempty"`
+	CustomTags    map[string]string   `json:"custom_tags"`
+}
+
+type APMError struct {
+	Type        string `json:"type"`
+	Message     string `json:"message"`
+	StackTrace  string `json:"stack_trace"`
+	Impact      string `json:"impact"` // "low", "medium", "high", "critical"
+	Recoverable bool   `json:"recoverable"`
+}
+
+type ResourceMetrics struct {
+	CPUUsage       float64 `json:"cpu_usage_percent"`
+	MemoryUsage    int64   `json:"memory_usage_bytes"`
+	GoroutineCount int     `json:"goroutine_count"`
+	HeapSize       int64   `json:"heap_size_bytes"`
+	GCPause        float64 `json:"gc_pause_ms"`
+	DiskIO         int64   `json:"disk_io_bytes"`
+	NetworkIO      int64   `json:"network_io_bytes"`
+}
+
+type PerformanceProfile struct {
+	Operation       string          `json:"operation"`
+	P50ResponseTime float64         `json:"p50_response_time_ms"`
+	P95ResponseTime float64         `json:"p95_response_time_ms"`
+	P99ResponseTime float64         `json:"p99_response_time_ms"`
+	ErrorRate       float64         `json:"error_rate_percent"`
+	ThroughputRPS   float64         `json:"throughput_rps"`
+	ResourceProfile ResourceMetrics `json:"resource_profile"`
+	Bottlenecks     []string        `json:"bottlenecks"`
+	Recommendations []string        `json:"recommendations"`
+}
+
 // Phase 2: Enhanced logging context and correlation
 type LogContext struct {
 	RequestID   string `json:"request_id"`
@@ -88,7 +144,7 @@ const (
 var (
 	// Service information
 	serviceName    = "dinky-monitor"
-	serviceVersion = "2.0.0-phase2"
+	serviceVersion = "3.0.0-phase3"
 	environment    = "development"
 	startTime      = time.Now()
 
@@ -226,6 +282,65 @@ var (
 		[]string{"service", "error_type"},
 	)
 
+	// Phase 3: APM & Distributed Tracing Metrics
+	traceDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "trace_duration_seconds",
+			Help:    "Distributed trace duration by operation and service",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0},
+		},
+		[]string{"service", "operation", "status_code"},
+	)
+
+	spanDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "span_duration_seconds",
+			Help:    "Individual span duration by operation",
+			Buckets: []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0},
+		},
+		[]string{"service", "operation", "span_kind"},
+	)
+
+	serviceDependencies = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "service_dependencies_total",
+			Help: "Service dependency call counts",
+		},
+		[]string{"source_service", "target_service", "operation", "status"},
+	)
+
+	apmResourceUsage = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "apm_resource_usage",
+			Help: "APM resource usage metrics",
+		},
+		[]string{"service", "resource_type", "operation"},
+	)
+
+	performanceAnomalies = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "performance_anomalies_total",
+			Help: "Detected performance anomalies",
+		},
+		[]string{"service", "anomaly_type", "severity"},
+	)
+
+	traceErrorRate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "trace_error_rate_percent",
+			Help: "Error rate by service and operation",
+		},
+		[]string{"service", "operation"},
+	)
+
+	serviceThroughput = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "service_throughput_rps",
+			Help: "Service throughput in requests per second",
+		},
+		[]string{"service", "operation"},
+	)
+
 	// Global logger and tracer
 	logger *zap.Logger
 	tracer oteltrace.Tracer
@@ -249,6 +364,13 @@ func init() {
 	prometheus.MustRegister(activeUsersGauge)
 	prometheus.MustRegister(requestRateGauge)
 	prometheus.MustRegister(errorRateGauge)
+	prometheus.MustRegister(traceDuration)
+	prometheus.MustRegister(spanDuration)
+	prometheus.MustRegister(serviceDependencies)
+	prometheus.MustRegister(apmResourceUsage)
+	prometheus.MustRegister(performanceAnomalies)
+	prometheus.MustRegister(traceErrorRate)
+	prometheus.MustRegister(serviceThroughput)
 }
 
 // Phase 2: Enhanced structured logging initialization
@@ -1395,6 +1517,254 @@ func LogError(ctx context.Context, errorType, errorCode, message string, err err
 	LogWithContext(zapcore.ErrorLevel, ctx, message, fields...)
 }
 
+// Phase 3: Advanced APM & Tracing Functions
+
+// Generate comprehensive resource metrics
+func getResourceMetrics() ResourceMetrics {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	return ResourceMetrics{
+		CPUUsage:       float64(rand.Intn(80) + 10), // Simulated 10-90%
+		MemoryUsage:    int64(m.Alloc),
+		GoroutineCount: runtime.NumGoroutine(),
+		HeapSize:       int64(m.HeapAlloc),
+		GCPause:        float64(m.PauseNs[(m.NumGC+255)%256]) / 1e6, // Convert to ms
+		DiskIO:         int64(rand.Intn(1000000)),                   // Simulated disk I/O
+		NetworkIO:      int64(rand.Intn(500000)),                    // Simulated network I/O
+	}
+}
+
+// Create APM data with tracing context
+func createAPMData(ctx context.Context, operationName string, statusCode int, duration time.Duration) APMData {
+	span := oteltrace.SpanFromContext(ctx)
+	var traceID, spanID string
+
+	if span != nil && span.SpanContext().IsValid() {
+		traceID = span.SpanContext().TraceID().String()
+		spanID = span.SpanContext().SpanID().String()
+	}
+
+	return APMData{
+		ServiceName:   serviceName,
+		TraceID:       traceID,
+		SpanID:        spanID,
+		OperationName: operationName,
+		StartTime:     time.Now().Add(-duration),
+		Duration:      duration,
+		StatusCode:    statusCode,
+		ResourceUsage: getResourceMetrics(),
+		Dependencies:  generateDependencies(operationName),
+		CustomTags: map[string]string{
+			"version":     serviceVersion,
+			"environment": environment,
+			"node_id":     generateNodeID(),
+		},
+	}
+}
+
+// Generate simulated service dependencies
+func generateDependencies(operation string) []ServiceDependency {
+	dependencies := []ServiceDependency{}
+
+	// Simulate different dependency patterns based on operation
+	switch {
+	case strings.Contains(operation, "user"):
+		dependencies = append(dependencies, ServiceDependency{
+			ServiceName:  "user-database",
+			Operation:    "query_user",
+			ResponseTime: time.Duration(rand.Intn(50)+10) * time.Millisecond,
+			StatusCode:   200,
+			ErrorRate:    float64(rand.Intn(5)),
+			RequestCount: int64(rand.Intn(1000) + 100),
+			Dependencies: []string{"auth-service", "cache-redis"},
+			CustomAttributes: map[string]string{
+				"database_type":   "postgresql",
+				"connection_pool": "primary",
+			},
+		})
+	case strings.Contains(operation, "order"):
+		dependencies = append(dependencies,
+			ServiceDependency{
+				ServiceName:  "payment-gateway",
+				Operation:    "process_payment",
+				ResponseTime: time.Duration(rand.Intn(200)+50) * time.Millisecond,
+				StatusCode:   200,
+				ErrorRate:    float64(rand.Intn(3)),
+				RequestCount: int64(rand.Intn(500) + 50),
+				Dependencies: []string{"fraud-detection", "bank-api"},
+			},
+			ServiceDependency{
+				ServiceName:  "inventory-service",
+				Operation:    "reserve_items",
+				ResponseTime: time.Duration(rand.Intn(30)+5) * time.Millisecond,
+				StatusCode:   200,
+				ErrorRate:    float64(rand.Intn(2)),
+				RequestCount: int64(rand.Intn(800) + 200),
+				Dependencies: []string{"warehouse-db", "cache-redis"},
+			})
+	}
+
+	return dependencies
+}
+
+// Log APM data with enhanced metrics
+func LogAPMData(apmData APMData) {
+	// Update APM metrics
+	traceDuration.WithLabelValues(
+		apmData.ServiceName,
+		apmData.OperationName,
+		strconv.Itoa(apmData.StatusCode),
+	).Observe(apmData.Duration.Seconds())
+
+	spanDuration.WithLabelValues(
+		apmData.ServiceName,
+		apmData.OperationName,
+		"server", // span kind
+	).Observe(apmData.Duration.Seconds())
+
+	// Update resource usage metrics
+	apmResourceUsage.WithLabelValues(apmData.ServiceName, "cpu", apmData.OperationName).Set(apmData.ResourceUsage.CPUUsage)
+	apmResourceUsage.WithLabelValues(apmData.ServiceName, "memory", apmData.OperationName).Set(float64(apmData.ResourceUsage.MemoryUsage))
+	apmResourceUsage.WithLabelValues(apmData.ServiceName, "goroutines", apmData.OperationName).Set(float64(apmData.ResourceUsage.GoroutineCount))
+
+	// Update service dependencies
+	for _, dep := range apmData.Dependencies {
+		status := "success"
+		if dep.StatusCode >= 400 {
+			status = "error"
+		}
+		serviceDependencies.WithLabelValues(
+			apmData.ServiceName,
+			dep.ServiceName,
+			dep.Operation,
+			status,
+		).Inc()
+	}
+
+	// Calculate and update throughput
+	serviceThroughput.WithLabelValues(apmData.ServiceName, apmData.OperationName).Set(
+		float64(rand.Intn(100) + 10), // Simulated RPS
+	)
+
+	// Log structured APM data
+	logger.Info("APM trace data",
+		zap.String("trace_id", apmData.TraceID),
+		zap.String("span_id", apmData.SpanID),
+		zap.String("operation", apmData.OperationName),
+		zap.Duration("duration", apmData.Duration),
+		zap.Int("status_code", apmData.StatusCode),
+		zap.Float64("cpu_usage", apmData.ResourceUsage.CPUUsage),
+		zap.Int64("memory_usage", apmData.ResourceUsage.MemoryUsage),
+		zap.Int("dependencies_count", len(apmData.Dependencies)),
+		zap.String("category", "apm"),
+	)
+}
+
+// Detect and log performance anomalies
+func detectPerformanceAnomalies(operation string, duration time.Duration, resourceUsage ResourceMetrics) {
+	// Define thresholds for anomaly detection
+	var anomalies []string
+
+	// High latency detection
+	if duration > 2*time.Second {
+		anomalies = append(anomalies, "high_latency")
+		performanceAnomalies.WithLabelValues(serviceName, "high_latency", "critical").Inc()
+	} else if duration > 1*time.Second {
+		anomalies = append(anomalies, "elevated_latency")
+		performanceAnomalies.WithLabelValues(serviceName, "elevated_latency", "warning").Inc()
+	}
+
+	// High CPU usage detection
+	if resourceUsage.CPUUsage > 90 {
+		anomalies = append(anomalies, "high_cpu")
+		performanceAnomalies.WithLabelValues(serviceName, "high_cpu", "critical").Inc()
+	} else if resourceUsage.CPUUsage > 70 {
+		anomalies = append(anomalies, "elevated_cpu")
+		performanceAnomalies.WithLabelValues(serviceName, "elevated_cpu", "warning").Inc()
+	}
+
+	// Memory usage detection
+	if resourceUsage.MemoryUsage > 1e9 { // > 1GB
+		anomalies = append(anomalies, "high_memory")
+		performanceAnomalies.WithLabelValues(serviceName, "high_memory", "warning").Inc()
+	}
+
+	// Too many goroutines
+	if resourceUsage.GoroutineCount > 1000 {
+		anomalies = append(anomalies, "goroutine_leak")
+		performanceAnomalies.WithLabelValues(serviceName, "goroutine_leak", "critical").Inc()
+	}
+
+	// Log anomalies if detected
+	if len(anomalies) > 0 {
+		logger.Warn("Performance anomalies detected",
+			zap.String("operation", operation),
+			zap.Strings("anomalies", anomalies),
+			zap.Duration("duration", duration),
+			zap.Float64("cpu_usage", resourceUsage.CPUUsage),
+			zap.Int64("memory_usage", resourceUsage.MemoryUsage),
+			zap.Int("goroutine_count", resourceUsage.GoroutineCount),
+			zap.String("category", "performance_anomaly"),
+		)
+	}
+}
+
+// Enhanced tracing middleware
+func enhancedTracingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Create enhanced span with custom attributes
+		ctx, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+		defer span.End()
+
+		// Add custom span attributes
+		span.SetAttributes(
+			attribute.String("http.method", r.Method),
+			attribute.String("http.url", r.URL.String()),
+			attribute.String("http.scheme", r.URL.Scheme),
+			attribute.String("http.host", r.Host),
+			attribute.String("user_agent", r.UserAgent()),
+			attribute.String("service.name", serviceName),
+			attribute.String("service.version", serviceVersion),
+			attribute.String("environment", environment),
+		)
+
+		// Create enhanced response writer
+		wrapped := &enhancedResponseWriter{
+			ResponseWriter: w,
+			statusCode:     200,
+			bytesWritten:   0,
+			startTime:      start,
+		}
+
+		// Process request
+		next.ServeHTTP(wrapped, r.WithContext(ctx))
+
+		duration := time.Since(start)
+
+		// Add response attributes to span
+		span.SetAttributes(
+			attribute.Int("http.status_code", wrapped.statusCode),
+			attribute.Int64("http.response_size", wrapped.bytesWritten),
+			attribute.String("http.response_time_ms", fmt.Sprintf("%.2f", float64(duration.Nanoseconds())/1e6)),
+		)
+
+		// Set span status based on HTTP status code
+		if wrapped.statusCode >= 400 {
+			span.SetAttributes(attribute.Bool("error", true))
+		}
+
+		// Create and log APM data
+		apmData := createAPMData(ctx, fmt.Sprintf("%s %s", r.Method, r.URL.Path), wrapped.statusCode, duration)
+		LogAPMData(apmData)
+
+		// Detect performance anomalies
+		detectPerformanceAnomalies(apmData.OperationName, duration, apmData.ResourceUsage)
+	})
+}
+
 // Phase 2: Enhanced request correlation middleware
 func requestCorrelationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1538,6 +1908,13 @@ func main() {
 	r.HandleFunc("/test/structured_logs", generateStructuredLogsHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/test/log_correlation", testLogCorrelationHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/test/error_categorization", testErrorCategorizationHandler).Methods("POST", "OPTIONS")
+
+	// Phase 3: APM & Distributed Tracing test endpoints
+	r.HandleFunc("/test/apm_trace", generateAPMTraceHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/service_dependency", testServiceDependencyHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/performance_analysis", testPerformanceAnalysisHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/anomaly_detection", testAnomalyDetectionHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/apm/service_map", serviceMapHandler).Methods("GET", "OPTIONS")
 
 	// Prometheus metrics endpoint
 	r.Handle("/metrics", promhttp.Handler())
@@ -1748,4 +2125,460 @@ func testErrorCategorizationHandler(w http.ResponseWriter, r *http.Request) {
 		"categories":       []string{"validation", "database", "network", "security", "business"},
 		"request_id":       r.Context().Value(RequestIDKey),
 	})
+}
+
+// Phase 3: APM & Distributed Tracing Test Handlers
+
+// Generate comprehensive APM trace data
+func generateAPMTraceHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "generate_apm_trace")
+	defer span.End()
+
+	start := time.Now()
+
+	// Simulate complex multi-service operation
+	operationName := "complex_business_operation"
+
+	// Create child spans for different operations
+	userServiceSpan := createChildSpan(ctx, "user-service-call", 150*time.Millisecond)
+	orderServiceSpan := createChildSpan(ctx, "order-service-call", 300*time.Millisecond)
+	paymentServiceSpan := createChildSpan(ctx, "payment-service-call", 500*time.Millisecond)
+
+	duration := time.Since(start)
+
+	// Create comprehensive APM data
+	apmData := createAPMData(ctx, operationName, 200, duration)
+	LogAPMData(apmData)
+
+	// Generate detailed performance profile
+	profile := PerformanceProfile{
+		Operation:       operationName,
+		P50ResponseTime: 250.0,
+		P95ResponseTime: 800.0,
+		P99ResponseTime: 1200.0,
+		ErrorRate:       2.5,
+		ThroughputRPS:   45.0,
+		ResourceProfile: apmData.ResourceUsage,
+		Bottlenecks:     []string{"database_connection_pool", "external_api_latency"},
+		Recommendations: []string{"increase_connection_pool_size", "implement_caching", "optimize_database_queries"},
+	}
+
+	span.SetAttributes(
+		attribute.String("apm.operation", operationName),
+		attribute.Float64("apm.p95_latency", profile.P95ResponseTime),
+		attribute.Float64("apm.error_rate", profile.ErrorRate),
+		attribute.Int("apm.child_spans", 3),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":             "APM trace data generated successfully",
+		"status":              "success",
+		"trace_id":            apmData.TraceID,
+		"span_id":             apmData.SpanID,
+		"operation":           operationName,
+		"duration_ms":         float64(duration.Nanoseconds()) / 1e6,
+		"child_spans":         []string{userServiceSpan, orderServiceSpan, paymentServiceSpan},
+		"performance_profile": profile,
+		"dependencies_count":  len(apmData.Dependencies),
+		"anomalies_detected":  checkForAnomalies(profile),
+	})
+}
+
+// Test service dependency mapping
+func testServiceDependencyHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_service_dependency")
+	defer span.End()
+
+	// Generate service dependency map
+	serviceDeps := map[string][]ServiceDependency{
+		"dinky-monitor": {
+			{
+				ServiceName:      "user-database",
+				Operation:        "user_lookup",
+				ResponseTime:     time.Duration(rand.Intn(100)+20) * time.Millisecond,
+				StatusCode:       200,
+				ErrorRate:        float64(rand.Intn(5)),
+				RequestCount:     int64(rand.Intn(1000) + 500),
+				Dependencies:     []string{"auth-service", "cache-redis"},
+				CustomAttributes: map[string]string{"database_type": "postgresql", "region": "us-east-1"},
+			},
+			{
+				ServiceName:      "payment-gateway",
+				Operation:        "process_payment",
+				ResponseTime:     time.Duration(rand.Intn(300)+100) * time.Millisecond,
+				StatusCode:       200,
+				ErrorRate:        float64(rand.Intn(3)),
+				RequestCount:     int64(rand.Intn(500) + 200),
+				Dependencies:     []string{"fraud-detection", "bank-api", "audit-service"},
+				CustomAttributes: map[string]string{"provider": "stripe", "region": "us-east-1"},
+			},
+			{
+				ServiceName:      "notification-service",
+				Operation:        "send_notification",
+				ResponseTime:     time.Duration(rand.Intn(50)+10) * time.Millisecond,
+				StatusCode:       200,
+				ErrorRate:        float64(rand.Intn(2)),
+				RequestCount:     int64(rand.Intn(2000) + 1000),
+				Dependencies:     []string{"email-provider", "sms-provider", "push-service"},
+				CustomAttributes: map[string]string{"provider": "sendgrid", "batch_size": "100"},
+			},
+		},
+	}
+
+	// Update service dependency metrics
+	for sourceSvc, deps := range serviceDeps {
+		for _, dep := range deps {
+			status := "success"
+			if dep.StatusCode >= 400 {
+				status = "error"
+			}
+			serviceDependencies.WithLabelValues(sourceSvc, dep.ServiceName, dep.Operation, status).Add(float64(dep.RequestCount))
+
+			// Update error rates
+			traceErrorRate.WithLabelValues(dep.ServiceName, dep.Operation).Set(dep.ErrorRate)
+		}
+	}
+
+	span.SetAttributes(
+		attribute.Int("dependencies.total", len(serviceDeps["dinky-monitor"])),
+		attribute.String("test.type", "service_dependency_mapping"),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":            "Service dependency mapping completed",
+		"status":             "success",
+		"service_map":        serviceDeps,
+		"total_dependencies": len(serviceDeps["dinky-monitor"]),
+		"trace_id":           extractTraceID(ctx),
+		"analysis": map[string]interface{}{
+			"high_latency_services": []string{"payment-gateway"},
+			"high_volume_services":  []string{"notification-service"},
+			"critical_path":         []string{"user-database", "payment-gateway"},
+		},
+	})
+}
+
+// Test performance analysis and profiling
+func testPerformanceAnalysisHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_performance_analysis")
+	defer span.End()
+
+	// Generate performance profiles for different operations
+	operations := []string{"user_registration", "order_processing", "payment_verification", "inventory_update"}
+	profiles := make(map[string]PerformanceProfile)
+
+	for _, op := range operations {
+		profile := PerformanceProfile{
+			Operation:       op,
+			P50ResponseTime: float64(rand.Intn(200) + 50),
+			P95ResponseTime: float64(rand.Intn(800) + 200),
+			P99ResponseTime: float64(rand.Intn(2000) + 800),
+			ErrorRate:       float64(rand.Intn(10)),
+			ThroughputRPS:   float64(rand.Intn(100) + 10),
+			ResourceProfile: getResourceMetrics(),
+			Bottlenecks:     generateBottlenecks(),
+			Recommendations: generateRecommendations(),
+		}
+		profiles[op] = profile
+
+		// Update performance metrics
+		traceDuration.WithLabelValues(serviceName, op, "200").Observe(profile.P95ResponseTime / 1000)
+		serviceThroughput.WithLabelValues(serviceName, op).Set(profile.ThroughputRPS)
+		traceErrorRate.WithLabelValues(serviceName, op).Set(profile.ErrorRate)
+	}
+
+	// Analyze overall system performance
+	systemAnalysis := analyzeSystemPerformance(profiles)
+
+	span.SetAttributes(
+		attribute.Int("operations.analyzed", len(operations)),
+		attribute.Float64("system.avg_latency", systemAnalysis["avg_p95_latency"].(float64)),
+		attribute.Float64("system.total_throughput", systemAnalysis["total_throughput"].(float64)),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":            "Performance analysis completed",
+		"status":             "success",
+		"operation_profiles": profiles,
+		"system_analysis":    systemAnalysis,
+		"trace_id":           extractTraceID(ctx),
+		"recommendations":    systemAnalysis["recommendations"],
+	})
+}
+
+// Test anomaly detection
+func testAnomalyDetectionHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_anomaly_detection")
+	defer span.End()
+
+	// Simulate various performance anomalies
+	anomalies := []map[string]interface{}{}
+
+	// Generate high latency anomaly
+	if rand.Float32() < 0.3 {
+		detectPerformanceAnomalies("slow_database_query", 3*time.Second, ResourceMetrics{
+			CPUUsage:       95.0,
+			MemoryUsage:    2e9,
+			GoroutineCount: 500,
+		})
+		anomalies = append(anomalies, map[string]interface{}{
+			"type":        "high_latency",
+			"operation":   "slow_database_query",
+			"severity":    "critical",
+			"duration_ms": 3000,
+			"threshold":   1000,
+		})
+	}
+
+	// Generate memory leak anomaly
+	if rand.Float32() < 0.2 {
+		detectPerformanceAnomalies("memory_intensive_operation", 500*time.Millisecond, ResourceMetrics{
+			CPUUsage:       45.0,
+			MemoryUsage:    2e9, // 2GB
+			GoroutineCount: 200,
+		})
+		anomalies = append(anomalies, map[string]interface{}{
+			"type":         "high_memory_usage",
+			"operation":    "memory_intensive_operation",
+			"severity":     "warning",
+			"memory_usage": "2GB",
+			"threshold":    "1GB",
+		})
+	}
+
+	// Generate goroutine leak anomaly
+	if rand.Float32() < 0.15 {
+		detectPerformanceAnomalies("goroutine_leak_operation", 200*time.Millisecond, ResourceMetrics{
+			CPUUsage:       60.0,
+			MemoryUsage:    500e6,
+			GoroutineCount: 1500, // High goroutine count
+		})
+		anomalies = append(anomalies, map[string]interface{}{
+			"type":            "goroutine_leak",
+			"operation":       "goroutine_leak_operation",
+			"severity":        "critical",
+			"goroutine_count": 1500,
+			"threshold":       1000,
+		})
+	}
+
+	span.SetAttributes(
+		attribute.Int("anomalies.detected", len(anomalies)),
+		attribute.String("test.type", "anomaly_detection"),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":            "Anomaly detection test completed",
+		"status":             "success",
+		"anomalies_detected": len(anomalies),
+		"anomalies":          anomalies,
+		"trace_id":           extractTraceID(ctx),
+		"detection_rules": map[string]interface{}{
+			"latency_threshold_ms":  1000,
+			"memory_threshold_gb":   1.0,
+			"goroutine_threshold":   1000,
+			"cpu_threshold_percent": 90,
+			"error_rate_threshold":  10.0,
+		},
+	})
+}
+
+// Service map visualization endpoint
+func serviceMapHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "service_map")
+	defer span.End()
+
+	// Generate comprehensive service map
+	serviceMap := map[string]interface{}{
+		"nodes": []map[string]interface{}{
+			{
+				"id":                  "dinky-monitor",
+				"name":                "Dinky Monitor",
+				"type":                "application",
+				"health":              "healthy",
+				"version":             serviceVersion,
+				"requests_per_minute": rand.Intn(1000) + 500,
+				"error_rate":          float64(rand.Intn(5)),
+				"avg_response_time":   float64(rand.Intn(200) + 50),
+			},
+			{
+				"id":                  "user-database",
+				"name":                "User Database",
+				"type":                "database",
+				"health":              "healthy",
+				"version":             "postgresql-14",
+				"requests_per_minute": rand.Intn(2000) + 1000,
+				"error_rate":          float64(rand.Intn(2)),
+				"avg_response_time":   float64(rand.Intn(100) + 20),
+			},
+			{
+				"id":                  "payment-gateway",
+				"name":                "Payment Gateway",
+				"type":                "external_service",
+				"health":              "degraded",
+				"version":             "stripe-v3",
+				"requests_per_minute": rand.Intn(500) + 200,
+				"error_rate":          float64(rand.Intn(8) + 2),
+				"avg_response_time":   float64(rand.Intn(400) + 100),
+			},
+			{
+				"id":                  "notification-service",
+				"name":                "Notification Service",
+				"type":                "microservice",
+				"health":              "healthy",
+				"version":             "v2.1.0",
+				"requests_per_minute": rand.Intn(3000) + 1500,
+				"error_rate":          float64(rand.Intn(3)),
+				"avg_response_time":   float64(rand.Intn(80) + 20),
+			},
+		},
+		"edges": []map[string]interface{}{
+			{
+				"source":        "dinky-monitor",
+				"target":        "user-database",
+				"operation":     "user_lookup",
+				"request_count": rand.Intn(1000) + 500,
+				"avg_latency":   float64(rand.Intn(50) + 20),
+				"error_rate":    float64(rand.Intn(3)),
+			},
+			{
+				"source":        "dinky-monitor",
+				"target":        "payment-gateway",
+				"operation":     "process_payment",
+				"request_count": rand.Intn(500) + 200,
+				"avg_latency":   float64(rand.Intn(300) + 100),
+				"error_rate":    float64(rand.Intn(5) + 2),
+			},
+			{
+				"source":        "dinky-monitor",
+				"target":        "notification-service",
+				"operation":     "send_notification",
+				"request_count": rand.Intn(2000) + 1000,
+				"avg_latency":   float64(rand.Intn(50) + 10),
+				"error_rate":    float64(rand.Intn(2)),
+			},
+		},
+		"metrics": map[string]interface{}{
+			"total_services":    4,
+			"healthy_services":  3,
+			"degraded_services": 1,
+			"total_requests":    calculateTotalRequests(),
+			"avg_error_rate":    calculateAvgErrorRate(),
+		},
+	}
+
+	span.SetAttributes(
+		attribute.Int("service_map.nodes", len(serviceMap["nodes"].([]map[string]interface{}))),
+		attribute.Int("service_map.edges", len(serviceMap["edges"].([]map[string]interface{}))),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":      "Service map generated successfully",
+		"status":       "success",
+		"service_map":  serviceMap,
+		"trace_id":     extractTraceID(ctx),
+		"generated_at": time.Now(),
+	})
+}
+
+// Helper functions for Phase 3
+
+func createChildSpan(ctx context.Context, operationName string, duration time.Duration) string {
+	_, span := tracer.Start(ctx, operationName)
+	defer span.End()
+
+	// Simulate work
+	time.Sleep(duration)
+
+	span.SetAttributes(
+		attribute.String("span.kind", "client"),
+		attribute.String("operation.duration", duration.String()),
+	)
+
+	return span.SpanContext().SpanID().String()
+}
+
+func checkForAnomalies(profile PerformanceProfile) []string {
+	var anomalies []string
+
+	if profile.P95ResponseTime > 1000 {
+		anomalies = append(anomalies, "high_p95_latency")
+	}
+	if profile.ErrorRate > 5.0 {
+		anomalies = append(anomalies, "high_error_rate")
+	}
+	if profile.ThroughputRPS < 10 {
+		anomalies = append(anomalies, "low_throughput")
+	}
+
+	return anomalies
+}
+
+func generateBottlenecks() []string {
+	bottlenecks := [][]string{
+		{"database_connection_pool", "slow_queries"},
+		{"external_api_latency", "network_timeout"},
+		{"memory_allocation", "garbage_collection"},
+		{"cpu_intensive_operations", "thread_contention"},
+		{"disk_io", "cache_misses"},
+	}
+
+	selected := bottlenecks[rand.Intn(len(bottlenecks))]
+	return selected
+}
+
+func generateRecommendations() []string {
+	recommendations := [][]string{
+		{"increase_connection_pool_size", "optimize_database_queries"},
+		{"implement_caching", "add_request_timeouts"},
+		{"optimize_memory_usage", "tune_garbage_collector"},
+		{"parallelize_operations", "reduce_lock_contention"},
+		{"implement_circuit_breaker", "add_retry_logic"},
+	}
+
+	selected := recommendations[rand.Intn(len(recommendations))]
+	return selected
+}
+
+func analyzeSystemPerformance(profiles map[string]PerformanceProfile) map[string]interface{} {
+	var totalLatency, totalThroughput, totalErrorRate float64
+	var criticalOperations []string
+
+	for op, profile := range profiles {
+		totalLatency += profile.P95ResponseTime
+		totalThroughput += profile.ThroughputRPS
+		totalErrorRate += profile.ErrorRate
+
+		if profile.P95ResponseTime > 800 || profile.ErrorRate > 5 {
+			criticalOperations = append(criticalOperations, op)
+		}
+	}
+
+	avgLatency := totalLatency / float64(len(profiles))
+	avgErrorRate := totalErrorRate / float64(len(profiles))
+
+	return map[string]interface{}{
+		"avg_p95_latency":     avgLatency,
+		"total_throughput":    totalThroughput,
+		"avg_error_rate":      avgErrorRate,
+		"critical_operations": criticalOperations,
+		"recommendations": []string{
+			"Monitor critical operations closely",
+			"Implement performance alerts",
+			"Consider scaling critical services",
+		},
+	}
+}
+
+func calculateTotalRequests() int {
+	return rand.Intn(10000) + 5000
+}
+
+func calculateAvgErrorRate() float64 {
+	return float64(rand.Intn(5)) + rand.Float64()
 }
