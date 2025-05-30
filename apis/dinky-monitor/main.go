@@ -62,6 +62,80 @@ var (
 		[]string{"error_type", "severity"},
 	)
 
+	// Phase 1: Enhanced Metrics for Testing
+	// Business Metrics
+	userRegistrations = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "user_registrations_total",
+			Help: "Total number of user registrations",
+		},
+		[]string{"source", "plan_type"},
+	)
+
+	orderMetrics = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "orders_total",
+			Help: "Total number of orders",
+		},
+		[]string{"status", "payment_method", "region"},
+	)
+
+	revenueGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "revenue_current",
+			Help: "Current revenue amount",
+		},
+		[]string{"currency", "product_category"},
+	)
+
+	responseTimeHistogram = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "service_response_time_seconds",
+			Help:    "Service response time distribution",
+			Buckets: []float64{0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0},
+		},
+		[]string{"service", "endpoint", "method"},
+	)
+
+	// System Resource Metrics
+	cpuUsageGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "simulated_cpu_usage_percent",
+			Help: "Simulated CPU usage percentage",
+		},
+	)
+
+	memoryUsageGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "simulated_memory_usage_bytes",
+			Help: "Simulated memory usage in bytes",
+		},
+	)
+
+	// Load Testing Metrics
+	activeUsersGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "active_users_current",
+			Help: "Current number of active users",
+		},
+	)
+
+	requestRateGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "request_rate_per_second",
+			Help: "Current request rate per second",
+		},
+	)
+
+	// Error Rate Metrics
+	errorRateGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "error_rate_percent",
+			Help: "Current error rate percentage",
+		},
+		[]string{"service", "error_type"},
+	)
+
 	// Global logger and tracer
 	logger *zap.Logger
 	tracer oteltrace.Tracer
@@ -73,6 +147,15 @@ func init() {
 	prometheus.MustRegister(httpRequestDuration)
 	prometheus.MustRegister(customMetric)
 	prometheus.MustRegister(errorCounter)
+	prometheus.MustRegister(userRegistrations)
+	prometheus.MustRegister(orderMetrics)
+	prometheus.MustRegister(revenueGauge)
+	prometheus.MustRegister(responseTimeHistogram)
+	prometheus.MustRegister(cpuUsageGauge)
+	prometheus.MustRegister(memoryUsageGauge)
+	prometheus.MustRegister(activeUsersGauge)
+	prometheus.MustRegister(requestRateGauge)
+	prometheus.MustRegister(errorRateGauge)
 }
 
 func initLogger() {
@@ -125,6 +208,9 @@ func initTracer() {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	tracer = otel.Tracer("example-api")
+
+	// Start continuous background metrics generation
+	startContinuousMetrics()
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
@@ -156,7 +242,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, hx-request, hx-target, hx-current-url, hx-trigger, hx-trigger-name, hx-prompt, hx-boosted")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
 		// Handle preflight requests
@@ -733,11 +819,285 @@ func docsHTMLHandler(w http.ResponseWriter, r *http.Request, docs map[string]int
 	w.Write([]byte(html))
 }
 
+// Phase 1: Enhanced Metrics Generation Handlers
+
+// Business Metrics Generation
+func generateBusinessMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "generate_business_metrics")
+	defer span.End()
+
+	// Simulate user registrations
+	sources := []string{"web", "mobile", "api", "referral"}
+	plans := []string{"free", "premium", "enterprise"}
+
+	for i := 0; i < rand.Intn(10)+1; i++ {
+		source := sources[rand.Intn(len(sources))]
+		plan := plans[rand.Intn(len(plans))]
+		userRegistrations.WithLabelValues(source, plan).Inc()
+	}
+
+	// Simulate orders
+	statuses := []string{"pending", "completed", "failed", "cancelled"}
+	payments := []string{"credit_card", "paypal", "bank_transfer", "crypto"}
+	regions := []string{"us-east", "us-west", "eu-central", "asia-pacific"}
+
+	for i := 0; i < rand.Intn(20)+1; i++ {
+		status := statuses[rand.Intn(len(statuses))]
+		payment := payments[rand.Intn(len(payments))]
+		region := regions[rand.Intn(len(regions))]
+		orderMetrics.WithLabelValues(status, payment, region).Inc()
+	}
+
+	// Simulate revenue
+	currencies := []string{"USD", "EUR", "GBP", "JPY"}
+	categories := []string{"electronics", "books", "clothing", "software"}
+
+	for _, currency := range currencies {
+		for _, category := range categories {
+			revenue := rand.Float64()*10000 + 1000 // $1k - $11k
+			revenueGauge.WithLabelValues(currency, category).Set(revenue)
+		}
+	}
+
+	logger.Info("Generated business metrics",
+		zap.String("type", "business_metrics"),
+		zap.Int("registrations_generated", rand.Intn(10)+1),
+		zap.Int("orders_generated", rand.Intn(20)+1),
+	)
+
+	span.SetAttributes(
+		attribute.String("metrics.type", "business"),
+		attribute.Int("metrics.registrations", rand.Intn(10)+1),
+		attribute.Int("metrics.orders", rand.Intn(20)+1),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Business metrics generated successfully",
+		"metrics_generated": map[string]interface{}{
+			"user_registrations": "Random registrations across sources and plans",
+			"orders":             "Random orders with different statuses and payment methods",
+			"revenue":            "Updated revenue across currencies and categories",
+		},
+		"timestamp": time.Now().Unix(),
+	})
+}
+
+// System Metrics Generation
+func generateSystemMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "generate_system_metrics")
+	defer span.End()
+
+	// Simulate CPU usage (0-100%)
+	cpuUsage := rand.Float64() * 100
+	cpuUsageGauge.Set(cpuUsage)
+
+	// Simulate memory usage (100MB - 8GB)
+	memoryUsage := rand.Float64()*8e9 + 1e8
+	memoryUsageGauge.Set(memoryUsage)
+
+	// Simulate active users (10-1000)
+	activeUsers := rand.Float64()*990 + 10
+	activeUsersGauge.Set(activeUsers)
+
+	// Simulate request rate (1-500 req/s)
+	requestRate := rand.Float64()*499 + 1
+	requestRateGauge.Set(requestRate)
+
+	// Simulate service response times
+	services := []string{"auth-service", "user-service", "order-service", "payment-service"}
+	endpoints := []string{"/login", "/profile", "/create", "/process"}
+	methods := []string{"GET", "POST", "PUT", "DELETE"}
+
+	for _, service := range services {
+		for _, endpoint := range endpoints {
+			for _, method := range methods {
+				responseTime := rand.Float64()*2.0 + 0.1 // 0.1-2.1 seconds
+				responseTimeHistogram.WithLabelValues(service, endpoint, method).Observe(responseTime)
+			}
+		}
+	}
+
+	// Simulate error rates
+	errorTypes := []string{"timeout", "validation", "authentication", "server_error"}
+	for _, service := range services {
+		for _, errorType := range errorTypes {
+			errorRate := rand.Float64() * 5 // 0-5% error rate
+			errorRateGauge.WithLabelValues(service, errorType).Set(errorRate)
+		}
+	}
+
+	logger.Info("Generated system metrics",
+		zap.String("type", "system_metrics"),
+		zap.Float64("cpu_usage", cpuUsage),
+		zap.Float64("memory_usage_gb", memoryUsage/1e9),
+		zap.Float64("active_users", activeUsers),
+		zap.Float64("request_rate", requestRate),
+	)
+
+	span.SetAttributes(
+		attribute.String("metrics.type", "system"),
+		attribute.Float64("metrics.cpu_usage", cpuUsage),
+		attribute.Float64("metrics.memory_usage", memoryUsage),
+		attribute.Float64("metrics.active_users", activeUsers),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "System metrics generated successfully",
+		"metrics_generated": map[string]interface{}{
+			"cpu_usage_percent":       cpuUsage,
+			"memory_usage_gb":         memoryUsage / 1e9,
+			"active_users":            activeUsers,
+			"request_rate_per_second": requestRate,
+			"response_times":          "Generated for multiple services and endpoints",
+			"error_rates":             "Generated for multiple services and error types",
+		},
+		"timestamp": time.Now().Unix(),
+	})
+}
+
+// Load Simulation
+func simulateLoadHandler(w http.ResponseWriter, r *http.Request) {
+	_, span := tracer.Start(r.Context(), "simulate_load")
+	defer span.End()
+
+	// Parse parameters
+	durationStr := r.URL.Query().Get("duration")
+	if durationStr == "" {
+		durationStr = "30s"
+	}
+
+	intensity := r.URL.Query().Get("intensity")
+	if intensity == "" {
+		intensity = "medium"
+	}
+
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		duration = 30 * time.Second
+	}
+
+	// Start load simulation in background
+	go func() {
+		endTime := time.Now().Add(duration)
+
+		var baseUsers, baseRequests float64
+		switch intensity {
+		case "low":
+			baseUsers, baseRequests = 50, 100
+		case "medium":
+			baseUsers, baseRequests = 200, 500
+		case "high":
+			baseUsers, baseRequests = 500, 1500
+		default:
+			baseUsers, baseRequests = 200, 500
+		}
+
+		logger.Info("Starting load simulation",
+			zap.Duration("duration", duration),
+			zap.String("intensity", intensity),
+			zap.Float64("base_users", baseUsers),
+			zap.Float64("base_requests", baseRequests),
+		)
+
+		for time.Now().Before(endTime) {
+			// Simulate varying load with some randomness
+			users := baseUsers + (rand.Float64()-0.5)*baseUsers*0.3
+			requests := baseRequests + (rand.Float64()-0.5)*baseRequests*0.3
+
+			activeUsersGauge.Set(users)
+			requestRateGauge.Set(requests)
+
+			// Generate some business metrics during load
+			if rand.Float64() < 0.3 { // 30% chance each iteration
+				userRegistrations.WithLabelValues("web", "free").Inc()
+			}
+			if rand.Float64() < 0.5 { // 50% chance each iteration
+				orderMetrics.WithLabelValues("completed", "credit_card", "us-east").Inc()
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+
+		// Reset to baseline after simulation
+		activeUsersGauge.Set(baseUsers * 0.3)
+		requestRateGauge.Set(baseRequests * 0.3)
+
+		logger.Info("Load simulation completed",
+			zap.Duration("duration", duration),
+			zap.String("intensity", intensity),
+		)
+	}()
+
+	span.SetAttributes(
+		attribute.String("load.intensity", intensity),
+		attribute.String("load.duration", durationStr),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Load simulation started",
+		"configuration": map[string]interface{}{
+			"duration":  durationStr,
+			"intensity": intensity,
+			"estimated_peak_users": map[string]interface{}{
+				"low":    50,
+				"medium": 200,
+				"high":   500,
+			}[intensity],
+		},
+		"timestamp": time.Now().Unix(),
+	})
+}
+
+// Continuous Metrics Generation (Background Process)
+func startContinuousMetrics() {
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+
+		logger.Info("Starting continuous background metrics generation")
+
+		for {
+			select {
+			case <-ticker.C:
+				// Generate baseline metrics every 15 seconds
+
+				// Baseline business metrics
+				userRegistrations.WithLabelValues("web", "free").Inc()
+				if rand.Float64() < 0.7 {
+					orderMetrics.WithLabelValues("completed", "credit_card", "us-east").Inc()
+				}
+
+				// Baseline system metrics
+				cpuUsage := 20 + rand.Float64()*30 // 20-50% baseline
+				cpuUsageGauge.Set(cpuUsage)
+
+				memoryUsage := 2e9 + rand.Float64()*1e9 // 2-3GB baseline
+				memoryUsageGauge.Set(memoryUsage)
+
+				activeUsers := 100 + rand.Float64()*50 // 100-150 baseline users
+				activeUsersGauge.Set(activeUsers)
+
+				requestRate := 50 + rand.Float64()*50 // 50-100 req/s baseline
+				requestRateGauge.Set(requestRate)
+			}
+		}
+	}()
+}
+
 func main() {
 	initLogger()
 	defer logger.Sync()
 
 	initTracer()
+
+	// Start continuous background metrics generation
+	startContinuousMetrics()
 
 	logger.Info("Starting Example API server",
 		zap.String("version", "1.0.0"),
@@ -774,6 +1134,11 @@ func main() {
 
 	// Add docs handler
 	r.HandleFunc("/docs", docsHandler).Methods("GET")
+
+	// Add new endpoints
+	r.HandleFunc("/test/business_metrics", generateBusinessMetricsHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/system_metrics", generateSystemMetricsHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/load_simulation", simulateLoadHandler).Methods("POST", "OPTIONS")
 
 	logger.Info("Server starting on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
