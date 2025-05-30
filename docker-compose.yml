@@ -294,7 +294,7 @@ services:
       - "192.168.3.2:9100:9100"
     networks:
       - traefik_network
-      
+
 volumes:
   cloudflared-data:
   grafana_data:

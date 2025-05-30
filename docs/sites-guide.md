@@ -91,7 +91,7 @@ services:
     container_name: my-website
     restart: unless-stopped
     ports:
-      - "8001:80"
+      - "8005:80"
     volumes:
       - ./public:/usr/share/nginx/html:ro
     networks:
@@ -110,7 +110,7 @@ services:
     container_name: my-website
     restart: unless-stopped
     ports:
-      - "8001:80"
+      - "8006:80"
     volumes:
       - ./public:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
@@ -135,7 +135,7 @@ services:
     container_name: my-node-app
     restart: unless-stopped
     ports:
-      - "8002:3000"
+      - "8007:3000"
     working_dir: /app
     volumes:
       - ./:/app
@@ -215,7 +215,7 @@ services:
     container_name: my-hugo-site
     restart: unless-stopped
     ports:
-      - "8004:80"
+      - "8008:80"
     volumes:
       - ./public:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
@@ -282,7 +282,7 @@ services:
     container_name: my-blog
     restart: unless-stopped
     ports:
-      - "8010:80"
+      - "8009:80"
     volumes:
       - ./public:/usr/share/nginx/html:ro
     networks:
@@ -342,8 +342,10 @@ docker compose restart my-site
 - `9100` - Node Exporter
 
 **Example Services:**
-- `3001` - Example API
-- `3002` - Example Site
+- `3001` - Dinky Monitor (Advanced monitoring API)
+- `3002` - Dinky Dashboard (Advanced observability dashboard)
+- `3003` - Example API (Simple REST API)
+- `3004` - Example Site (Simple static site)
 
 ### **Recommended Port Ranges**
 - **8000-8099**: Static sites and web applications

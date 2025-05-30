@@ -66,9 +66,11 @@ dinky-server/
 ├── .env                        # Auto-generated config
 ├── Makefile                    # Local development
 ├── apis/                       # 🔍 Auto-discovered APIs
-│   └── example-api/            # Go REST API example
+│   ├── dinky-monitor/          # Comprehensive monitoring & system insights
+│   └── example-api/            # Simple Go REST API example
 ├── sites/                      # 🔍 Auto-discovered sites  
-│   └── example-site/           # Static site example
+│   ├── dinky-dashboard/        # Observability control center
+│   └── example-site/           # Simple static site example
 ├── infrastructure/             # Network & security
 ├── monitoring/                 # LGTM stack config
 └── services/                   # Core services
@@ -108,26 +110,23 @@ After deployment, visit:
 - **SMTP**: 25, 587 (Mail server)
 
 **Example Services:**
-- **Example Site**: http://[SERVER_IP]:3002
+- **Dinky Monitor (Advanced)**: http://[SERVER_IP]:3001
+- **Dinky Dashboard (Advanced)**: http://[SERVER_IP]:3002
+- **Example API (Simple)**: http://[SERVER_IP]:3003
+- **Example Site (Simple)**: http://[SERVER_IP]:3004
 
 ## 📡 Example API Endpoints
 
-The included Example API (port 3001) provides comprehensive testing endpoints:
+The included Example API (port 3003) provides simple REST API demonstration:
 
-- **📖 API Documentation**: http://[SERVER_IP]:3001/docs
-- **🎮 Web UI**: http://[SERVER_IP]:3001/ui  
+- **💓 Health Check**: http://[SERVER_IP]:3003/health
+- **👋 Hello Endpoint**: http://[SERVER_IP]:3003/hello
+- **👥 Users Endpoint**: http://[SERVER_IP]:3003/users
+
+**Advanced Monitoring API** (port 3001) - Dinky Monitor:
+- **📊 System Metrics**: http://[SERVER_IP]:3001/system
+- **🐳 Docker Stats**: http://[SERVER_IP]:3001/docker
 - **💓 Health Check**: http://[SERVER_IP]:3001/health
-- **📊 Metrics**: http://[SERVER_IP]:3001/metrics
-
-**Testing Endpoints** (POST requests):
-- `/test/metrics` - Generate custom metrics
-- `/test/logs` - Generate log entries  
-- `/test/error` - Create intentional errors
-- `/test/cpu` - CPU load testing
-- `/test/memory` - Memory allocation testing
-- `/test/trace` - Distributed tracing simulation
-
-Perfect for testing your monitoring stack and learning the system!
 
 ## 🔍 Complete Port Reference
 
@@ -163,13 +162,15 @@ Perfect for testing your monitoring stack and learning the system!
 
 **Example Services:**
 ```
-3001 - Example API
-3002 - Example Site
+3001 - Dinky Monitor (Advanced monitoring API)
+3002 - Dinky Dashboard (Advanced observability dashboard)
+3003 - Example API (Simple REST API)
+3004 - Example Site (Simple static site)
 ```
 
 **Available for Your Services:**
 ```
-3003-3099 - Recommended for APIs
+3005-3099 - Recommended for APIs
 8003-8099 - Recommended for Sites
 ```
 
@@ -225,7 +226,17 @@ sudo ./dinky.sh             # Use built-in menu help (option 9)
 - **Built-in Help**: Run `sudo ./dinky.sh` and select option 9
 - **API Guide**: `./docs/apis-guide.md`
 - **Sites Guide**: `./docs/sites-guide.md`
-- **Examples**: Check `apis/example-api/` and `sites/example-site/`
+- **Examples**: Check `apis/dinky-monitor/` for comprehensive monitoring, `apis/example-api/` for simple REST API, `sites/dinky-dashboard/` for observability dashboard, and `sites/example-site/` for basic static site
+
+## 🔧 Examples & Learning
+
+**Simple Examples** (great for learning):
+- **Example API**: Check `apis/example-api/` for simple Go REST API
+- **Example Site**: Check `sites/example-site/` for basic static HTML site
+
+**Advanced Examples** (production-ready):
+- **Dinky Monitor**: Check `apis/dinky-monitor/` for comprehensive monitoring API
+- **Dinky Dashboard**: Check `sites/dinky-dashboard/` for observability control center
 
 ---
 

@@ -74,7 +74,7 @@ apis/
 Each API service should:
 
 1. **Have a docker-compose file** in its root directory (`docker-compose.yml` or `docker-compose.yaml`)
-2. **Use unique ports** to avoid conflicts (recommended: 3001+)
+2. **Use unique ports** to avoid conflicts (recommended: 3005+ for new APIs)
 3. **Include `traefik_network`** for reverse proxy integration (if needed)
 4. **Proper Traefik labels** for routing (if using external access)
 
@@ -88,7 +88,7 @@ services:
     container_name: my-api
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3005:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
@@ -108,7 +108,7 @@ services:
     container_name: my-api
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3005:3000"
     networks:
       - traefik_network
     labels:
@@ -132,7 +132,7 @@ services:
     container_name: my-api
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3005:3000"
     depends_on:
       - my-api-db
     environment:
@@ -208,7 +208,7 @@ services:
     container_name: my-new-api
     restart: unless-stopped
     ports:
-      - "3010:3000"
+      - "3005:3000"
     working_dir: /app
     volumes:
       - ./src:/app
@@ -270,11 +270,13 @@ docker compose restart my-api
 - `9100` - Node Exporter
 
 **Example Services:**
-- `3001` - Example API
-- `3002` - Example Site
+- `3001` - Dinky Monitor (Advanced monitoring API)
+- `3002` - Dinky Dashboard (Advanced observability dashboard)  
+- `3003` - Example API (Simple REST API)
+- `3004` - Example Site (Simple static site)
 
 ### **Recommended Port Ranges**
-- **3001-3099**: Custom APIs
+- **3005-3099**: Custom APIs
 - **3100+**: Reserved for monitoring services
 
 ### **Port Conflict Resolution**
@@ -368,63 +370,37 @@ Check the `example-api/` directory for:
 - Proper Traefik configuration
 - Environment variable usage examples
 
-## 🎯 Example API Reference
+## 🎯 Example API References
 
-The included `example-api` provides a comprehensive demonstration of API capabilities and monitoring integration.
+### **Simple Example API** (port 3003)
+The included `example-api` provides a basic REST API demonstration:
+- `GET /health` - Health check endpoint
+- `GET /hello` - Hello world endpoint  
+- `GET /users` - Sample users list
 
-### **📡 Available Endpoints**
-
-**Documentation & Health:**
-- `GET /docs` - Complete API documentation in JSON format
-- `GET /ui` - Interactive web interface for testing
-- `GET /health` - Service health check with uptime
-- `GET /metrics` - Prometheus metrics endpoint
-
-**Testing Endpoints (POST):**
-- `/test/metrics` - Generate custom business metrics
-- `/test/logs` - Generate log entries at different levels
-- `/test/error` - Create intentional errors (returns 500)
-- `/test/cpu?duration=5s` - CPU load testing
-- `/test/memory?size=100` - Memory allocation testing (MB)
-- `/test/trace` - Distributed tracing simulation
+### **Advanced Example - Dinky Monitor** (port 3001)
+The `dinky-monitor` API provides comprehensive monitoring capabilities:
+- `GET /health` - Service health check
+- `GET /system` - Detailed system metrics
+- `GET /docker` - Container statistics and management
 
 ### **🔧 Quick Usage Examples**
 
+**Simple API:**
 ```bash
-# Access from your server (port 3001)
-curl http://dinky:3001/docs | jq
-
-# Generate test data for monitoring
-curl -X POST http://dinky:3001/test/metrics
-curl -X POST http://dinky:3001/test/logs
-curl -X POST http://dinky:3001/test/error
-
-# Load testing
-curl -X POST "http://dinky:3001/test/cpu?duration=10s"
-curl -X POST "http://dinky:3001/test/memory?size=200"
-
-# Distributed tracing
-curl -X POST http://dinky:3001/test/trace
+# Basic endpoints (port 3003)
+curl http://dinky:3003/health
+curl http://dinky:3003/hello
+curl http://dinky:3003/users
 ```
 
-### **📊 Monitoring Features**
-
-The Example API demonstrates:
-- **OpenTelemetry Tracing** → Exported to Tempo
-- **Prometheus Metrics** → Custom + HTTP metrics  
-- **Structured Logging** → JSON logs to Loki
-- **CORS Support** → Cross-origin requests
-- **Health Checks** → Kubernetes-ready endpoints
-
-### **🎮 Interactive Testing**
-
-Visit the web UI at `http://dinky:3001/ui` to:
-- Test endpoints interactively
-- View real-time API responses
-- Generate monitoring data for your dashboards
-- Learn API capabilities hands-on
-
-Perfect for testing your LGTM monitoring stack!
+**Advanced Monitoring API:**
+```bash
+# Monitoring endpoints (port 3001)  
+curl http://dinky:3001/health
+curl http://dinky:3001/system
+curl http://dinky:3001/docker
+```
 
 ## 🎯 Best Practices
 
