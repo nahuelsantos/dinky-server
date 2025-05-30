@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dinky Monitor - Phase 4 Alerting Dashboard</title>
+    <title>Dinky Monitor - Phase 5 Intelligence & Analytics Dashboard</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <!-- HTMX 2.0 Configuration: Allow cross-origin requests -->
     <meta name="htmx-config" content='{"selfRequestsOnly": false}'>
@@ -15,7 +15,7 @@
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Courier New', monospace;
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
@@ -64,6 +64,11 @@
             margin: 10px 5px;
             box-shadow: 0 4px 15px rgba(153, 102, 255, 0.3);
             animation: float 3s ease-in-out infinite;
+        }
+
+        .phase-badge.phase5 {
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
         }
 
         .monitoring-grid {
@@ -190,12 +195,32 @@
             font-weight: bold;
         }
 
-        .phase3-highlight {
+        .phase5-highlight {
+            border-color: #ff6b6b !important;
+        }
+
+        .phase5-highlight .card-title {
+            color: #ff6b6b;
+        }
+
+        .phase5-highlight .phase-indicator {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+        }
+
+        .phase4-highlight {
             border-color: #9966ff !important;
         }
 
-        .phase3-highlight .card-title {
+        .phase4-highlight .card-title {
             color: #9966ff;
+        }
+
+        .phase3-highlight {
+            border-color: #48dbfb !important;
+        }
+
+        .phase3-highlight .card-title {
+            color: #48dbfb;
         }
 
         .tools-section {
@@ -253,19 +278,158 @@
     <div class="container">
         <div class="header">
             <h1 class="title">DINKY MONITOR</h1>
-            <p class="subtitle">Advanced Alerting & Incident Management Dashboard</p>
+            <p class="subtitle">AI-Powered Intelligence & Analytics Dashboard</p>
             <div>
                 <span class="phase-badge">Phase 1: Metrics ✓</span>
                 <span class="phase-badge">Phase 2: Logging ✓</span>
                 <span class="phase-badge">Phase 3: APM ✓</span>
-                <span class="phase-badge">Phase 4: Alerting 🚀</span>
+                <span class="phase-badge">Phase 4: Alerting ✓</span>
+                <span class="phase-badge phase5">Phase 5: Intelligence 🧠</span>
             </div>
         </div>
 
         <div class="monitoring-grid">
+            <!-- Phase 5: ML-Powered Anomaly Detection -->
+            <div class="monitoring-card phase5-highlight">
+                <div class="phase-indicator">Phase 5 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">🧠</span>
+                    <h2 class="card-title">ML Anomaly Detection</h2>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="test-title">Machine Learning Models</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test-anomaly-detection"
+                                hx-target="#anomaly-response"
+                                hx-indicator="#anomaly-loading">
+                            Test Anomaly Detection
+                        </button>
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/anomaly-models"
+                                hx-target="#anomaly-response"
+                                hx-indicator="#anomaly-loading">
+                            View ML Models
+                        </button>
+                    </div>
+                    <div id="anomaly-loading" class="loading htmx-indicator">
+                        Processing ML models...
+                    </div>
+                    <div id="anomaly-response" class="response-area">
+                        Click buttons to test ML-powered anomaly detection (Statistical, Isolation Forest, LSTM)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: Predictive Analytics -->
+            <div class="monitoring-card phase5-highlight">
+                <div class="phase-indicator">Phase 5 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">🔮</span>
+                    <h2 class="card-title">Predictive Analytics</h2>
+                </div>
+            
+                <div class="test-section">
+                    <h3 class="test-title">Forecasting & Predictions</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test-predictive-alerts"
+                                hx-target="#predictive-response"
+                                hx-indicator="#predictive-loading">
+                            Test Predictive Alerts
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test-capacity-planning"
+                                hx-target="#predictive-response"
+                                hx-indicator="#predictive-loading">
+                            Capacity Planning
+                        </button>
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/predictive-alerts"
+                                hx-target="#predictive-response"
+                                hx-indicator="#predictive-loading">
+                            View Predictions
+                        </button>
+                    </div>
+                    <div id="predictive-loading" class="loading htmx-indicator">
+                        Generating predictions...
+                        </div>
+                    <div id="predictive-response" class="response-area">
+                        Click buttons to test predictive alerting and capacity planning
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: Root Cause Analysis -->
+            <div class="monitoring-card phase5-highlight">
+                <div class="phase-indicator">Phase 5 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">🕵️</span>
+                    <h2 class="card-title">Root Cause Analysis</h2>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="test-title">Automated Investigation</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test-root-cause-analysis"
+                                hx-target="#rca-response"
+                                hx-indicator="#rca-loading">
+                            Test Root Cause Analysis
+                        </button>
+                        <button class="test-btn" 
+                                hx-post="http://localhost:3001/test-performance-insights"
+                                hx-target="#rca-response"
+                                hx-indicator="#rca-loading">
+                            Performance Insights
+                        </button>
+                    </div>
+                    <div id="rca-loading" class="loading htmx-indicator">
+                        Analyzing incidents...
+                        </div>
+                    <div id="rca-response" class="response-area">
+                        Click buttons to test automated root cause analysis and performance insights
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: Intelligence Dashboard -->
+            <div class="monitoring-card phase5-highlight">
+                <div class="phase-indicator">Phase 5 🆕</div>
+                <div class="card-header">
+                    <span class="card-icon">📊</span>
+                    <h2 class="card-title">Intelligence Dashboard</h2>
+                </div>
+
+                <div class="test-section">
+                    <h3 class="test-title">AI Insights & Recommendations</h3>
+                    <div class="test-buttons">
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/intelligence-dashboard"
+                                hx-target="#intelligence-response"
+                                hx-indicator="#intelligence-loading">
+                            Intelligence Dashboard
+                        </button>
+                        <button class="test-btn" 
+                                hx-get="http://localhost:3001/recommendations"
+                                hx-target="#intelligence-response"
+                                hx-indicator="#intelligence-loading">
+                            View Recommendations
+                        </button>
+                    </div>
+                    <div id="intelligence-loading" class="loading htmx-indicator">
+                        Loading intelligence data...
+                        </div>
+                    <div id="intelligence-response" class="response-area">
+                        Click buttons to view AI-powered insights and optimization recommendations
+                    </div>
+                </div>
+            </div>
+
             <!-- Phase 4: Alerting & Incident Management -->
-            <div class="monitoring-card phase3-highlight">
-                <div class="phase-indicator">Phase 4 🆕</div>
+            <div class="monitoring-card phase4-highlight">
+                <div class="phase-indicator">Phase 4</div>
                 <div class="card-header">
                     <span class="card-icon">🚨</span>
                     <h2 class="card-title">Alerting & Incident Management</h2>
@@ -301,7 +465,7 @@
                     </div>
                     <div id="alert-loading" class="loading htmx-indicator">
                         Processing alerts...
-                    </div>
+                        </div>
                     <div id="alert-response" class="response-area">
                         Click buttons to test alerting and incident management features
                     </div>
@@ -309,8 +473,8 @@
             </div>
 
             <!-- Phase 4: Active Monitoring -->
-            <div class="monitoring-card phase3-highlight">
-                <div class="phase-indicator">Phase 4 🆕</div>
+            <div class="monitoring-card phase4-highlight">
+                <div class="phase-indicator">Phase 4</div>
                 <div class="card-header">
                     <span class="card-icon">📋</span>
                     <h2 class="card-title">Active Alerts & Incidents</h2>
@@ -334,7 +498,7 @@
                     </div>
                     <div id="monitoring-loading" class="loading htmx-indicator">
                         Loading monitoring data...
-                    </div>
+                        </div>
                     <div id="monitoring-response" class="response-area">
                         Click "Active Alerts" or "Active Incidents" to view current status
                     </div>
@@ -343,7 +507,7 @@
 
             <!-- Phase 3: APM Tracing -->
             <div class="monitoring-card phase3-highlight">
-                <div class="phase-indicator">Phase 3 🆕</div>
+                <div class="phase-indicator">Phase 3</div>
                 <div class="card-header">
                     <span class="card-icon">🔍</span>
                     <h2 class="card-title">APM & Distributed Tracing</h2>
@@ -370,123 +534,12 @@
                                 hx-indicator="#apm-loading">
                             Performance Analysis
                         </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-anomaly-detection"
-                                hx-target="#apm-response"
-                                hx-indicator="#apm-loading">
-                            Anomaly Detection
-                        </button>
                     </div>
                     <div id="apm-loading" class="loading htmx-indicator">
                         Processing APM data...
-                    </div>
+                        </div>
                     <div id="apm-response" class="response-area">
                         Click buttons to test APM and distributed tracing features
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 3: Service Map -->
-            <div class="monitoring-card phase3-highlight">
-                <div class="phase-indicator">Phase 3 🆕</div>
-                <div class="card-header">
-                    <span class="card-icon">🗺️</span>
-                    <h2 class="card-title">Service Map & Topology</h2>
-                </div>
-                
-                <div class="test-section">
-                    <h3 class="test-title">Service Architecture Visualization</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-get="http://localhost:3001/apm/service-map"
-                                hx-target="#map-response"
-                                hx-indicator="#map-loading">
-                            Generate Service Map
-                        </button>
-                    </div>
-                    <div id="map-loading" class="loading htmx-indicator">
-                        Building service map...
-                    </div>
-                    <div id="map-response" class="response-area">
-                        Click "Generate Service Map" to visualize service topology
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 2: Structured Logging -->
-            <div class="monitoring-card">
-                <div class="phase-indicator">Phase 2</div>
-                <div class="card-header">
-                    <span class="card-icon">📝</span>
-                    <h2 class="card-title">Structured Logging</h2>
-                </div>
-                
-                <div class="test-section">
-                    <h3 class="test-title">Log Correlation & Structure</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-structured-logs"
-                                hx-target="#logs-response"
-                                hx-indicator="#logs-loading">
-                            Generate Logs
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-log-correlation"
-                                hx-target="#logs-response"
-                                hx-indicator="#logs-loading">
-                            Test Correlation
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-error-categorization"
-                                hx-target="#logs-response"
-                                hx-indicator="#logs-loading">
-                            Error Categories
-                        </button>
-                    </div>
-                    <div id="logs-loading" class="loading htmx-indicator">
-                        Processing structured logs...
-                    </div>
-                    <div id="logs-response" class="response-area">
-                        Click buttons to test structured logging features
-                    </div>
-                </div>
-            </div>
-
-            <!-- Phase 1: Business & System Metrics -->
-            <div class="monitoring-card">
-                <div class="phase-indicator">Phase 1</div>
-                <div class="card-header">
-                    <span class="card-icon">📊</span>
-                    <h2 class="card-title">Business & System Metrics</h2>
-                </div>
-                
-                <div class="test-section">
-                    <h3 class="test-title">Core Metrics Generation</h3>
-                    <div class="test-buttons">
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-business-metrics"
-                                hx-target="#metrics-response"
-                                hx-indicator="#metrics-loading">
-                            Business Metrics
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-system-metrics"
-                                hx-target="#metrics-response"
-                                hx-indicator="#metrics-loading">
-                            System Metrics
-                        </button>
-                        <button class="test-btn" 
-                                hx-post="http://localhost:3001/test-load-simulation"
-                                hx-target="#metrics-response"
-                                hx-indicator="#metrics-loading">
-                            Load Simulation
-                        </button>
-                    </div>
-                    <div id="metrics-loading" class="loading htmx-indicator">
-                        Generating metrics...
-                    </div>
-                    <div id="metrics-response" class="response-area">
-                        Click buttons to generate business and system metrics
                     </div>
                 </div>
             </div>
@@ -509,10 +562,10 @@
                             Health Check
                         </button>
                         <button class="test-btn" 
-                                hx-get="http://localhost:3001/docs"
+                                hx-get="http://localhost:3001/"
                                 hx-target="#health-response"
                                 hx-indicator="#health-loading">
-                            API Documentation
+                            Service Info
                         </button>
                     </div>
                     <div id="health-loading" class="loading htmx-indicator">
@@ -559,7 +612,7 @@
             
             try {
                 const data = JSON.parse(response);
-                if (data.status === 'success') {
+                if (data.status === 'success' || data.success === true) {
                     target.classList.add('success');
                     target.classList.remove('error');
                 } else {
@@ -575,8 +628,8 @@
             }
         });
 
-        console.log('🚀 Dinky Monitor Phase 3 Dashboard Loaded!');
-        console.log('📊 Features: APM, Distributed Tracing, Service Maps, Performance Analysis');
+        console.log('🧠 Dinky Monitor Phase 5 Dashboard Loaded!');
+        console.log('🚀 Features: ML Anomaly Detection, Predictive Analytics, Root Cause Analysis, Intelligence Dashboard');
     </script>
 </body>
 </html> 

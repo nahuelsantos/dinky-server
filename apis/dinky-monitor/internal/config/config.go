@@ -17,7 +17,7 @@ type ServiceConfig struct {
 func GetServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		Name:        "dinky-monitor",
-		Version:     "4.0.0-phase4",
+		Version:     "5.0.0-phase5",
 		Environment: "development",
 		StartTime:   time.Now(),
 		Port:        ":3001",
@@ -36,7 +36,7 @@ type TracingConfig struct {
 func GetTracingConfig() *TracingConfig {
 	return &TracingConfig{
 		ServiceName:    "dinky-monitor",
-		ServiceVersion: "4.0.0-phase4",
+		ServiceVersion: "5.0.0-phase5",
 		JaegerEndpoint: "http://localhost:14268/api/traces",
 		SamplingRate:   1.0,
 	}

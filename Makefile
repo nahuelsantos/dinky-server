@@ -89,6 +89,8 @@ dev-setup: ## Initial setup for development environment
 
 dev-up: dev-setup check-docker-compose ## Start all development services
 	@echo "$(CYAN)Starting development services...$(NC)"
+	@echo "$(YELLOW)Building/rebuilding dinky-monitor if needed...$(NC)"
+	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) build dinky-monitor 2>/dev/null || true
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d
 	@echo "$(GREEN)✓ Development services started!$(NC)"
 	@echo ""
@@ -97,6 +99,9 @@ dev-up: dev-setup check-docker-compose ## Start all development services
 dev-down: dev-setup check-docker-compose ## Stop all development services
 	@echo "$(CYAN)Stopping development services...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
+	@echo "$(YELLOW)Ensuring all dinky-dev containers are stopped...$(NC)"
+	@docker ps -q --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
+	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(GREEN)✓ Development services stopped!$(NC)"
 
 dev-restart: dev-down dev-up ## Restart all development services
@@ -128,9 +133,11 @@ dev-status: dev-setup check-docker-compose ## Show status of all services
 dev-clean: dev-setup dev-down ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
-	@echo "$(YELLOW)Removing any orphaned dinky-dev containers...$(NC)"
-	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop 2>/dev/null || true
-	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm 2>/dev/null || true
+	@echo "$(YELLOW)Ensuring all dinky-dev containers are completely removed...$(NC)"
+	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
+	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
+	@echo "$(YELLOW)Removing dinky-monitor images to force rebuild...$(NC)"
+	@docker images -q dinky-monitor:5.0.0-phase5 dinky-dev-dinky-monitor 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
 	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
@@ -296,7 +303,7 @@ _create-dev-compose:
 	@echo "    container_name: dinky-dev-dinky-monitor" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3001:8080\"" >> $(COMPOSE_FILE)
+	@echo "      - \"3001:3001\"" >> $(COMPOSE_FILE)
 	@echo "    environment:" >> $(COMPOSE_FILE)
 	@echo "      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318" >> $(COMPOSE_FILE)
 	@echo "      - OTEL_SERVICE_NAME=dinky-monitor" >> $(COMPOSE_FILE)
