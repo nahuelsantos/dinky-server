@@ -273,11 +273,12 @@ func (as *AlertingService) evaluateRule(rule *models.AlertRule) bool {
 
 // FireAlert fires an alert
 func (as *AlertingService) fireAlert(rule *models.AlertRule) {
-	as.alertManager.Mutex.Lock()
-	defer as.alertManager.Mutex.Unlock()
+	// Check if alert already exists first (without lock)
+	as.alertManager.Mutex.RLock()
+	_, exists := as.alertManager.ActiveAlerts[rule.ID]
+	as.alertManager.Mutex.RUnlock()
 
-	// Check if alert already exists
-	if _, exists := as.alertManager.ActiveAlerts[rule.ID]; exists {
+	if exists {
 		return
 	}
 
@@ -296,25 +297,35 @@ func (as *AlertingService) fireAlert(rule *models.AlertRule) {
 		GeneratorURL: fmt.Sprintf("http://localhost:3001/alerts/%s", rule.ID),
 	}
 
+	// Add to active alerts and history
+	as.alertManager.Mutex.Lock()
+	// Double-check after acquiring lock
+	if _, exists := as.alertManager.ActiveAlerts[rule.ID]; exists {
+		as.alertManager.Mutex.Unlock()
+		return
+	}
 	as.alertManager.ActiveAlerts[rule.ID] = alert
 	as.alertManager.AlertHistory = append(as.alertManager.AlertHistory, alert)
+	as.alertManager.Mutex.Unlock()
 
-	// Send notification
-	as.sendNotification(alert)
+	// Send notification (no locks here)
+	as.sendNotificationAsync(alert)
 
-	// Create incident for critical alerts
+	// Create incident for critical alerts (separate lock)
 	if alert.Severity == "critical" {
-		as.createIncident(alert)
+		as.createIncidentAsync(alert)
 	}
 
-	// Update metrics
+	// Update metrics (no locks)
 	metrics.AlertsTotal.WithLabelValues(rule.Name, rule.Severity, "firing").Inc()
 }
 
-// SendNotification sends notifications for an alert
-func (as *AlertingService) sendNotification(alert *models.Alert) {
+// SendNotificationAsync sends notifications for an alert without holding locks
+func (as *AlertingService) sendNotificationAsync(alert *models.Alert) {
+	// Get channels snapshot
 	as.alertManager.Mutex.RLock()
-	channels := as.alertManager.NotificationChannels
+	channels := make([]models.NotificationChannel, len(as.alertManager.NotificationChannels))
+	copy(channels, as.alertManager.NotificationChannels)
 	as.alertManager.Mutex.RUnlock()
 
 	for _, channel := range channels {
@@ -358,11 +369,8 @@ func (as *AlertingService) simulateNotificationSend(channel *models.Notification
 	return rand.Float64() < 0.95
 }
 
-// CreateIncident creates an incident from a critical alert
-func (as *AlertingService) createIncident(alert *models.Alert) {
-	as.alertManager.Mutex.Lock()
-	defer as.alertManager.Mutex.Unlock()
-
+// CreateIncidentAsync creates an incident from a critical alert without holding main lock
+func (as *AlertingService) createIncidentAsync(alert *models.Alert) {
 	incident := &models.Incident{
 		ID:              uuid.New().String(),
 		Title:           fmt.Sprintf("Critical Alert: %s", alert.RuleName),
@@ -390,7 +398,9 @@ func (as *AlertingService) createIncident(alert *models.Alert) {
 		},
 	}
 
+	as.alertManager.Mutex.Lock()
 	as.alertManager.Incidents[incident.ID] = incident
+	as.alertManager.Mutex.Unlock()
 
 	// Update metrics
 	metrics.IncidentsTotal.WithLabelValues(incident.Severity, incident.Status, incident.AffectedService).Inc()

@@ -63,6 +63,18 @@
             box-shadow: 0 4px 15px rgba(0, 255, 159, 0.3);
         }
 
+        .phase-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            background: linear-gradient(45deg, #9966ff, #ff6b6b);
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 5px;
+            box-shadow: 0 3px 10px rgba(153, 102, 255, 0.3);
+        }
+
         .monitoring-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -90,6 +102,15 @@
                 0 15px 40px rgba(0, 255, 159, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.2);
             border-color: #00d4ff;
+        }
+
+        .monitoring-card.phase6 {
+            border-color: #9966ff;
+            background: rgba(20, 10, 30, 0.8);
+        }
+
+        .monitoring-card.phase6:hover {
+            border-color: #ff6b6b;
         }
 
         .card-header {
@@ -145,6 +166,17 @@
             color: #000;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 255, 159, 0.3);
+        }
+
+        .test-btn.phase6 {
+            border-color: #9966ff;
+            color: #9966ff;
+        }
+
+        .test-btn.phase6:hover {
+            background: linear-gradient(45deg, #9966ff, #ff6b6b);
+            color: #000;
+            box-shadow: 0 5px 15px rgba(153, 102, 255, 0.3);
         }
 
         .response-area {
@@ -223,9 +255,62 @@
             <h1 class="title">Dinky Monitor</h1>
             <p class="subtitle">LGTM Stack Testing Dashboard</p>
             <div class="purpose-badge">Test Data Generator for Loki, Grafana, Tempo & Prometheus</div>
+            <div class="phase-badge">Phase 6: Multi-Service Simulation</div>
         </div>
 
         <div class="monitoring-grid">
+            <!-- Phase 6: Service Simulations -->
+            <div class="monitoring-card phase6">
+                <div class="card-header">
+                    <div class="card-icon">🎭</div>
+                    <div class="card-title">Service Simulations</div>
+                </div>
+                
+                <div class="test-section">
+                    <div class="test-title">Web & Static Services</div>
+                    <div class="test-buttons">
+                        <button class="test-btn phase6" 
+                            hx-post="http://localhost:3001/simulate/web-service" 
+                            hx-target="#simulation-response">
+                            🌐 Web Service
+                        </button>
+                        <button class="test-btn phase6" 
+                            hx-post="http://localhost:3001/simulate/static-site" 
+                            hx-target="#simulation-response">
+                            📁 Static Site
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <div class="test-title">API & Database Services</div>
+                    <div class="test-buttons">
+                        <button class="test-btn phase6" 
+                            hx-post="http://localhost:3001/simulate/api-service" 
+                            hx-target="#simulation-response">
+                            🔗 REST API
+                        </button>
+                        <button class="test-btn phase6" 
+                            hx-post="http://localhost:3001/simulate/database-service" 
+                            hx-target="#simulation-response">
+                            🗄️ Database App
+                        </button>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <div class="test-title">Microservices</div>
+                    <div class="test-buttons">
+                        <button class="test-btn phase6" 
+                            hx-post="http://localhost:3001/simulate/microservice" 
+                            hx-target="#simulation-response">
+                            ⚡ Microservice Mesh
+                        </button>
+                    </div>
+                    <div id="simulation-response" class="response-area">Click buttons above to simulate different hosted service types...</div>
+                </div>
+            </div>
+
             <!-- Prometheus Testing -->
             <div class="monitoring-card">
                 <div class="card-header">
@@ -397,38 +482,35 @@
                 <a href="http://localhost:8080" class="tool-link" target="_blank">Open Traefik</a>
             </div>
         </div>
-    </div>
 
-    <script>
-        // Add success/error classes based on response
-        document.body.addEventListener('htmx:afterRequest', function(event) {
-            const responseArea = event.target;
-            if (responseArea.classList.contains('response-area')) {
-                if (event.detail.xhr.status >= 200 && event.detail.xhr.status < 300) {
-                    responseArea.classList.add('success');
-                    responseArea.classList.remove('error');
-                } else {
-                    responseArea.classList.add('error');
-                    responseArea.classList.remove('success');
+        <script>
+            // Enhanced HTMX response handling
+            document.body.addEventListener('htmx:beforeRequest', function(evt) {
+                const target = document.getElementById(evt.detail.target.id);
+                if (target) {
+                    target.className = 'response-area loading';
+                    target.textContent = 'Loading...';
                 }
-            }
-        });
+            });
 
-        // Add loading indicator
-        document.body.addEventListener('htmx:beforeRequest', function(event) {
-            const responseArea = event.target;
-            if (responseArea.classList.contains('response-area')) {
-                responseArea.textContent = 'Loading...';
-                responseArea.classList.add('loading');
-            }
-        });
-
-        document.body.addEventListener('htmx:afterRequest', function(event) {
-            const responseArea = event.target;
-            if (responseArea.classList.contains('response-area')) {
-                responseArea.classList.remove('loading');
-            }
-        });
-    </script>
+            document.body.addEventListener('htmx:afterRequest', function(evt) {
+                const target = document.getElementById(evt.detail.target.id);
+                if (target) {
+                    if (evt.detail.successful) {
+                        target.className = 'response-area success';
+                        try {
+                            const response = JSON.parse(target.textContent);
+                            target.textContent = JSON.stringify(response, null, 2);
+                        } catch (e) {
+                            // Keep original response if not JSON
+                        }
+                    } else {
+                        target.className = 'response-area error';
+                        target.textContent = `Error ${evt.detail.xhr.status}: ${evt.detail.xhr.statusText}`;
+                    }
+                }
+            });
+        </script>
+    </div>
 </body>
 </html> 
