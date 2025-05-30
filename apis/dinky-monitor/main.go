@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -27,7 +28,70 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Phase 2: Enhanced logging context and correlation
+type LogContext struct {
+	RequestID   string `json:"request_id"`
+	TraceID     string `json:"trace_id"`
+	SpanID      string `json:"span_id"`
+	UserID      string `json:"user_id,omitempty"`
+	SessionID   string `json:"session_id,omitempty"`
+	ServiceName string `json:"service_name"`
+	Version     string `json:"version"`
+	Environment string `json:"environment"`
+}
+
+type LogEntry struct {
+	Level       string                 `json:"level"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Message     string                 `json:"message"`
+	Context     LogContext             `json:"context"`
+	Data        map[string]interface{} `json:"data,omitempty"`
+	Error       *LogErrorData          `json:"error,omitempty"`
+	Performance *PerformanceData       `json:"performance,omitempty"`
+	Business    *BusinessData          `json:"business,omitempty"`
+}
+
+type LogErrorData struct {
+	Type       string `json:"type"`
+	Code       string `json:"code"`
+	Message    string `json:"message"`
+	StackTrace string `json:"stack_trace,omitempty"`
+}
+
+type PerformanceData struct {
+	Duration       float64 `json:"duration_ms"`
+	MemoryUsage    int64   `json:"memory_usage_bytes"`
+	GoroutineCount int     `json:"goroutine_count"`
+	CPUPercent     float64 `json:"cpu_percent,omitempty"`
+}
+
+type BusinessData struct {
+	EventType  string                 `json:"event_type"`
+	EntityID   string                 `json:"entity_id,omitempty"`
+	EntityType string                 `json:"entity_type,omitempty"`
+	Action     string                 `json:"action"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metrics    map[string]float64     `json:"metrics,omitempty"`
+}
+
+// Context keys for request correlation
+type contextKey string
+
+const (
+	RequestIDKey contextKey = "request_id"
+	TraceIDKey   contextKey = "trace_id"
+	UserIDKey    contextKey = "user_id"
+	SessionIDKey contextKey = "session_id"
+	StartTimeKey contextKey = "start_time"
+)
+
 var (
+	// Service information
+	serviceName    = "dinky-monitor"
+	serviceVersion = "2.0.0-phase2"
+	environment    = "development"
+	startTime      = time.Now()
+
 	// Prometheus metrics
 	httpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -44,6 +108,32 @@ var (
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"method", "endpoint"},
+	)
+
+	// Phase 2: Enhanced log-based metrics
+	logEntriesTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "log_entries_total",
+			Help: "Total number of log entries by level and service",
+		},
+		[]string{"level", "service", "error_type"},
+	)
+
+	logProcessingDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "log_processing_duration_seconds",
+			Help:    "Time spent processing log entries",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0},
+		},
+		[]string{"operation", "log_level"},
+	)
+
+	errorsByCategory = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "errors_by_category_total",
+			Help: "Total errors categorized by type and severity",
+		},
+		[]string{"category", "severity", "source"},
 	)
 
 	customMetric = prometheus.NewGaugeVec(
@@ -145,6 +235,9 @@ func init() {
 	// Register Prometheus metrics
 	prometheus.MustRegister(httpRequestsTotal)
 	prometheus.MustRegister(httpRequestDuration)
+	prometheus.MustRegister(logEntriesTotal)
+	prometheus.MustRegister(logProcessingDuration)
+	prometheus.MustRegister(errorsByCategory)
 	prometheus.MustRegister(customMetric)
 	prometheus.MustRegister(errorCounter)
 	prometheus.MustRegister(userRegistrations)
@@ -158,18 +251,47 @@ func init() {
 	prometheus.MustRegister(errorRateGauge)
 }
 
+// Phase 2: Enhanced structured logging initialization
 func initLogger() {
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{"stdout"}
 	config.ErrorOutputPaths = []string{"stderr"}
 	config.EncoderConfig.TimeKey = "timestamp"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+	config.EncoderConfig.MessageKey = "message"
+	config.EncoderConfig.LevelKey = "level"
+	config.EncoderConfig.CallerKey = "caller"
+	config.EncoderConfig.StacktraceKey = "stacktrace"
+	config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+
+	// Enhanced field configuration for better log correlation
+	config.InitialFields = map[string]interface{}{
+		"service_name": serviceName,
+		"version":      serviceVersion,
+		"environment":  environment,
+		"node_id":      generateNodeID(),
+	}
 
 	var err error
-	logger, err = config.Build()
+	logger, err = config.Build(
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+	)
 	if err != nil {
 		log.Fatal("Failed to initialize logger:", err)
 	}
+
+	// Log startup information
+	LogBusinessEvent("service_startup", map[string]interface{}{
+		"startup_time": startTime,
+		"go_version":   runtime.Version(),
+		"num_cpu":      runtime.NumCPU(),
+	})
+}
+
+// Generate unique node identifier for service instance correlation
+func generateNodeID() string {
+	return fmt.Sprintf("%s-%d", serviceName, time.Now().Unix())
 }
 
 func initTracer() {
@@ -211,30 +333,6 @@ func initTracer() {
 
 	// Start continuous background metrics generation
 	startContinuousMetrics()
-}
-
-func prometheusMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		// Wrap response writer to capture status code
-		wrapped := &responseWriter{ResponseWriter: w, statusCode: 200}
-
-		next.ServeHTTP(wrapped, r)
-
-		duration := time.Since(start).Seconds()
-
-		httpRequestsTotal.WithLabelValues(
-			r.Method,
-			r.URL.Path,
-			strconv.Itoa(wrapped.statusCode),
-		).Inc()
-
-		httpRequestDuration.WithLabelValues(
-			r.Method,
-			r.URL.Path,
-		).Observe(duration)
-	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -549,8 +647,6 @@ func simulateServiceCall(ctx context.Context, serviceName string, duration time.
 		)
 	}
 }
-
-var startTime = time.Now()
 
 func docsHandler(w http.ResponseWriter, r *http.Request) {
 	_, span := tracer.Start(r.Context(), "api_docs")
@@ -1090,6 +1186,318 @@ func startContinuousMetrics() {
 	}()
 }
 
+// Phase 2: Enhanced Logging Helper Functions
+
+// Create log context from HTTP request
+func createLogContext(r *http.Request) LogContext {
+	requestID := getOrCreateRequestID(r)
+	traceID := extractTraceID(r.Context())
+
+	return LogContext{
+		RequestID:   requestID,
+		TraceID:     traceID,
+		SpanID:      extractSpanID(r.Context()),
+		UserID:      extractUserID(r),
+		SessionID:   extractSessionID(r),
+		ServiceName: serviceName,
+		Version:     serviceVersion,
+		Environment: environment,
+	}
+}
+
+// Get or create request ID
+func getOrCreateRequestID(r *http.Request) string {
+	// Check if request ID already exists in context
+	if reqID := r.Context().Value(RequestIDKey); reqID != nil {
+		if id, ok := reqID.(string); ok {
+			return id
+		}
+	}
+
+	// Check X-Request-ID header
+	if reqID := r.Header.Get("X-Request-ID"); reqID != "" {
+		return reqID
+	}
+
+	// Generate new request ID
+	return uuid.New().String()
+}
+
+// Extract trace ID from OpenTelemetry context
+func extractTraceID(ctx context.Context) string {
+	span := oteltrace.SpanFromContext(ctx)
+	if span != nil && span.SpanContext().IsValid() {
+		return span.SpanContext().TraceID().String()
+	}
+	return ""
+}
+
+// Extract span ID from OpenTelemetry context
+func extractSpanID(ctx context.Context) string {
+	span := oteltrace.SpanFromContext(ctx)
+	if span != nil && span.SpanContext().IsValid() {
+		return span.SpanContext().SpanID().String()
+	}
+	return ""
+}
+
+// Extract user ID from request (headers, JWT, etc.)
+func extractUserID(r *http.Request) string {
+	// Check X-User-ID header
+	if userID := r.Header.Get("X-User-ID"); userID != "" {
+		return userID
+	}
+
+	// For demo purposes, simulate user ID extraction
+	if userID := r.URL.Query().Get("user_id"); userID != "" {
+		return userID
+	}
+
+	return ""
+}
+
+// Extract session ID from request
+func extractSessionID(r *http.Request) string {
+	// Check X-Session-ID header
+	if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+		return sessionID
+	}
+
+	// Check for session cookie
+	if cookie, err := r.Cookie("session_id"); err == nil {
+		return cookie.Value
+	}
+
+	return ""
+}
+
+// Enhanced structured logging functions
+func LogWithContext(level zapcore.Level, ctx context.Context, message string, fields ...zap.Field) {
+	start := time.Now()
+	defer func() {
+		logProcessingDuration.WithLabelValues("log_with_context", level.String()).Observe(time.Since(start).Seconds())
+	}()
+
+	// Extract correlation context
+	var logCtx LogContext
+	if r := ctx.Value("request"); r != nil {
+		if req, ok := r.(*http.Request); ok {
+			logCtx = createLogContext(req)
+		}
+	}
+
+	// Increment log metrics
+	errorType := "none"
+	if level == zapcore.ErrorLevel {
+		for _, field := range fields {
+			if field.Key == "error_type" {
+				errorType = field.String
+				break
+			}
+		}
+	}
+
+	logEntriesTotal.WithLabelValues(level.String(), serviceName, errorType).Inc()
+
+	// Add correlation fields
+	allFields := append(fields,
+		zap.String("request_id", logCtx.RequestID),
+		zap.String("trace_id", logCtx.TraceID),
+		zap.String("span_id", logCtx.SpanID),
+		zap.String("user_id", logCtx.UserID),
+		zap.String("session_id", logCtx.SessionID),
+	)
+
+	switch level {
+	case zapcore.DebugLevel:
+		logger.Debug(message, allFields...)
+	case zapcore.InfoLevel:
+		logger.Info(message, allFields...)
+	case zapcore.WarnLevel:
+		logger.Warn(message, allFields...)
+	case zapcore.ErrorLevel:
+		logger.Error(message, allFields...)
+	}
+}
+
+// Business event logging
+func LogBusinessEvent(eventType string, data map[string]interface{}) {
+	start := time.Now()
+	defer func() {
+		logProcessingDuration.WithLabelValues("business_event", "info").Observe(time.Since(start).Seconds())
+	}()
+
+	logEntriesTotal.WithLabelValues("info", serviceName, "none").Inc()
+
+	fields := []zap.Field{
+		zap.String("event_type", eventType),
+		zap.String("category", "business"),
+		zap.Any("data", data),
+		zap.Time("event_timestamp", time.Now()),
+	}
+
+	logger.Info("Business event", fields...)
+}
+
+// Performance logging
+func LogPerformance(operation string, duration time.Duration, additionalData map[string]interface{}) {
+	start := time.Now()
+	defer func() {
+		logProcessingDuration.WithLabelValues("performance", "info").Observe(time.Since(start).Seconds())
+	}()
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	logEntriesTotal.WithLabelValues("info", serviceName, "none").Inc()
+
+	fields := []zap.Field{
+		zap.String("operation", operation),
+		zap.Duration("duration", duration),
+		zap.Float64("duration_ms", float64(duration.Nanoseconds())/1e6),
+		zap.Int64("memory_alloc", int64(m.Alloc)),
+		zap.Int64("memory_sys", int64(m.Sys)),
+		zap.Int("goroutines", runtime.NumGoroutine()),
+		zap.String("category", "performance"),
+	}
+
+	if additionalData != nil {
+		fields = append(fields, zap.Any("additional_data", additionalData))
+	}
+
+	logger.Info("Performance metric", fields...)
+}
+
+// Error logging with categorization
+func LogError(ctx context.Context, errorType, errorCode, message string, err error, additionalData map[string]interface{}) {
+	start := time.Now()
+	defer func() {
+		logProcessingDuration.WithLabelValues("error", "error").Observe(time.Since(start).Seconds())
+	}()
+
+	logEntriesTotal.WithLabelValues("error", serviceName, errorType).Inc()
+	errorsByCategory.WithLabelValues(errorType, "high", serviceName).Inc()
+
+	fields := []zap.Field{
+		zap.String("error_type", errorType),
+		zap.String("error_code", errorCode),
+		zap.String("category", "error"),
+	}
+
+	if err != nil {
+		fields = append(fields, zap.Error(err))
+	}
+
+	if additionalData != nil {
+		fields = append(fields, zap.Any("additional_data", additionalData))
+	}
+
+	LogWithContext(zapcore.ErrorLevel, ctx, message, fields...)
+}
+
+// Phase 2: Enhanced request correlation middleware
+func requestCorrelationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Create or extract request ID
+		requestID := getOrCreateRequestID(r)
+
+		// Create enhanced context with correlation data
+		ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
+		ctx = context.WithValue(ctx, StartTimeKey, start)
+		ctx = context.WithValue(ctx, "request", r)
+
+		// Add request ID to response headers for client correlation
+		w.Header().Set("X-Request-ID", requestID)
+
+		// Create new request with enriched context
+		r = r.WithContext(ctx)
+
+		// Log request start
+		LogWithContext(zapcore.InfoLevel, ctx, "Request started",
+			zap.String("method", r.Method),
+			zap.String("path", r.URL.Path),
+			zap.String("query", r.URL.RawQuery),
+			zap.String("user_agent", r.UserAgent()),
+			zap.String("remote_addr", r.RemoteAddr),
+			zap.String("referer", r.Referer()),
+		)
+
+		// Wrap response writer to capture response data
+		wrapped := &enhancedResponseWriter{
+			ResponseWriter: w,
+			statusCode:     200,
+			bytesWritten:   0,
+			startTime:      start,
+		}
+
+		// Process request
+		next.ServeHTTP(wrapped, r)
+
+		// Log request completion
+		duration := time.Since(start)
+		LogWithContext(zapcore.InfoLevel, ctx, "Request completed",
+			zap.Int("status_code", wrapped.statusCode),
+			zap.Duration("duration", duration),
+			zap.Float64("duration_ms", float64(duration.Nanoseconds())/1e6),
+			zap.Int64("response_size", wrapped.bytesWritten),
+			zap.Float64("response_size_kb", float64(wrapped.bytesWritten)/1024),
+		)
+
+		// Log performance metrics
+		LogPerformance("http_request", duration, map[string]interface{}{
+			"method":        r.Method,
+			"path":          r.URL.Path,
+			"status_code":   wrapped.statusCode,
+			"response_size": wrapped.bytesWritten,
+		})
+	})
+}
+
+// Enhanced response writer for better observability
+type enhancedResponseWriter struct {
+	http.ResponseWriter
+	statusCode   int
+	bytesWritten int64
+	startTime    time.Time
+}
+
+func (rw *enhancedResponseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *enhancedResponseWriter) Write(data []byte) (int, error) {
+	n, err := rw.ResponseWriter.Write(data)
+	rw.bytesWritten += int64(n)
+	return n, err
+}
+
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Wrap response writer to capture status code
+		wrapped := &responseWriter{ResponseWriter: w, statusCode: 200}
+
+		next.ServeHTTP(wrapped, r)
+
+		duration := time.Since(start).Seconds()
+
+		httpRequestsTotal.WithLabelValues(
+			r.Method,
+			r.URL.Path,
+			strconv.Itoa(wrapped.statusCode),
+		).Inc()
+
+		httpRequestDuration.WithLabelValues(
+			r.Method,
+			r.URL.Path,
+		).Observe(duration)
+	})
+}
+
 func main() {
 	initLogger()
 	defer logger.Sync()
@@ -1106,9 +1514,12 @@ func main() {
 
 	r := mux.NewRouter()
 
-	// Add CORS middleware first
+	// Phase 2: Enhanced middleware stack
+	// Add request correlation middleware first for enhanced logging
+	r.Use(requestCorrelationMiddleware)
+	// Add CORS middleware
 	r.Use(corsMiddleware)
-	// Add Prometheus middleware
+	// Add Prometheus middleware for metrics
 	r.Use(prometheusMiddleware)
 
 	// Health and info endpoints
@@ -1123,6 +1534,11 @@ func main() {
 	r.HandleFunc("/test/memory", memoryLoadHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/test/trace", distributedTraceHandler).Methods("POST", "OPTIONS")
 
+	// Phase 2: Enhanced logging test endpoints
+	r.HandleFunc("/test/structured_logs", generateStructuredLogsHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/log_correlation", testLogCorrelationHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/test/error_categorization", testErrorCategorizationHandler).Methods("POST", "OPTIONS")
+
 	// Prometheus metrics endpoint
 	r.Handle("/metrics", promhttp.Handler())
 
@@ -1135,11 +1551,201 @@ func main() {
 	// Add docs handler
 	r.HandleFunc("/docs", docsHandler).Methods("GET")
 
-	// Add new endpoints
+	// Phase 1 endpoints
 	r.HandleFunc("/test/business_metrics", generateBusinessMetricsHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/test/system_metrics", generateSystemMetricsHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/test/load_simulation", simulateLoadHandler).Methods("POST", "OPTIONS")
 
-	logger.Info("Server starting on port 8080")
+	LogBusinessEvent("server_ready", map[string]interface{}{
+		"port":             "8080",
+		"endpoints":        15,
+		"middlewares":      []string{"requestCorrelation", "cors", "prometheus"},
+		"ready_time":       time.Now(),
+		"startup_duration": time.Since(startTime).String(),
+	})
+
+	logger.Info("Phase 2 Enhanced Server starting on port 8080",
+		zap.String("service", serviceName),
+		zap.String("version", serviceVersion),
+		zap.Duration("startup_time", time.Since(startTime)),
+	)
 	log.Fatal(http.ListenAndServe(":8080", r))
+}
+
+// Phase 2: Enhanced Logging Test Handlers
+
+// Generate structured logs with correlation
+func generateStructuredLogsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "generate_structured_logs")
+	defer span.End()
+
+	// Log various structured events with correlation
+	LogWithContext(zapcore.InfoLevel, ctx, "User registration event",
+		zap.String("event_type", "user_registration"),
+		zap.String("user_email", "user@example.com"),
+		zap.String("plan_type", "premium"),
+		zap.String("source", "web"),
+	)
+
+	LogWithContext(zapcore.InfoLevel, ctx, "Order processing event",
+		zap.String("event_type", "order_processing"),
+		zap.String("order_id", "ORD-12345"),
+		zap.Float64("amount", 99.99),
+		zap.String("currency", "USD"),
+		zap.String("status", "processing"),
+	)
+
+	LogWithContext(zapcore.WarnLevel, ctx, "Rate limit warning",
+		zap.String("event_type", "rate_limit_warning"),
+		zap.String("client_ip", r.RemoteAddr),
+		zap.Int("current_requests", 85),
+		zap.Int("limit", 100),
+	)
+
+	LogBusinessEvent("structured_logs_generated", map[string]interface{}{
+		"log_count":    3,
+		"log_types":    []string{"user_registration", "order_processing", "rate_limit_warning"},
+		"generated_at": time.Now(),
+	})
+
+	span.SetAttributes(
+		attribute.Int("logs.generated", 3),
+		attribute.String("logs.type", "structured"),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":        "Generated 3 structured log entries with correlation",
+		"status":         "success",
+		"request_id":     r.Context().Value(RequestIDKey),
+		"logs_generated": 3,
+	})
+}
+
+// Test log correlation across multiple operations
+func testLogCorrelationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_log_correlation")
+	defer span.End()
+
+	// Simulate a complex business operation with multiple steps
+	operationID := uuid.New().String()
+
+	LogWithContext(zapcore.InfoLevel, ctx, "Starting complex operation",
+		zap.String("operation_id", operationID),
+		zap.String("operation_type", "order_fulfillment"),
+		zap.String("phase", "initiation"),
+	)
+
+	// Simulate step 1: Validate order
+	time.Sleep(50 * time.Millisecond)
+	LogWithContext(zapcore.InfoLevel, ctx, "Order validation completed",
+		zap.String("operation_id", operationID),
+		zap.String("phase", "validation"),
+		zap.Bool("validation_passed", true),
+		zap.Duration("step_duration", 50*time.Millisecond),
+	)
+
+	// Simulate step 2: Process payment
+	time.Sleep(100 * time.Millisecond)
+	LogWithContext(zapcore.InfoLevel, ctx, "Payment processing completed",
+		zap.String("operation_id", operationID),
+		zap.String("phase", "payment"),
+		zap.String("payment_gateway", "stripe"),
+		zap.String("transaction_id", "txn_"+operationID[:8]),
+		zap.Duration("step_duration", 100*time.Millisecond),
+	)
+
+	// Simulate step 3: Update inventory
+	time.Sleep(30 * time.Millisecond)
+	LogWithContext(zapcore.InfoLevel, ctx, "Inventory updated",
+		zap.String("operation_id", operationID),
+		zap.String("phase", "inventory"),
+		zap.Int("items_updated", 3),
+		zap.Duration("step_duration", 30*time.Millisecond),
+	)
+
+	LogWithContext(zapcore.InfoLevel, ctx, "Complex operation completed",
+		zap.String("operation_id", operationID),
+		zap.String("phase", "completion"),
+		zap.Duration("total_duration", 180*time.Millisecond),
+	)
+
+	LogPerformance("order_fulfillment", 180*time.Millisecond, map[string]interface{}{
+		"operation_id":      operationID,
+		"steps_completed":   3,
+		"total_duration_ms": 180,
+	})
+
+	span.SetAttributes(
+		attribute.String("operation.id", operationID),
+		attribute.String("operation.type", "order_fulfillment"),
+		attribute.Int("operation.steps", 3),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":            "Log correlation test completed",
+		"status":             "success",
+		"operation_id":       operationID,
+		"request_id":         r.Context().Value(RequestIDKey),
+		"steps_logged":       4,
+		"correlation_fields": []string{"operation_id", "request_id", "trace_id"},
+	})
+}
+
+// Test error categorization and structured error logging
+func testErrorCategorizationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, span := tracer.Start(r.Context(), "test_error_categorization")
+	defer span.End()
+
+	// Generate different categories of errors
+	errorCategories := []struct {
+		category string
+		code     string
+		message  string
+		severity string
+	}{
+		{"validation", "VAL001", "Invalid email format provided", "medium"},
+		{"database", "DB002", "Connection timeout to user database", "high"},
+		{"network", "NET003", "External API timeout", "medium"},
+		{"security", "SEC004", "Invalid authentication token", "high"},
+		{"business", "BIZ005", "Insufficient account balance", "low"},
+	}
+
+	for i, errInfo := range errorCategories {
+		// Create a test error
+		testErr := fmt.Errorf("simulated %s error: %s", errInfo.category, errInfo.message)
+
+		LogError(ctx, errInfo.category, errInfo.code, errInfo.message, testErr, map[string]interface{}{
+			"severity":    errInfo.severity,
+			"error_index": i,
+			"simulation":  true,
+		})
+
+		// Update error metrics
+		errorsByCategory.WithLabelValues(errInfo.category, errInfo.severity, serviceName).Inc()
+
+		// Small delay to spread out the logs
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	LogBusinessEvent("error_categorization_test", map[string]interface{}{
+		"errors_generated":  len(errorCategories),
+		"categories":        []string{"validation", "database", "network", "security", "business"},
+		"test_completed_at": time.Now(),
+	})
+
+	span.SetAttributes(
+		attribute.Int("errors.generated", len(errorCategories)),
+		attribute.String("test.type", "error_categorization"),
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":          "Error categorization test completed",
+		"status":           "success",
+		"errors_generated": len(errorCategories),
+		"categories":       []string{"validation", "database", "network", "security", "business"},
+		"request_id":       r.Context().Value(RequestIDKey),
+	})
 }
