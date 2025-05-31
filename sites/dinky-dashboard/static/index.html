@@ -8,6 +8,66 @@
     <script>
         // Configure HTMX 2.0 for cross-origin requests
         htmx.config.selfRequestsOnly = false;
+        
+        // Global config object
+        window.DINKY_CONFIG = null;
+        
+        // Load configuration from API
+        async function loadConfiguration() {
+            try {
+                // Try multiple potential API endpoints based on hostname
+                const configEndpoints = [
+                    `http://${window.location.hostname}:3001/config`,  // Same host, different port
+                    'http://dinky-monitor:3001/config',                // Docker container name
+                    'http://localhost:3001/config'                     // Fallback to localhost
+                ];
+                
+                for (const endpoint of configEndpoints) {
+                    try {
+                        const response = await fetch(endpoint);
+                        if (response.ok) {
+                            window.DINKY_CONFIG = await response.json();
+                            console.log('Configuration loaded from:', endpoint, window.DINKY_CONFIG);
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load config from:', endpoint, e.message);
+                    }
+                }
+                
+                // Fallback configuration
+                console.warn('Using fallback configuration');
+                window.DINKY_CONFIG = {
+                    api_base_url: 'http://localhost:3001',
+                    version: 'unknown',
+                    environment: 'development'
+                };
+            } catch (error) {
+                console.error('Configuration loading failed:', error);
+                window.DINKY_CONFIG = {
+                    api_base_url: 'http://localhost:3001',
+                    version: 'unknown',
+                    environment: 'development'
+                };
+            }
+        }
+        
+        // Set API URLs for HTMX buttons
+        function updateHTMXEndpoints() {
+            if (!window.DINKY_CONFIG) return;
+            
+            const buttons = document.querySelectorAll('button[data-endpoint]');
+            buttons.forEach(button => {
+                const endpoint = button.getAttribute('data-endpoint');
+                button.setAttribute('hx-get', window.DINKY_CONFIG.api_base_url + endpoint);
+            });
+        }
+        
+        // Initialize configuration on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadConfiguration();
+            updateHTMXEndpoints();
+        });
     </script>
     <style>
         :root {
@@ -197,7 +257,7 @@
                 <div class="test-grid">
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-lgtm-integration" 
+                                data-endpoint="/test-lgtm-integration"
                                 hx-target="#response">
                             Test LGTM
                         </button>
@@ -205,7 +265,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-grafana-dashboards" 
+                                data-endpoint="/test-grafana-dashboards"
                                 hx-target="#response">
                             Dashboards
                         </button>
@@ -213,7 +273,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-alert-rules" 
+                                data-endpoint="/test-alert-rules"
                                 hx-target="#response">
                             Alert Rules
                         </button>
@@ -227,7 +287,7 @@
                 <div class="test-grid">
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-metrics-scale" 
+                                data-endpoint="/test-metrics-scale"
                                 hx-target="#response">
                             Metrics Scale
                         </button>
@@ -235,7 +295,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-logs-scale" 
+                                data-endpoint="/test-logs-scale"
                                 hx-target="#response">
                             Logs Scale
                         </button>
@@ -243,7 +303,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-traces-scale" 
+                                data-endpoint="/test-traces-scale"
                                 hx-target="#response">
                             Traces Scale
                         </button>
@@ -251,7 +311,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-dashboard-load" 
+                                data-endpoint="/test-dashboard-load"
                                 hx-target="#response">
                             Dashboard Load
                         </button>
@@ -259,7 +319,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-resource-usage" 
+                                data-endpoint="/test-resource-usage"
                                 hx-target="#response">
                             Resource Usage
                         </button>
@@ -267,7 +327,7 @@
                     </div>
                     <div class="test-item">
                         <button class="test-button" 
-                                hx-get="http://localhost:3001/test-storage-limits" 
+                                data-endpoint="/test-storage-limits"
                                 hx-target="#response">
                             Storage Limits
                         </button>

@@ -9,6 +9,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_SERVICE_NAME=dinky-monitor
       - OTEL_SERVICE_VERSION=v2.0.0
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SERVICE_VERSION=${SERVICE_VERSION:-v2.0.0}
+      - SERVER_IP=${SERVER_IP:-}
     networks:
       - traefik_network
     labels:

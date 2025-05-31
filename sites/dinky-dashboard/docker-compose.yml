@@ -17,6 +17,9 @@ services:
     environment:
       - SITE_NAME=Dinky Dashboard
       - VERSION=1.0.0
+      - SERVER_IP=${SERVER_IP:-localhost}
+    env_file:
+      - .env
 
 networks:
   traefik_network:

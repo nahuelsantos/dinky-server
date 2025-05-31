@@ -105,6 +105,21 @@ func main() {
 		w.Write([]byte("<p style='color: green;'>✅ HTMX connection working! Endpoint reached successfully.</p>"))
 	})
 
+	// Configuration endpoint for frontend
+	mux.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
+		config := map[string]interface{}{
+			"api_base_url": serviceConfig.GetAPIBaseURL(),
+			"version":      "v2.0.0",
+			"environment":  serviceConfig.Environment,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		if err := encodeJSON(w, config); err != nil {
+			http.Error(w, "Failed to encode config", http.StatusInternalServerError)
+		}
+	})
+
 	// Root endpoint
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		endpoints := map[string]string{
