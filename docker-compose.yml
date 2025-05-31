@@ -107,7 +107,7 @@ services:
 
   mail-api:
     image: ghcr.io/nahuelsantos/mail-api:latest
-    ccontainer_name: dinky-mail-api
+    container_name: dinky-mail-api
     restart: unless-stopped
     networks:
       - traefik_network
