@@ -16,7 +16,4 @@ else
   echo "Security check cron job already exists"
 fi
 
-# Run firewall setup to ensure rules are applied
-"$(dirname "$0")/setup-firewall.sh"
-
 echo "Security automation setup complete!" 

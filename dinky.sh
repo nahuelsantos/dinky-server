@@ -127,7 +127,7 @@ EOF
     echo -e "${CYAN}Main Menu:${NC}"
     echo -e "  ${GREEN}1.${NC} 🚀 Full Setup (System + Services) ${RED}🔐${NC}"
     echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only ${RED}🔐${NC}"
-    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only ${RED}🔐${NC}"
+    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Core Services + Dinky Monitor & Dashboard ${RED}🔐${NC}"
     echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service ${RED}🔐${NC}"
     echo -e "  ${GREEN}5.${NC} 🎯 Deploy All Services (Dinky + Examples) ${RED}🔐${NC}"
     echo -e "  ${GREEN}6.${NC} 🔍 Discover New Services"
@@ -403,6 +403,50 @@ source_deploy_functions() {
             sleep 10
             success "Core infrastructure deployed"
         fi
+        
+        # Deploy Dinky Monitor (Advanced Monitoring API)
+        step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
+        if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
+            cd "$SCRIPT_DIR/apis/dinky-monitor"
+            
+            # Copy .env if needed
+            if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+                info "Copying environment file for Dinky Monitor"
+                cp "$SCRIPT_DIR/.env" ".env"
+            fi
+            
+            if $DOCKER_COMPOSE up -d; then
+                success "Dinky Monitor deployed successfully!"
+            else
+                error "Failed to deploy Dinky Monitor"
+            fi
+            
+            cd "$SCRIPT_DIR"
+        else
+            warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
+        fi
+
+        # Deploy Dinky Dashboard (Advanced Observability Dashboard)
+        step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
+        if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
+            cd "$SCRIPT_DIR/sites/dinky-dashboard"
+            
+            # Copy .env if needed
+            if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+                info "Copying environment file for Dinky Dashboard"
+                cp "$SCRIPT_DIR/.env" ".env"
+            fi
+            
+            if $DOCKER_COMPOSE up -d; then
+                success "Dinky Dashboard deployed successfully!"
+            else
+                error "Failed to deploy Dinky Dashboard"
+            fi
+            
+            cd "$SCRIPT_DIR"
+        else
+            warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
+        fi
     }
 
     # Show deployment status
@@ -413,7 +457,7 @@ source_deploy_functions() {
         
         local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" | cut -d'=' -f2 2>/dev/null || hostname -I | awk '{print $1}')
         
-        echo -e "${WHITE}Service Access URLs:${NC}"
+        echo -e "${WHITE}Core Infrastructure URLs:${NC}"
         $INSTALL_PORTAINER && echo -e "  ${CYAN}Portainer:${NC} http://$server_ip:9000"
         $INSTALL_TRAEFIK && echo -e "  ${CYAN}Traefik Dashboard:${NC} http://$server_ip:8080"
         
@@ -429,10 +473,19 @@ source_deploy_functions() {
             echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
         fi
         
+        echo -e "\n${WHITE}Dinky Services URLs:${NC}"
+        echo -e "  ${CYAN}Dinky Monitor (Advanced):${NC} http://$server_ip:3001"
+        echo -e "    ${YELLOW}• System Metrics:${NC} http://$server_ip:3001/system"
+        echo -e "    ${YELLOW}• Docker Stats:${NC} http://$server_ip:3001/docker"
+        echo -e "    ${YELLOW}• Performance Tests:${NC} http://$server_ip:3001/test-metrics-scale"
+        echo -e "  ${CYAN}Dinky Dashboard (Control Center):${NC} http://$server_ip:3002"
+        echo -e "    ${YELLOW}• Real-time Monitoring:${NC} System metrics & LGTM stack testing"
+        
         echo -e "\n${WHITE}Next Steps:${NC}"
         $INSTALL_CLOUDFLARED && echo -e "  ${YELLOW}1.${NC} Update TUNNEL_ID in .env"
         $INSTALL_MAIL && echo -e "  ${YELLOW}2.${NC} Configure SMTP relay settings in .env"
-        echo -e "  ${YELLOW}3.${NC} Review security settings"
+        echo -e "  ${YELLOW}3.${NC} Visit Dinky Dashboard for comprehensive monitoring"
+        echo -e "  ${YELLOW}4.${NC} Review security settings"
         
         success "Deployment completed successfully!"
     }
@@ -496,7 +549,7 @@ handle_system_setup() {
 }
 
 handle_deploy_services() {
-    header "DEPLOY SERVICES ONLY"
+    header "DEPLOY CORE SERVICES + DINKY MONITOR & DASHBOARD"
     
     # Check prerequisites
     if [ ! -f "$SCRIPT_DIR/.env" ]; then
@@ -860,19 +913,36 @@ handle_discover_services() {
     
     if [ ${#DISCOVERED_SERVICES[@]} -gt 0 ]; then
         echo -e "\n${WHITE}New services found:${NC}"
-        for service in "${DISCOVERED_SERVICES[@]}"; do
-            IFS=':' read -r type name path <<< "$service"
-            echo -e "  ${CYAN}$type${NC}: $name"
+        
+        # Display services with numbers for selection
+        for i in "${!DISCOVERED_SERVICES[@]}"; do
+            IFS=':' read -r type name path <<< "${DISCOVERED_SERVICES[$i]}"
+            echo -e "  ${CYAN}$((i+1)).${NC} $type: $name"
         done
         
+        echo -e "\n${WHITE}Service Selection:${NC}"
+        echo -e "  ${CYAN}a${NC} - Deploy all services"
+        echo -e "  ${CYAN}s${NC} - Select specific services"
+        echo -e "  ${CYAN}n${NC} - Skip deployment"
         echo
-        read -p "Deploy these new services? (Y/n): " -n 1 -r
+        read -p "Choose option (a/s/n): " -n 1 -r
         echo
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            deploy_discovered_services
-        else
-            info "Skipping deployment of new services"
-        fi
+        
+        case $REPLY in
+            a|A)
+                info "Deploying all discovered services..."
+                deploy_discovered_services "${DISCOVERED_SERVICES[@]}"
+                ;;
+            s|S)
+                select_and_deploy_services
+                ;;
+            n|N)
+                info "Skipping deployment of new services"
+                ;;
+            *)
+                warning "Invalid option. Skipping deployment."
+                ;;
+        esac
     else
         info "No new services found"
     fi
@@ -881,19 +951,82 @@ handle_discover_services() {
     read -p "Press Enter to return to main menu..."
 }
 
-# Deploy discovered services
+# Function to select specific services for deployment
+select_and_deploy_services() {
+    echo -e "\n${WHITE}Select services to deploy:${NC}"
+    echo -e "${YELLOW}Enter service numbers separated by spaces (e.g., 1 3 5), or 'all' for all services${NC}"
+    
+    # Display services again for reference
+    for i in "${!DISCOVERED_SERVICES[@]}"; do
+        IFS=':' read -r type name path <<< "${DISCOVERED_SERVICES[$i]}"
+        echo -e "  ${CYAN}$((i+1)).${NC} $type: $name"
+    done
+    
+    echo
+    read -p "Enter your selection: " selection
+    
+    if [ -z "$selection" ]; then
+        info "No services selected. Skipping deployment."
+        return
+    fi
+    
+    # Parse selection
+    local services_to_deploy=()
+    
+    if [ "$selection" = "all" ]; then
+        services_to_deploy=("${DISCOVERED_SERVICES[@]}")
+        info "Selected all services for deployment"
+    else
+        # Parse numbers
+        for num in $selection; do
+            # Validate number
+            if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le "${#DISCOVERED_SERVICES[@]}" ]; then
+                local index=$((num-1))
+                services_to_deploy+=("${DISCOVERED_SERVICES[$index]}")
+                IFS=':' read -r type name path <<< "${DISCOVERED_SERVICES[$index]}"
+                info "Selected: $type - $name"
+            else
+                warning "Invalid selection: $num (ignoring)"
+            fi
+        done
+    fi
+    
+    if [ ${#services_to_deploy[@]} -eq 0 ]; then
+        warning "No valid services selected. Skipping deployment."
+        return
+    fi
+    
+    echo -e "\n${WHITE}Services to deploy:${NC}"
+    for service in "${services_to_deploy[@]}"; do
+        IFS=':' read -r type name path <<< "$service"
+        echo -e "  ${CYAN}$type${NC}: $name"
+    done
+    
+    echo
+    read -p "Proceed with deployment? (Y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        deploy_discovered_services "${services_to_deploy[@]}"
+    else
+        info "Deployment cancelled"
+    fi
+}
+
+# Deploy discovered services (updated to accept specific services)
 deploy_discovered_services() {
-    if [ ${#DISCOVERED_SERVICES[@]} -eq 0 ]; then
+    local services_to_deploy=("$@")
+    
+    if [ ${#services_to_deploy[@]} -eq 0 ]; then
         return 0
     fi
     
     detect_docker_compose
     
-    for service in "${DISCOVERED_SERVICES[@]}"; do
+    for service in "${services_to_deploy[@]}"; do
         IFS=':' read -r type name compose_file <<< "$service"
         local service_dir=$(dirname "$compose_file")
         
-        info "Deploying $type: $name"
+        step_banner "DEPLOYING $type: $name"
         
         # Change to service directory
         cd "$service_dir"
@@ -909,12 +1042,21 @@ deploy_discovered_services() {
         # Deploy the service
         if $DOCKER_COMPOSE up -d; then
             success "$type '$name' deployed successfully!"
+            
+            # Try to detect port from docker-compose file
+            local port=$(grep -E "^\s*-\s*\"[0-9]+:" "$compose_file" | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
+            if [ -n "$port" ]; then
+                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
+                echo -e "  ${CYAN}URL:${NC} http://$server_ip:$port"
+            fi
         else
             warning "Failed to deploy $type '$name'"
         fi
         
         cd "$SCRIPT_DIR"
     done
+    
+    success "Selected services deployment completed!"
 }
 
 handle_list_services() {

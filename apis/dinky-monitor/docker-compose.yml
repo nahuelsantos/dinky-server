@@ -1,6 +1,6 @@
 services:
   dinky-monitor:
-    image: dinky-monitor:4.0.0-phase4
+    build: .
     container_name: dinky-monitor
     restart: unless-stopped
     ports:
@@ -8,7 +8,7 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_SERVICE_NAME=dinky-monitor
-      - OTEL_SERVICE_VERSION=4.0.0-phase4
+      - OTEL_SERVICE_VERSION=v2.0.0
     networks:
       - traefik_network
     labels:
