@@ -12,11 +12,11 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy source code (with new refactored structure)
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dinky-monitor .
 
 # Final stage
 FROM alpine:latest
@@ -27,13 +27,19 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/main .
+COPY --from=builder /app/dinky-monitor .
 
-# Copy static files
-COPY --from=builder /app/static ./static
+# Copy static files if they exist
+RUN mkdir -p static html
+COPY --from=builder /app/static/ ./static/ 
+COPY --from=builder /app/html/ ./html/
 
-# Expose port
-EXPOSE 8080
+# Expose port 3001 (updated from 8080)
+EXPOSE 3001
+
+# Add labels for metadata
+LABEL version="2.0.0"
+LABEL description="Dinky Monitor - Comprehensive LGTM stack monitoring with performance testing"
 
 # Run the binary
-CMD ["./main"] 
+CMD ["./dinky-monitor"] 

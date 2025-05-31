@@ -56,7 +56,7 @@ services:
     environment:
       TZ: Europe/Madrid
       WEBPASSWORD: '${PIHOLE_PASSWORD}'
-      ServerIP: '192.168.3.2'
+      ServerIP: '${SERVER_IP:-localhost}'
       DNSMASQ_LISTENING: 'all'
       DNS1: '1.1.1.1'  # Cloudflare DNS
       DNS2: '8.8.8.8'  # Google DNS
@@ -146,7 +146,7 @@ services:
     image: prom/prometheus:v3.4.0
     restart: always
     ports:
-      - "192.168.3.2:9090:9090"
+      - "${SERVER_IP:-localhost}:9090:9090"
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
@@ -166,7 +166,7 @@ services:
     image: grafana/loki:3.5
     restart: always
     ports:
-      - "192.168.3.2:3100:3100"
+      - "${SERVER_IP:-localhost}:3100:3100"
     volumes:
       - ./monitoring/loki:/etc/loki
       - loki_data:/loki
@@ -193,7 +193,7 @@ services:
     image: grafana/tempo:2.7.2
     restart: always
     ports:
-      - "192.168.3.2:3200:3200"  # Tempo receiver
+      - "${SERVER_IP:-localhost}:3200:3200"  # Tempo receiver
     volumes:
       - ./monitoring/tempo:/etc/tempo
       - tempo_data:/var/tempo
@@ -206,7 +206,7 @@ services:
     image: grafana/pyroscope:1.13.4
     restart: always
     ports:
-      - "192.168.3.2:4040:4040"
+      - "${SERVER_IP:-localhost}:4040:4040"
     volumes:
       - ./monitoring/pyroscope:/etc/pyroscope
       - pyroscope_data:/var/lib/pyroscope
@@ -219,7 +219,7 @@ services:
     image: grafana/grafana:12.0.1
     restart: always
     ports:
-      - "192.168.3.2:3000:3000"
+      - "${SERVER_IP:-localhost}:3000:3000"
     volumes:
       - ./monitoring/grafana:/etc/grafana
       - grafana_data:/var/lib/grafana
@@ -243,9 +243,9 @@ services:
     image: otel/opentelemetry-collector-contrib:0.127.0
     restart: always
     ports:
-      - "192.168.3.2:4317:4317"  # OTLP gRPC
-      - "192.168.3.2:4318:4318"  # OTLP HTTP
-      - "192.168.3.2:8888:8888"  # Metrics endpoint
+      - "${SERVER_IP:-localhost}:4317:4317"  # OTLP gRPC
+      - "${SERVER_IP:-localhost}:4318:4318"  # OTLP HTTP
+      - "${SERVER_IP:-localhost}:8888:8888"  # Metrics endpoint
     volumes:
       - ./monitoring/otel-collector:/etc/otel-collector
     command: --config=/etc/otel-collector/otel-collector-config.yml
@@ -270,7 +270,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "192.168.3.2:8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
+      - "${SERVER_IP:-localhost}:8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
     networks:
       - traefik_network
     command:
@@ -291,7 +291,7 @@ services:
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "192.168.3.2:9100:9100"
+      - "${SERVER_IP:-localhost}:9100:9100"
     networks:
       - traefik_network
 
@@ -316,5 +316,5 @@ networks:
 
 x-common-variables: &common-variables
   DOMAIN_NAME: ${DOMAIN_NAME:-example.com}
-  SERVER_IP: ${SERVER_IP:-192.168.3.2}
+  SERVER_IP: ${SERVER_IP:-localhost}
   TZ: ${TZ:-Europe/Madrid}

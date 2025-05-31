@@ -44,3 +44,9 @@ scrape_configs:
   - job_name: "pyroscope"
     static_configs:
       - targets: ["pyroscope:4040"] 
+
+  - job_name: "dinky-monitor"
+    static_configs:
+      - targets: ["dinky-monitor:3001"]
+    scrape_interval: 5s
+    metrics_path: /metrics 

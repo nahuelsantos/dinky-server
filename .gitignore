@@ -16,6 +16,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+*.mdc
 
 # Docker volumes data
 **/volumes/
@@ -52,3 +53,4 @@ docs/.generated/
 # Runtime state files
 *.pid
 *.lock
+apis/dinky-monitor/dinky-monitor

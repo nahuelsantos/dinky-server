@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Get SERVER_IP from environment or use localhost as fallback
+SERVER_IP=${SERVER_IP:-localhost}
+
 # Create required directories
 mkdir -p monitoring/{prometheus,loki,promtail,tempo,pyroscope,grafana,otel-collector}
 mkdir -p monitoring/grafana/{dashboards,provisioning}
@@ -18,7 +21,7 @@ if ! grep -q "cadvisor:" docker-compose.yml; then
     echo "Adding cadvisor and node-exporter services..."
     
     # Create temporary file with just the service definitions
-    cat << 'EOF' > /tmp/monitoring-services.yml
+    cat << EOF > /tmp/monitoring-services.yml
 
   # Container Metrics (added by monitoring setup)
   cadvisor:
@@ -32,7 +35,7 @@ if ! grep -q "cadvisor:" docker-compose.yml; then
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "192.168.3.2:8080:8080" 
+      - "${SERVER_IP}:8082:8080" 
     networks:
       - traefik_network
     command:
@@ -53,7 +56,7 @@ if ! grep -q "cadvisor:" docker-compose.yml; then
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "192.168.3.2:9100:9100"
+      - "${SERVER_IP}:9100:9100"
     networks:
       - traefik_network
 EOF
@@ -86,10 +89,12 @@ echo "Start the monitoring stack with:"
 echo "docker compose up -d"
 echo ""
 echo "Access the interfaces at:"
-echo "- Grafana: http://192.168.3.2:3000"
-echo "- Prometheus: http://192.168.3.2:9090"
-echo "- Pyroscope: http://192.168.3.2:4040"
-echo "- Loki: http://192.168.3.2:3100"
+echo "- Grafana: http://${SERVER_IP}:3000"
+echo "- Prometheus: http://${SERVER_IP}:9090"
+echo "- Pyroscope: http://${SERVER_IP}:4040"
+echo "- Loki: http://${SERVER_IP}:3100"
+echo "- cAdvisor: http://${SERVER_IP}:8082"
+echo "- Node Exporter: http://${SERVER_IP}:9100"
 echo ""
 echo "Remember to set your Grafana admin password in the .env file."
 

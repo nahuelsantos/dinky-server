@@ -5,7 +5,7 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-
+  
 processors:
   batch:
     send_batch_size: 10000
@@ -72,4 +72,4 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resourcedetection]
-      exporters: [loki, debug] 
+      exporters: [loki, debug]
