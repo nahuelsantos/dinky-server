@@ -37,9 +37,9 @@ COPY --from=builder /app/html/ ./html/
 # Expose port 3001 (updated from 8080)
 EXPOSE 3001
 
-# Add labels for Phase 5
-LABEL version="5.0.0-phase5"
-LABEL description="Dinky Monitor - Phase 5: Intelligence & Analytics with ML"
+# Add labels for metadata
+LABEL version="2.0.0"
+LABEL description="Dinky Monitor - Comprehensive LGTM stack monitoring with performance testing"
 
 # Run the binary
 CMD ["./dinky-monitor"] 

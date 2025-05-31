@@ -142,7 +142,7 @@ clean: setup down ## Stop services and remove containers/volumes
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(YELLOW)Removing dinky-monitor images to force rebuild...$(NC)"
-	@docker images -q dinky-monitor:5.0.0-phase5 dinky-dev-dinky-monitor 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
+	@docker images -q dinky-monitor:latest dinky-dev-dinky-monitor 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
 	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
@@ -302,7 +302,7 @@ _create-dev-compose:
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3002:80\"" >> $(COMPOSE_FILE)
 	@echo "    volumes:" >> $(COMPOSE_FILE)
-	@echo "      - ./sites/dinky-dashboard/html:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
+	@echo "      - ./sites/dinky-dashboard/static:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)

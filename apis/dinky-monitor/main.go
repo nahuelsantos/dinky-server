@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Dinky Monitor Service v9.0.0-phase9...")
+	fmt.Println("Starting Dinky Monitor Service v2.0.0...")
 
 	// Initialize configuration
 	serviceConfig := config.GetServiceConfig()
@@ -53,14 +53,14 @@ func main() {
 	mux.HandleFunc("/cpu-load", basicHandlers.CPULoadHandler)
 	mux.HandleFunc("/memory-load", basicHandlers.MemoryLoadHandler)
 
-	// Phase 6: Multi-Service Simulation endpoints
+	// Multi-Service Simulation endpoints
 	mux.HandleFunc("/simulate/web-service", simulationHandlers.SimulateWebServiceHandler)
 	mux.HandleFunc("/simulate/api-service", simulationHandlers.SimulateAPIServiceHandler)
 	mux.HandleFunc("/simulate/database-service", simulationHandlers.SimulateDatabaseServiceHandler)
 	mux.HandleFunc("/simulate/static-site", simulationHandlers.SimulateStaticSiteHandler)
 	mux.HandleFunc("/simulate/microservice", simulationHandlers.SimulateMicroserviceHandler)
 
-	// Phase 7: Test data variety endpoints
+	// Test data variety endpoints
 	mux.HandleFunc("/generate-logs/json", testingHandlers.GenerateJSONLogsHandler)
 	mux.HandleFunc("/generate-logs/unstructured", testingHandlers.GenerateUnstructuredLogsHandler)
 	mux.HandleFunc("/generate-logs/mixed", testingHandlers.GenerateMixedLogsHandler)
@@ -69,18 +69,18 @@ func main() {
 	mux.HandleFunc("/simulate-service/nextjs", testingHandlers.SimulateNextJSServiceHandler)
 	mux.HandleFunc("/simulate-trace/cross-service", testingHandlers.SimulateCrossServiceTracingHandler)
 
-	// Phase 7: Integration testing endpoints
+	// Integration testing endpoints
 	mux.HandleFunc("/test-service-discovery", testingHandlers.TestServiceDiscoveryHandler)
 	mux.HandleFunc("/test-reverse-proxy", testingHandlers.TestReverseProxyHandler)
 	mux.HandleFunc("/test-ssl-monitoring", testingHandlers.TestSSLMonitoringHandler)
 	mux.HandleFunc("/test-domain-health", testingHandlers.TestDomainHealthHandler)
 
-	// Phase 8: LGTM Stack Configuration & Integration endpoints
+	// LGTM Stack Configuration & Integration endpoints
 	mux.HandleFunc("/test-lgtm-integration", integrationHandlers.TestLGTMIntegration)
 	mux.HandleFunc("/test-grafana-dashboards", integrationHandlers.TestGrafanaDashboards)
 	mux.HandleFunc("/test-alert-rules", integrationHandlers.TestAlertRules)
 
-	// Phase 9: LGTM Stack Performance & Scale Testing endpoints
+	// LGTM Stack Performance & Scale Testing endpoints
 	mux.HandleFunc("/test-metrics-scale", performanceHandlers.TestMetricsScale)
 	mux.HandleFunc("/test-logs-scale", performanceHandlers.TestLogsScale)
 	mux.HandleFunc("/test-traces-scale", performanceHandlers.TestTracesScale)
@@ -119,26 +119,26 @@ func main() {
 			"simulate/database-service":    "Simulate database-heavy application",
 			"simulate/static-site":         "Simulate static file serving (CDN-like)",
 			"simulate/microservice":        "Simulate microservice communication patterns",
-			"generate-logs/json":           "Phase 7: Generate structured JSON logs for Loki testing",
-			"generate-logs/unstructured":   "Phase 7: Generate unstructured plain text logs",
-			"generate-logs/mixed":          "Phase 7: Generate mixed format logs (JSON, key-value, text)",
-			"generate-logs/multiline":      "Phase 7: Generate multi-line logs (stack traces)",
-			"simulate-service/wordpress":   "Phase 7: Simulate WordPress-like service patterns",
-			"simulate-service/nextjs":      "Phase 7: Simulate Next.js-like service patterns",
-			"simulate-trace/cross-service": "Phase 7: Simulate cross-service tracing scenarios",
-			"test-service-discovery":       "Phase 7: Test service discovery and health monitoring",
-			"test-reverse-proxy":           "Phase 7: Test Traefik reverse proxy integration",
-			"test-ssl-monitoring":          "Phase 7: Test SSL certificate monitoring",
-			"test-domain-health":           "Phase 7: Test domain-specific health monitoring",
-			"test-lgtm-integration":        "Phase 8: Test complete LGTM stack integration",
-			"test-grafana-dashboards":      "Phase 8: Test Grafana dashboard availability",
-			"test-alert-rules":             "Phase 8: Test Prometheus alert rules configuration",
-			"test-metrics-scale":           "Phase 9: Test high-volume metrics generation and ingestion",
-			"test-logs-scale":              "Phase 9: Test high-volume log generation and processing",
-			"test-traces-scale":            "Phase 9: Test high-volume trace generation and storage",
-			"test-dashboard-load":          "Phase 9: Test dashboard performance under load",
-			"test-resource-usage":          "Phase 9: Monitor LGTM stack resource consumption",
-			"test-storage-limits":          "Phase 9: Test storage and retention capabilities",
+			"generate-logs/json":           "Generate structured JSON logs for Loki testing",
+			"generate-logs/unstructured":   "Generate unstructured plain text logs",
+			"generate-logs/mixed":          "Generate mixed format logs (JSON, key-value, text)",
+			"generate-logs/multiline":      "Generate multi-line logs (stack traces)",
+			"simulate-service/wordpress":   "Simulate WordPress-like service patterns",
+			"simulate-service/nextjs":      "Simulate Next.js-like service patterns",
+			"simulate-trace/cross-service": "Simulate cross-service tracing scenarios",
+			"test-service-discovery":       "Test service discovery and health monitoring",
+			"test-reverse-proxy":           "Test Traefik reverse proxy integration",
+			"test-ssl-monitoring":          "Test SSL certificate monitoring",
+			"test-domain-health":           "Test domain-specific health monitoring",
+			"test-lgtm-integration":        "Test complete LGTM stack integration",
+			"test-grafana-dashboards":      "Test Grafana dashboard availability",
+			"test-alert-rules":             "Test Prometheus alert rules configuration",
+			"test-metrics-scale":           "Test high-volume metrics generation and ingestion",
+			"test-logs-scale":              "Test high-volume log generation and processing",
+			"test-traces-scale":            "Test high-volume trace generation and storage",
+			"test-dashboard-load":          "Test dashboard performance under load",
+			"test-resource-usage":          "Monitor LGTM stack resource consumption",
+			"test-storage-limits":          "Test storage and retention capabilities",
 			"test-alert-rules-legacy":      "Test alert rules functionality (legacy)",
 			"test-fire-alert":              "Fire a test alert",
 			"test-incident-management":     "Test incident management workflow",
@@ -150,7 +150,7 @@ func main() {
 
 		response := map[string]interface{}{
 			"service":     serviceConfig.Name,
-			"version":     "v9.0.0-phase9",
+			"version":     "v2.0.0",
 			"purpose":     "LGTM stack performance & scale testing with production-grade load validation",
 			"description": "Testing Loki, Grafana, Tempo, and Prometheus with high-volume data and production workloads",
 			"features": []string{
@@ -230,12 +230,12 @@ func main() {
 	fmt.Println("  🔀 Reverse Proxy Testing (Phase 7)")
 	fmt.Println("  🔒 SSL Certificate Monitoring (Phase 7)")
 	fmt.Println("  🌐 Domain Health Monitoring (Phase 7)")
-	fmt.Println("\n📊 Phase 8: LGTM Stack Configuration & Integration Testing:")
+	fmt.Println("\n📊 LGTM Stack Configuration & Integration Testing:")
 	fmt.Println("   • /test-lgtm-integration - Comprehensive LGTM stack validation")
 	fmt.Println("   • /test-grafana-dashboards - Dashboard availability testing")
 	fmt.Println("   • /test-alert-rules - Prometheus alert rules validation")
 
-	fmt.Println("\n🚀 Phase 9: LGTM Stack Performance & Scale Testing:")
+	fmt.Println("\n🚀 LGTM Stack Performance & Scale Testing:")
 	fmt.Println("   • /test-metrics-scale - High-volume metrics generation and ingestion")
 	fmt.Println("   • /test-logs-scale - High-volume log generation and processing")
 	fmt.Println("   • /test-traces-scale - High-volume trace generation and storage")

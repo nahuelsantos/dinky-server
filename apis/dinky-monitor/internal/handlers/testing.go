@@ -86,7 +86,7 @@ func (th *TestingHandlers) GenerateJSONLogsHandler(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: JSON logs generated for Loki testing")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "JSON logs generated for Loki testing")
 }
 
 // GenerateUnstructuredLogsHandler tests Loki with plain text logs
@@ -140,7 +140,7 @@ func (th *TestingHandlers) GenerateUnstructuredLogsHandler(w http.ResponseWriter
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Unstructured logs generated for Loki testing")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Unstructured logs generated for Loki testing")
 }
 
 // GenerateMixedLogsHandler tests Loki with mixed format logs
@@ -193,7 +193,7 @@ func (th *TestingHandlers) GenerateMixedLogsHandler(w http.ResponseWriter, r *ht
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Mixed format logs generated for Loki testing")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Mixed format logs generated for Loki testing")
 }
 
 // GenerateMultilineLogsHandler tests Loki with multi-line logs (stack traces)
@@ -244,7 +244,7 @@ stripe.error.CardError: Your card was declined
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Multi-line stack traces generated for Loki testing")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Multi-line stack traces generated for Loki testing")
 }
 
 // SimulateWordPressServiceHandler tests monitoring stack with WordPress-like service patterns
@@ -294,7 +294,7 @@ func (th *TestingHandlers) SimulateWordPressServiceHandler(w http.ResponseWriter
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: WordPress service simulation completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "WordPress service simulation completed")
 }
 
 // SimulateNextJSServiceHandler tests monitoring stack with Next.js-like service patterns
@@ -362,7 +362,7 @@ func (th *TestingHandlers) SimulateNextJSServiceHandler(w http.ResponseWriter, r
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Next.js service simulation completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Next.js service simulation completed")
 }
 
 // SimulateCrossServiceTracingHandler tests Tempo with cross-service tracing scenarios
@@ -431,7 +431,7 @@ func (th *TestingHandlers) SimulateCrossServiceTracingHandler(w http.ResponseWri
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Cross-service tracing simulation completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Cross-service tracing simulation completed")
 }
 
 // TestServiceDiscoveryHandler tests service discovery and registration
@@ -519,7 +519,7 @@ func (th *TestingHandlers) TestServiceDiscoveryHandler(w http.ResponseWriter, r 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Service discovery testing completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Service discovery testing completed")
 }
 
 // TestReverseProxyHandler tests Traefik reverse proxy integration
@@ -611,7 +611,7 @@ func (th *TestingHandlers) TestReverseProxyHandler(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Reverse proxy testing completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Reverse proxy testing completed")
 }
 
 // TestSSLMonitoringHandler tests SSL certificate monitoring
@@ -707,7 +707,7 @@ func (th *TestingHandlers) TestSSLMonitoringHandler(w http.ResponseWriter, r *ht
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: SSL certificate monitoring completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "SSL certificate monitoring completed")
 }
 
 // TestDomainHealthHandler tests domain-specific health monitoring
@@ -805,5 +805,5 @@ func (th *TestingHandlers) TestDomainHealthHandler(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 
-	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Phase 7: Domain health monitoring completed")
+	th.loggingService.LogWithContext(zapcore.InfoLevel, r.Context(), "Domain health monitoring completed")
 }

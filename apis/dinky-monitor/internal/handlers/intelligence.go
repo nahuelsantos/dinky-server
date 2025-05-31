@@ -15,7 +15,7 @@ import (
 	"dinky-monitor/pkg/utils"
 )
 
-// IntelligenceHandler handles Phase 5 intelligence endpoints
+// IntelligenceHandler handles intelligence endpoints
 type IntelligenceHandler struct {
 	logger              *zap.Logger
 	intelligenceService *services.IntelligenceService
@@ -475,7 +475,7 @@ func (h *IntelligenceHandler) GetRecommendations(w http.ResponseWriter, r *http.
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
-// GetIntelligenceMetrics returns Phase 5 metrics
+// GetIntelligenceMetrics returns metrics
 func (h *IntelligenceHandler) GetIntelligenceMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

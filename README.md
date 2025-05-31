@@ -1,6 +1,6 @@
 # Dinky Server
 
-A comprehensive self-hosted server setup with monitoring, security, and service management - all through a single interactive script.
+A comprehensive self-hosted server setup with monitoring, security, and service management - all through a single interactive script with advanced LGTM stack performance testing and production-grade load validation capabilities.
 
 ## 🚀 Quick Start
 
@@ -27,6 +27,12 @@ That's it! The interactive menu will guide you through everything.
 - 📝 **Loki** - Log aggregation  
 - 🔍 **Tempo** - Distributed tracing
 - 🔥 **Pyroscope** - Performance profiling
+
+**Advanced Monitoring:**
+- 🚀 **Performance Testing** - High-volume metrics, logs, and traces scale testing
+- 📊 **Dashboard Load Testing** - Production-grade dashboard performance validation
+- 💾 **Storage Limits Testing** - Retention and compression ratio analysis
+- 🔍 **Resource Usage Monitoring** - Real-time LGTM stack resource consumption
 
 **Security Features:**
 - 🔥 UFW firewall + Fail2ban
@@ -130,6 +136,13 @@ The included Example API (port 3003) provides simple REST API demonstration:
 - **📊 System Metrics**: http://[SERVER_IP]:3001/system
 - **🐳 Docker Stats**: http://[SERVER_IP]:3001/docker
 - **💓 Health Check**: http://[SERVER_IP]:3001/health
+- **🔥 Performance Testing**:
+  - **Metrics Scale**: http://[SERVER_IP]:3001/test-metrics-scale
+  - **Logs Scale**: http://[SERVER_IP]:3001/test-logs-scale
+  - **Traces Scale**: http://[SERVER_IP]:3001/test-traces-scale
+  - **Dashboard Load**: http://[SERVER_IP]:3001/test-dashboard-load
+  - **Resource Usage**: http://[SERVER_IP]:3001/test-resource-usage
+  - **Storage Limits**: http://[SERVER_IP]:3001/test-storage-limits
 
 ## 🔍 Complete Port Reference
 

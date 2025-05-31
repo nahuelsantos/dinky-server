@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// Phase 5: Intelligence & Analytics Metrics
+// Intelligence & Analytics Metrics
 var (
 	AnomaliesDetectedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -87,7 +87,7 @@ var (
 	)
 )
 
-// RegisterIntelligenceMetrics registers Phase 5 metrics
+// RegisterIntelligenceMetrics registers metrics
 func RegisterIntelligenceMetrics() {
 	prometheus.MustRegister(
 		AnomaliesDetectedTotal,

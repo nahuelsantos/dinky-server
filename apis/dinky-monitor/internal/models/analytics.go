@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Phase 5: Intelligence & Analytics Models
+// Intelligence & Analytics Models
 
 // AnomalyDetectionModel represents ML model for anomaly detection
 type AnomalyDetectionModel struct {
@@ -257,7 +257,7 @@ type CostOptimization struct {
 	Priority    int     `json:"priority"`
 }
 
-// IntelligenceMetrics represents Phase 5 metrics
+// IntelligenceMetrics represents metrics
 type IntelligenceMetrics struct {
 	AnomaliesDetected       int64   `json:"anomalies_detected"`
 	PredictionsGenerated    int64   `json:"predictions_generated"`

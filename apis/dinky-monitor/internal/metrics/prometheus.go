@@ -92,7 +92,7 @@ var (
 		[]string{"service", "operation", "anomaly_type"},
 	)
 
-	// Phase 4: Alerting metrics
+	// Alerting metrics
 	AlertsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "alerts_total",

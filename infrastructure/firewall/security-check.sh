@@ -18,7 +18,7 @@ sudo grep "Failed password" /var/log/auth.log | grep sshd | sudo tee -a $LOG_FIL
 
 # Check for unusual open ports
 echo -e "\nUnusual open ports:" | sudo tee -a $LOG_FILE
-sudo netstat -tulpn | grep LISTEN | grep -v -E '(127.0.0.1|192.168.3.2)' | sudo tee -a $LOG_FILE
+sudo netstat -tulpn | grep LISTEN | grep -v -E '(127.0.0.1|::1)' | sudo tee -a $LOG_FILE
 
 # Check docker container status
 echo -e "\nDocker container status:" | sudo tee -a $LOG_FILE
