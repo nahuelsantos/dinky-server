@@ -52,7 +52,7 @@ func (ah *AlertingHandlers) TestAlertRulesHandler(w http.ResponseWriter, r *http
 		"rules":         rules,
 		"timestamp":     time.Now().Format(time.RFC3339),
 		"test_status":   "success",
-		"phase":         "4",
+		"service":       "dinky-monitor",
 		"functionality": "alert_management",
 	}
 
@@ -120,7 +120,7 @@ func (ah *AlertingHandlers) TestFireAlertHandler(w http.ResponseWriter, r *http.
 		"active_alerts": activeAlertsCount,
 		"timestamp":     time.Now().Format(time.RFC3339),
 		"test_status":   "success",
-		"phase":         "4",
+		"service":       "dinky-monitor",
 		"functionality": "alert_firing",
 	}
 
@@ -188,7 +188,7 @@ func (ah *AlertingHandlers) TestIncidentManagementHandler(w http.ResponseWriter,
 		"resolved_incidents": resolvedIncidents,
 		"timestamp":          time.Now().Format(time.RFC3339),
 		"test_status":        "success",
-		"phase":              "4",
+		"service":            "dinky-monitor",
 		"functionality":      "incident_management",
 	}
 
@@ -241,7 +241,7 @@ func (ah *AlertingHandlers) TestNotificationChannelsHandler(w http.ResponseWrite
 		"test_results":     testResults,
 		"timestamp":        time.Now().Format(time.RFC3339),
 		"test_status":      "success",
-		"phase":            "4",
+		"service":          "dinky-monitor",
 		"functionality":    "notification_channels",
 	}
 
@@ -272,7 +272,7 @@ func (ah *AlertingHandlers) GetActiveAlertsHandler(w http.ResponseWriter, r *htt
 		"recent_alerts": recentAlerts,
 		"recent_count":  len(recentAlerts),
 		"timestamp":     time.Now().Format(time.RFC3339),
-		"phase":         "4",
+		"service":       "dinky-monitor",
 		"functionality": "active_alerts_monitoring",
 	}
 
@@ -344,7 +344,7 @@ func (ah *AlertingHandlers) GetActiveIncidentsHandler(w http.ResponseWriter, r *
 		},
 		"mttr_minutes":  int(avgMTTR.Minutes()),
 		"timestamp":     time.Now().Format(time.RFC3339),
-		"phase":         "4",
+		"service":       "dinky-monitor",
 		"functionality": "incident_monitoring",
 	}
 

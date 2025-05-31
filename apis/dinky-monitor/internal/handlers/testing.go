@@ -13,7 +13,7 @@ import (
 	"dinky-monitor/internal/services"
 )
 
-// TestingHandlers contains Phase 7 testing handlers for LGTM stack validation
+// TestingHandlers contains testing handlers for LGTM stack validation
 type TestingHandlers struct {
 	loggingService *services.LoggingService
 	tracingService *services.TracingService
@@ -79,7 +79,7 @@ func (th *TestingHandlers) GenerateJSONLogsHandler(w http.ResponseWriter, r *htt
 		"sample_logs":    generatedLogs[:3], // Show first 3 as examples
 		"test_purpose":   "Validate Loki JSON log parsing",
 		"timestamp":      time.Now().Format(time.RFC3339),
-		"phase":          "7",
+		"service":        "dinky-monitor",
 		"functionality":  "loki_json_validation",
 	}
 
@@ -133,7 +133,7 @@ func (th *TestingHandlers) GenerateUnstructuredLogsHandler(w http.ResponseWriter
 		"sample_logs":    generatedLogs[:3],
 		"test_purpose":   "Validate Loki unstructured log parsing",
 		"timestamp":      time.Now().Format(time.RFC3339),
-		"phase":          "7",
+		"service":        "dinky-monitor",
 		"functionality":  "loki_unstructured_validation",
 	}
 
@@ -186,7 +186,7 @@ func (th *TestingHandlers) GenerateMixedLogsHandler(w http.ResponseWriter, r *ht
 		"sample_logs":    generatedLogs[:3],
 		"test_purpose":   "Validate Loki mixed format log parsing",
 		"timestamp":      time.Now().Format(time.RFC3339),
-		"phase":          "7",
+		"service":        "dinky-monitor",
 		"functionality":  "loki_mixed_validation",
 	}
 
@@ -237,7 +237,7 @@ stripe.error.CardError: Your card was declined
 		"generated_traces": generatedLogs,
 		"test_purpose":     "Validate Loki multi-line log parsing (stack traces)",
 		"timestamp":        time.Now().Format(time.RFC3339),
-		"phase":            "7",
+		"service":          "dinky-monitor",
 		"functionality":    "loki_multiline_validation",
 	}
 
@@ -287,7 +287,7 @@ func (th *TestingHandlers) SimulateWordPressServiceHandler(w http.ResponseWriter
 		"metrics_simulated": metrics,
 		"test_purpose":      "Validate LGTM stack with WordPress-like service patterns",
 		"timestamp":         time.Now().Format(time.RFC3339),
-		"phase":             "7",
+		"service":           "dinky-monitor",
 		"functionality":     "wordpress_service_validation",
 	}
 
@@ -355,7 +355,7 @@ func (th *TestingHandlers) SimulateNextJSServiceHandler(w http.ResponseWriter, r
 		"metrics_simulated":  metrics,
 		"test_purpose":       "Validate LGTM stack with Next.js-like service patterns",
 		"timestamp":          time.Now().Format(time.RFC3339),
-		"phase":              "7",
+		"service":            "dinky-monitor",
 		"functionality":      "nextjs_service_validation",
 	}
 
@@ -424,7 +424,7 @@ func (th *TestingHandlers) SimulateCrossServiceTracingHandler(w http.ResponseWri
 		"total_spans":      len(traceScenarios[0].services) + len(traceScenarios[1].services) + len(traceScenarios[2].services),
 		"test_purpose":     "Validate Tempo cross-service tracing capabilities",
 		"timestamp":        time.Now().Format(time.RFC3339),
-		"phase":            "7",
+		"service":          "dinky-monitor",
 		"functionality":    "tempo_tracing_validation",
 	}
 
@@ -512,7 +512,7 @@ func (th *TestingHandlers) TestServiceDiscoveryHandler(w http.ResponseWriter, r 
 		"failed_services":   1,
 		"test_purpose":      "Validate service discovery and health monitoring",
 		"timestamp":         time.Now().Format(time.RFC3339),
-		"phase":             "7",
+		"service":           "dinky-monitor",
 		"functionality":     "service_discovery_validation",
 	}
 
@@ -604,7 +604,7 @@ func (th *TestingHandlers) TestReverseProxyHandler(w http.ResponseWriter, r *htt
 		"load_balanced": len(routes),
 		"test_purpose":  "Validate Traefik reverse proxy configuration",
 		"timestamp":     time.Now().Format(time.RFC3339),
-		"phase":         "7",
+		"service":       "dinky-monitor",
 		"functionality": "reverse_proxy_validation",
 	}
 
@@ -700,7 +700,7 @@ func (th *TestingHandlers) TestSSLMonitoringHandler(w http.ResponseWriter, r *ht
 		"alerts_generated":     alertCount,
 		"test_purpose":         "Validate SSL certificate monitoring and alerting",
 		"timestamp":            time.Now().Format(time.RFC3339),
-		"phase":                "7",
+		"service":              "dinky-monitor",
 		"functionality":        "ssl_monitoring_validation",
 	}
 
@@ -798,7 +798,7 @@ func (th *TestingHandlers) TestDomainHealthHandler(w http.ResponseWriter, r *htt
 		"avg_response_time": (domains[0].responseTime + domains[1].responseTime + domains[2].responseTime) / 3,
 		"test_purpose":      "Validate domain health monitoring from multiple locations",
 		"timestamp":         time.Now().Format(time.RFC3339),
-		"phase":             "7",
+		"service":           "dinky-monitor",
 		"functionality":     "domain_health_validation",
 	}
 

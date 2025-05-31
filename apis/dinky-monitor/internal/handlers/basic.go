@@ -36,7 +36,7 @@ func (bh *BasicHandlers) HealthHandler(w http.ResponseWriter, r *http.Request) {
 		"status":    "healthy",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"uptime":    time.Since(time.Now().Add(-time.Hour)).String(), // Mock uptime
-		"version":   "4.0.0-phase4",
+		"version":   "v2.0.0",                                        // Use consistent version
 		"service":   "dinky-monitor",
 		"checks": map[string]string{
 			"database":     "ok",
