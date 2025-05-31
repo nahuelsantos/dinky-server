@@ -61,6 +61,9 @@
                 const endpoint = button.getAttribute('data-endpoint');
                 button.setAttribute('hx-get', window.DINKY_CONFIG.api_base_url + endpoint);
             });
+            
+            // Tell HTMX to process the newly added attributes
+            htmx.process(document.body);
         }
         
         // Initialize configuration on page load
