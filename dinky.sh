@@ -127,7 +127,7 @@ EOF
     echo -e "${CYAN}Main Menu:${NC}"
     echo -e "  ${GREEN}1.${NC} 🚀 Full Setup (System + Services) ${RED}🔐${NC}"
     echo -e "  ${GREEN}2.${NC} 🔧 System Setup Only ${RED}🔐${NC}"
-    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Core Services + Dinky Monitor & Dashboard ${RED}🔐${NC}"
+    echo -e "  ${GREEN}3.${NC} ⚡ Deploy Services Only ${RED}🔐${NC}"
     echo -e "  ${GREEN}4.${NC} 📦 Add Individual Service ${RED}🔐${NC}"
     echo -e "  ${GREEN}5.${NC} 🎯 Deploy All Services (Dinky + Examples) ${RED}🔐${NC}"
     echo -e "  ${GREEN}6.${NC} 🔍 Discover New Services"
@@ -359,6 +359,16 @@ source_deploy_functions() {
         read -p "   Install Mail Server? (y/N): " -n 1 -r; echo
         INSTALL_MAIL=$([[ $REPLY =~ ^[Yy]$ ]] && echo true || echo false)
         
+        # Dinky Monitor
+        echo -e "\n${CYAN}7. Dinky Monitor (Advanced Monitoring API)${NC} - ${GREEN}Recommended${NC}"
+        read -p "   Install Dinky Monitor? (Y/n): " -n 1 -r; echo
+        INSTALL_DINKY_MONITOR=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
+        
+        # Dinky Dashboard
+        echo -e "\n${CYAN}8. Dinky Dashboard (Observability Control Center)${NC} - ${GREEN}Recommended${NC}"
+        read -p "   Install Dinky Dashboard? (Y/n): " -n 1 -r; echo
+        INSTALL_DINKY_DASHBOARD=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
+        
         # Summary
         echo -e "\n${WHITE}Selected components:${NC}"
         $INSTALL_PORTAINER && echo -e "  ${GREEN}✓${NC} Portainer"
@@ -367,6 +377,8 @@ source_deploy_functions() {
         $INSTALL_PIHOLE && echo -e "  ${GREEN}✓${NC} Pi-hole"
         $INSTALL_MONITORING && echo -e "  ${GREEN}✓${NC} Monitoring Stack"
         $INSTALL_MAIL && echo -e "  ${GREEN}✓${NC} Mail Server"
+        $INSTALL_DINKY_MONITOR && echo -e "  ${GREEN}✓${NC} Dinky Monitor"
+        $INSTALL_DINKY_DASHBOARD && echo -e "  ${GREEN}✓${NC} Dinky Dashboard"
         
         echo
         read -p "Proceed with installation? (Y/n): " -n 1 -r; echo
@@ -404,48 +416,52 @@ source_deploy_functions() {
             success "Core infrastructure deployed"
         fi
         
-        # Deploy Dinky Monitor (Advanced Monitoring API)
-        step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
-        if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
-            cd "$SCRIPT_DIR/apis/dinky-monitor"
-            
-            # Copy .env if needed
-            if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-                info "Copying environment file for Dinky Monitor"
-                cp "$SCRIPT_DIR/.env" ".env"
-            fi
-            
-            if $DOCKER_COMPOSE up -d; then
-                success "Dinky Monitor deployed successfully!"
+        # Deploy Dinky Monitor (Advanced Monitoring API) - if selected
+        if $INSTALL_DINKY_MONITOR; then
+            step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
+            if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
+                cd "$SCRIPT_DIR/apis/dinky-monitor"
+                
+                # Copy .env if needed
+                if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+                    info "Copying environment file for Dinky Monitor"
+                    cp "$SCRIPT_DIR/.env" ".env"
+                fi
+                
+                if $DOCKER_COMPOSE up -d; then
+                    success "Dinky Monitor deployed successfully!"
+                else
+                    error "Failed to deploy Dinky Monitor"
+                fi
+                
+                cd "$SCRIPT_DIR"
             else
-                error "Failed to deploy Dinky Monitor"
+                warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
             fi
-            
-            cd "$SCRIPT_DIR"
-        else
-            warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
         fi
 
-        # Deploy Dinky Dashboard (Advanced Observability Dashboard)
-        step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
-        if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
-            cd "$SCRIPT_DIR/sites/dinky-dashboard"
-            
-            # Copy .env if needed
-            if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-                info "Copying environment file for Dinky Dashboard"
-                cp "$SCRIPT_DIR/.env" ".env"
-            fi
-            
-            if $DOCKER_COMPOSE up -d; then
-                success "Dinky Dashboard deployed successfully!"
+        # Deploy Dinky Dashboard (Advanced Observability Dashboard) - if selected
+        if $INSTALL_DINKY_DASHBOARD; then
+            step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
+            if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
+                cd "$SCRIPT_DIR/sites/dinky-dashboard"
+                
+                # Copy .env if needed
+                if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
+                    info "Copying environment file for Dinky Dashboard"
+                    cp "$SCRIPT_DIR/.env" ".env"
+                fi
+                
+                if $DOCKER_COMPOSE up -d; then
+                    success "Dinky Dashboard deployed successfully!"
+                else
+                    error "Failed to deploy Dinky Dashboard"
+                fi
+                
+                cd "$SCRIPT_DIR"
             else
-                error "Failed to deploy Dinky Dashboard"
+                warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
             fi
-            
-            cd "$SCRIPT_DIR"
-        else
-            warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
         fi
     }
 
@@ -473,19 +489,32 @@ source_deploy_functions() {
             echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
         fi
         
-        echo -e "\n${WHITE}Dinky Services URLs:${NC}"
-        echo -e "  ${CYAN}Dinky Monitor (Advanced):${NC} http://$server_ip:3001"
-        echo -e "    ${YELLOW}• System Metrics:${NC} http://$server_ip:3001/system"
-        echo -e "    ${YELLOW}• Docker Stats:${NC} http://$server_ip:3001/docker"
-        echo -e "    ${YELLOW}• Performance Tests:${NC} http://$server_ip:3001/test-metrics-scale"
-        echo -e "  ${CYAN}Dinky Dashboard (Control Center):${NC} http://$server_ip:3002"
-        echo -e "    ${YELLOW}• Real-time Monitoring:${NC} System metrics & LGTM stack testing"
+        # Show Dinky Services URLs only if they were selected
+        if $INSTALL_DINKY_MONITOR || $INSTALL_DINKY_DASHBOARD; then
+            echo -e "\n${WHITE}Dinky Services URLs:${NC}"
+            
+            if $INSTALL_DINKY_MONITOR; then
+                echo -e "  ${CYAN}Dinky Monitor (Advanced):${NC} http://$server_ip:3001"
+                echo -e "    ${YELLOW}• System Metrics:${NC} http://$server_ip:3001/system"
+                echo -e "    ${YELLOW}• Docker Stats:${NC} http://$server_ip:3001/docker"
+                echo -e "    ${YELLOW}• Performance Tests:${NC} http://$server_ip:3001/test-metrics-scale"
+            fi
+            
+            if $INSTALL_DINKY_DASHBOARD; then
+                echo -e "  ${CYAN}Dinky Dashboard (Control Center):${NC} http://$server_ip:3002"
+                echo -e "    ${YELLOW}• Real-time Monitoring:${NC} System metrics & LGTM stack testing"
+            fi
+        fi
         
         echo -e "\n${WHITE}Next Steps:${NC}"
         $INSTALL_CLOUDFLARED && echo -e "  ${YELLOW}1.${NC} Update TUNNEL_ID in .env"
         $INSTALL_MAIL && echo -e "  ${YELLOW}2.${NC} Configure SMTP relay settings in .env"
-        echo -e "  ${YELLOW}3.${NC} Visit Dinky Dashboard for comprehensive monitoring"
-        echo -e "  ${YELLOW}4.${NC} Review security settings"
+        if $INSTALL_DINKY_DASHBOARD; then
+            echo -e "  ${YELLOW}3.${NC} Visit Dinky Dashboard for comprehensive monitoring"
+            echo -e "  ${YELLOW}4.${NC} Review security settings"
+        else
+            echo -e "  ${YELLOW}3.${NC} Review security settings"
+        fi
         
         success "Deployment completed successfully!"
     }
@@ -549,7 +578,7 @@ handle_system_setup() {
 }
 
 handle_deploy_services() {
-    header "DEPLOY CORE SERVICES + DINKY MONITOR & DASHBOARD"
+    header "DEPLOY SERVICES ONLY"
     
     # Check prerequisites
     if [ ! -f "$SCRIPT_DIR/.env" ]; then
@@ -855,10 +884,11 @@ handle_deploy_examples() {
         echo -e "\n${WHITE}What you have now:${NC}"
         echo -e "  ${CYAN}🔥 Advanced:${NC} Dinky Monitor & Dashboard for comprehensive monitoring"
         echo -e "  ${CYAN}📚 Learning:${NC} Example API & Site for understanding the setup"
-        echo -e "\n${WHITE}Quick Start:${NC}"
-        echo -e "  ${CYAN}1.${NC} Visit Dinky Dashboard for real-time system monitoring"
-        echo -e "  ${CYAN}2.${NC} Check Dinky Monitor API for system metrics & Docker stats"
+        echo -e "\n${WHITE}Quick Start Guide:${NC}"
+        echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
+        echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3) - Select components"
         echo -e "  ${CYAN}3.${NC} Try all services: Use ${GREEN}Deploy All Services${NC} (option 5)"
+        echo -e "  ${CYAN}4.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
     else
         warning "Some deployments failed. Check the logs above for details."
         echo -e "\n${WHITE}Troubleshooting:${NC}"
@@ -1210,7 +1240,7 @@ handle_help() {
     
     echo -e "\n${WHITE}Quick Start Guide:${NC}"
     echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
-    echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3)"
+    echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3) - Select components"
     echo -e "  ${CYAN}3.${NC} Try all services: Use ${GREEN}Deploy All Services${NC} (option 5)"
     echo -e "  ${CYAN}4.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
     
