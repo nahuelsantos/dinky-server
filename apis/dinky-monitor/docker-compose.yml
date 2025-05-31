@@ -1,6 +1,10 @@
 services:
   dinky-monitor:
-    build: .
+    build: 
+      context: .
+      tags:
+        - dinky-monitor:latest
+    image: dinky-monitor:latest
     container_name: dinky-monitor
     restart: unless-stopped
     ports:
