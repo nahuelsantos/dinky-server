@@ -5,13 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dinky Dashboard - Phase 9</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <meta name="htmx-config" content='{"selfRequestsOnly": false, "allowEval": true}'>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            htmx.config.selfRequestsOnly = false;
-            htmx.config.allowEval = true;
-        });
-    </script>
     <style>
         * {
             margin: 0;
@@ -181,7 +174,7 @@
                     <div class="card">
                         <h3>LGTM Integration Test</h3>
                         <p>Test complete LGTM stack integration and component health</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-lgtm-integration" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-lgtm-integration" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Run LGTM Test
                         </button>
@@ -189,7 +182,7 @@
                     <div class="card">
                         <h3>Grafana Dashboards Test</h3>
                         <p>Test dashboard availability and configuration</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-grafana-dashboards" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-grafana-dashboards" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Dashboards
                         </button>
@@ -197,7 +190,7 @@
                     <div class="card">
                         <h3>Alert Rules Test</h3>
                         <p>Validate Prometheus alert rules configuration</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-alert-rules" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-alert-rules" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Alert Rules
                         </button>
@@ -211,7 +204,7 @@
                     <div class="card">
                         <h3>Metrics Scale Test</h3>
                         <p>Test high-volume metrics generation and ingestion performance</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-metrics-scale?duration=30s&concurrency=10" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-metrics-scale?duration=30s&concurrency=10" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Metrics Scale
                         </button>
@@ -219,7 +212,7 @@
                     <div class="card">
                         <h3>Logs Scale Test</h3>
                         <p>Test high-volume log generation and processing capabilities</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-logs-scale?duration=30s&concurrency=5" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-logs-scale?duration=30s&concurrency=5" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Logs Scale
                         </button>
@@ -227,7 +220,7 @@
                     <div class="card">
                         <h3>Traces Scale Test</h3>
                         <p>Test high-volume trace generation and storage performance</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-traces-scale?duration=30s&concurrency=3" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-traces-scale?duration=30s&concurrency=3" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Traces Scale
                         </button>
@@ -235,7 +228,7 @@
                     <div class="card">
                         <h3>Dashboard Load Test</h3>
                         <p>Test dashboard performance under concurrent user load</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-dashboard-load?concurrency=5&requests=100" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-dashboard-load?concurrency=5&requests=100" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Dashboard Load
                         </button>
@@ -243,7 +236,7 @@
                     <div class="card">
                         <h3>Resource Usage Test</h3>
                         <p>Monitor LGTM stack resource consumption and performance</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-resource-usage" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-resource-usage" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Resource Usage
                         </button>
@@ -251,7 +244,7 @@
                     <div class="card">
                         <h3>Storage Limits Test</h3>
                         <p>Test storage and retention capabilities of LGTM components</p>
-                        <button class="btn" hx-get="http://localhost:3001/test-storage-limits" hx-target="#results" hx-swap="innerHTML">
+                        <button class="btn" hx-get="/test-storage-limits" hx-target="#results" hx-swap="innerHTML">
                             <span class="htmx-indicator loading">Testing...</span>
                             Test Storage Limits
                         </button>

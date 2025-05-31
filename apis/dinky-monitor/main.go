@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Dinky Monitor Service v7.0.0-phase7...")
+	fmt.Println("Starting Dinky Monitor Service v9.0.0-phase9...")
 
 	// Initialize configuration
 	serviceConfig := config.GetServiceConfig()
@@ -39,6 +39,8 @@ func main() {
 	simulationHandlers := handlers.NewSimulationHandlers(loggingService, tracingService)
 	alertingHandlers := handlers.NewAlertingHandlers(loggingService, alertingService)
 	testingHandlers := handlers.NewTestingHandlers(loggingService, tracingService)
+	integrationHandlers := handlers.NewIntegrationHandlers(loggingService, tracingService)
+	performanceHandlers := handlers.NewPerformanceHandlers(loggingService, tracingService)
 
 	// Create HTTP mux
 	mux := http.NewServeMux()
@@ -73,8 +75,21 @@ func main() {
 	mux.HandleFunc("/test-ssl-monitoring", testingHandlers.TestSSLMonitoringHandler)
 	mux.HandleFunc("/test-domain-health", testingHandlers.TestDomainHealthHandler)
 
+	// Phase 8: LGTM Stack Configuration & Integration endpoints
+	mux.HandleFunc("/test-lgtm-integration", integrationHandlers.TestLGTMIntegration)
+	mux.HandleFunc("/test-grafana-dashboards", integrationHandlers.TestGrafanaDashboards)
+	mux.HandleFunc("/test-alert-rules", integrationHandlers.TestAlertRules)
+
+	// Phase 9: LGTM Stack Performance & Scale Testing endpoints
+	mux.HandleFunc("/test-metrics-scale", performanceHandlers.TestMetricsScale)
+	mux.HandleFunc("/test-logs-scale", performanceHandlers.TestLogsScale)
+	mux.HandleFunc("/test-traces-scale", performanceHandlers.TestTracesScale)
+	mux.HandleFunc("/test-dashboard-load", performanceHandlers.TestDashboardLoad)
+	mux.HandleFunc("/test-resource-usage", performanceHandlers.TestResourceUsage)
+	mux.HandleFunc("/test-storage-limits", performanceHandlers.TestStorageLimits)
+
 	// Alerting test endpoints
-	mux.HandleFunc("/test-alert-rules", alertingHandlers.TestAlertRulesHandler)
+	mux.HandleFunc("/test-alert-rules-legacy", alertingHandlers.TestAlertRulesHandler)
 	mux.HandleFunc("/test-fire-alert", alertingHandlers.TestFireAlertHandler)
 	mux.HandleFunc("/test-incident-management", alertingHandlers.TestIncidentManagementHandler)
 	mux.HandleFunc("/test-notification-channels", alertingHandlers.TestNotificationChannelsHandler)
@@ -83,6 +98,12 @@ func main() {
 
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", promhttp.Handler())
+
+	// Simple test endpoint for HTMX debugging
+	mux.HandleFunc("/test-simple", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<p style='color: green;'>✅ HTMX connection working! Endpoint reached successfully.</p>"))
+	})
 
 	// Root endpoint
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +130,16 @@ func main() {
 			"test-reverse-proxy":           "Phase 7: Test Traefik reverse proxy integration",
 			"test-ssl-monitoring":          "Phase 7: Test SSL certificate monitoring",
 			"test-domain-health":           "Phase 7: Test domain-specific health monitoring",
-			"test-alert-rules":             "Test alert rules functionality",
+			"test-lgtm-integration":        "Phase 8: Test complete LGTM stack integration",
+			"test-grafana-dashboards":      "Phase 8: Test Grafana dashboard availability",
+			"test-alert-rules":             "Phase 8: Test Prometheus alert rules configuration",
+			"test-metrics-scale":           "Phase 9: Test high-volume metrics generation and ingestion",
+			"test-logs-scale":              "Phase 9: Test high-volume log generation and processing",
+			"test-traces-scale":            "Phase 9: Test high-volume trace generation and storage",
+			"test-dashboard-load":          "Phase 9: Test dashboard performance under load",
+			"test-resource-usage":          "Phase 9: Monitor LGTM stack resource consumption",
+			"test-storage-limits":          "Phase 9: Test storage and retention capabilities",
+			"test-alert-rules-legacy":      "Test alert rules functionality (legacy)",
 			"test-fire-alert":              "Fire a test alert",
 			"test-incident-management":     "Test incident management workflow",
 			"test-notification-channels":   "Test notification channels",
@@ -120,9 +150,9 @@ func main() {
 
 		response := map[string]interface{}{
 			"service":     serviceConfig.Name,
-			"version":     "v7.0.0-phase7",
-			"purpose":     "LGTM stack testing service with comprehensive data variety and integration testing",
-			"description": "Testing Loki, Grafana, Tempo, and Prometheus with realistic service patterns and data formats",
+			"version":     "v9.0.0-phase9",
+			"purpose":     "LGTM stack performance & scale testing with production-grade load validation",
+			"description": "Testing Loki, Grafana, Tempo, and Prometheus with high-volume data and production workloads",
 			"features": []string{
 				"test_metrics_generation",
 				"test_logs_generation",
@@ -147,6 +177,15 @@ func main() {
 				"alert_testing",
 				"incident_testing",
 				"notification_testing",
+				"lgtm_stack_integration_testing",
+				"grafana_dashboards_testing",
+				"prometheus_alert_rules_testing",
+				"metrics_scale_testing",
+				"logs_scale_testing",
+				"traces_scale_testing",
+				"dashboard_load_testing",
+				"resource_usage_monitoring",
+				"storage_limits_testing",
 				"prometheus_metrics",
 				"opentelemetry_tracing",
 			},
@@ -169,7 +208,7 @@ func main() {
 	)
 
 	fmt.Printf("🚀 Dinky Monitor Service started on port %s\n", serviceConfig.Port)
-	fmt.Println("🎯 Purpose: LGTM stack testing with comprehensive data variety and integration testing")
+	fmt.Println("🎯 Purpose: LGTM stack configuration & integration testing with comprehensive monitoring validation")
 	fmt.Println("📊 Features enabled:")
 	fmt.Println("  ✅ Test Metrics Generation (Prometheus)")
 	fmt.Println("  ✅ Test Logs Generation (Loki)")
@@ -191,10 +230,18 @@ func main() {
 	fmt.Println("  🔀 Reverse Proxy Testing (Phase 7)")
 	fmt.Println("  🔒 SSL Certificate Monitoring (Phase 7)")
 	fmt.Println("  🌐 Domain Health Monitoring (Phase 7)")
-	fmt.Println("  ✅ Alert Testing")
-	fmt.Println("  ✅ Incident Management Testing")
-	fmt.Println("  ✅ Notification Testing")
-	fmt.Println("  ✅ OpenTelemetry Tracing (Tempo)")
+	fmt.Println("\n📊 Phase 8: LGTM Stack Configuration & Integration Testing:")
+	fmt.Println("   • /test-lgtm-integration - Comprehensive LGTM stack validation")
+	fmt.Println("   • /test-grafana-dashboards - Dashboard availability testing")
+	fmt.Println("   • /test-alert-rules - Prometheus alert rules validation")
+
+	fmt.Println("\n🚀 Phase 9: LGTM Stack Performance & Scale Testing:")
+	fmt.Println("   • /test-metrics-scale - High-volume metrics generation and ingestion")
+	fmt.Println("   • /test-logs-scale - High-volume log generation and processing")
+	fmt.Println("   • /test-traces-scale - High-volume trace generation and storage")
+	fmt.Println("   • /test-dashboard-load - Dashboard performance under load")
+	fmt.Println("   • /test-resource-usage - LGTM stack resource consumption monitoring")
+	fmt.Println("   • /test-storage-limits - Storage and retention capabilities testing")
 	fmt.Println()
 	fmt.Println("📍 Test endpoints:")
 	fmt.Println("  🔗 http://localhost:3001/ - Service information")
@@ -228,15 +275,20 @@ func main() {
 	fmt.Println("  🔒 http://localhost:3001/test-ssl-monitoring - SSL certificate monitoring")
 	fmt.Println("  🌐 http://localhost:3001/test-domain-health - Domain health monitoring")
 	fmt.Println()
+	fmt.Println("🔧 LGTM Stack Configuration & Integration (Phase 8):")
+	fmt.Println("  🔧 http://localhost:3001/test-lgtm-integration - Complete LGTM stack integration test")
+	fmt.Println("  📊 http://localhost:3001/test-grafana-dashboards - Grafana dashboards availability")
+	fmt.Println("  🚨 http://localhost:3001/test-alert-rules - Prometheus alert rules configuration")
+	fmt.Println()
 	fmt.Println("🚨 Alert Testing:")
-	fmt.Println("  🚨 http://localhost:3001/test-alert-rules - Test alert rules")
+	fmt.Println("  🚨 http://localhost:3001/test-alert-rules-legacy - Test alert rules (legacy)")
 	fmt.Println("  🎯 http://localhost:3001/test-fire-alert - Fire test alert")
 	fmt.Println("  🛠️  http://localhost:3001/test-incident-management - Test incidents")
 	fmt.Println("  📬 http://localhost:3001/test-notification-channels - Test notifications")
 	fmt.Println("  🔥 http://localhost:3001/active-alerts - View active alerts")
 	fmt.Println("  📋 http://localhost:3001/active-incidents - View active incidents")
 	fmt.Println()
-	fmt.Println("🎯 Phase 7 Focus: Test Data Variety & Real-World Integration Testing for LGTM Stack!")
+	fmt.Println("🎯 Phase 8 Focus: LGTM Stack Configuration & Integration Testing for Production Readiness!")
 
 	log.Fatal(http.ListenAndServe(serviceConfig.Port, handler))
 }
