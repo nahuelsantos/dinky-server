@@ -52,9 +52,12 @@ That's it! The interactive menu will guide you through everything.
 Test everything locally on your machine:
 
 ```bash
-make dev-up        # Start all services (no sudo needed)
-make dev-status    # View service URLs
-make dev-down      # Stop everything
+make up        # Start all services (no sudo needed)
+make status    # View service status and URLs
+make down      # Stop everything
+make logs      # View all logs
+make clean     # Clean containers, volumes, and images
+make reset     # Complete reset of environment
 ```
 
 ## 🏗️ Project Structure

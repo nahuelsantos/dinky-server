@@ -4,7 +4,7 @@
 # Note: docker-compose.dev.yml is auto-generated (not in git)
 # All commands automatically create it if missing - perfect for new developers!
 
-.PHONY: help dev-up dev-down dev-restart dev-logs dev-status dev-clean dev-reset dev-core dev-monitoring dev-apis dev-sites
+.PHONY: help up down restart logs status clean reset
 
 # Default target
 .DEFAULT_GOAL := help
@@ -37,18 +37,19 @@ help: ## Show this help message
 	@echo "$(CYAN)Dinky Server - Local Development$(NC)"
 	@echo "$(CYAN)================================$(NC)"
 	@echo ""
-	@echo "$(GREEN)Essential Commands:$(NC)"
-	@echo "  $(CYAN)dev-up$(NC)         Start all services"
-	@echo "  $(CYAN)dev-down$(NC)       Stop all services"
-	@echo "  $(CYAN)dev-status$(NC)     Check service status"
-	@echo "  $(CYAN)dev-logs$(NC)       View all logs"
-	@echo "  $(CYAN)dev-clean$(NC)      Clean everything"
+	@echo "$(GREEN)Available Commands:$(NC)"
+	@echo "  $(CYAN)help$(NC)        Show this help message"
+	@echo "  $(CYAN)up$(NC)          Start all services"
+	@echo "  $(CYAN)down$(NC)        Stop all services"
+	@echo "  $(CYAN)restart$(NC)     Restart all services"
+	@echo "  $(CYAN)status$(NC)      Check service status"
+	@echo "  $(CYAN)logs$(NC)        View all logs"
+	@echo "  $(CYAN)logs-<service>$(NC) View logs for specific service"
+	@echo "  $(CYAN)clean$(NC)       Clean everything (containers, volumes, images)"
+	@echo "  $(CYAN)reset$(NC)       Complete reset of environment"
+	@echo "  $(CYAN)setup$(NC)       Initial setup for development environment"
 	@echo ""
-	@echo "$(GREEN)Service Groups:$(NC)"
-	@echo "  $(CYAN)dev-core$(NC)       Core only (Traefik, Pi-hole)"
-	@echo "  $(CYAN)dev-monitoring$(NC) Monitoring stack only"
-	@echo ""
-	@echo "$(YELLOW)Service URLs (after dev-up):$(NC)"
+	@echo "$(YELLOW)Service URLs (after 'make up'):$(NC)"
 	@echo "  Traefik Dashboard: http://localhost:8080"
 	@echo "  Pi-hole Admin:     http://localhost:8081"
 	@echo "  Grafana:          http://localhost:3000"
@@ -61,10 +62,14 @@ help: ## Show this help message
 	@echo "  Example API:      http://localhost:3003"
 	@echo "  Example Site:     http://localhost:3004"
 	@echo ""
-	@echo "$(YELLOW)Tip: Use 'make dev-up' to start everything, 'make dev-status' to check health$(NC)"
+	@echo "$(YELLOW)Quick Start:$(NC)"
+	@echo "  1. $(CYAN)make up$(NC)     - Start all services"
+	@echo "  2. $(CYAN)make status$(NC) - Check everything is running"
+	@echo "  3. $(CYAN)make down$(NC)   - Stop when done"
+	@echo ""
 	@echo "$(GREEN)Note: All files auto-created on first run - perfect for new developers!$(NC)"
 
-dev-setup: ## Initial setup for development environment
+setup: ## Initial setup for development environment
 	@echo "$(CYAN)Setting up development environment...$(NC)"
 	@if [ ! -f "$(DEV_ENV_FILE)" ]; then \
 		echo "$(YELLOW)Creating development environment file...$(NC)"; \
@@ -87,16 +92,16 @@ dev-setup: ## Initial setup for development environment
 	@docker network create traefik_network 2>/dev/null || echo "$(YELLOW)Network traefik_network already exists$(NC)"
 	@echo "$(GREEN)✓ Development environment ready!$(NC)"
 
-dev-up: dev-setup check-docker-compose ## Start all development services
+up: setup check-docker-compose ## Start all development services
 	@echo "$(CYAN)Starting development services...$(NC)"
 	@echo "$(YELLOW)Building/rebuilding dinky-monitor if needed...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) build dinky-monitor 2>/dev/null || true
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d
 	@echo "$(GREEN)✓ Development services started!$(NC)"
 	@echo ""
-	@$(MAKE) dev-status
+	@$(MAKE) status
 
-dev-down: dev-setup check-docker-compose ## Stop all development services
+down: setup check-docker-compose ## Stop all development services
 	@echo "$(CYAN)Stopping development services...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
 	@echo "$(YELLOW)Ensuring all dinky-dev containers are stopped...$(NC)"
@@ -104,15 +109,15 @@ dev-down: dev-setup check-docker-compose ## Stop all development services
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(GREEN)✓ Development services stopped!$(NC)"
 
-dev-restart: dev-down dev-up ## Restart all development services
+restart: down up ## Restart all development services
 
-dev-logs: dev-setup check-docker-compose ## Show logs from all services
+logs: setup check-docker-compose ## Show logs from all services
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
 
-dev-logs-%: dev-setup check-docker-compose ## View logs for specific service
+logs-%: setup check-docker-compose ## View logs for specific service
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f $*
 
-dev-status: dev-setup check-docker-compose ## Show status of all services
+status: setup check-docker-compose ## Show status of all services
 	@echo "$(CYAN)Development Services Status:$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) ps
 	@echo ""
@@ -130,7 +135,7 @@ dev-status: dev-setup check-docker-compose ## Show status of all services
 	@echo -n "Example API:"; curl -s http://localhost:3003 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example Site:"; curl -s http://localhost:3004 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 
-dev-clean: dev-setup dev-down ## Stop services and remove containers/volumes
+clean: setup down ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
 	@echo "$(YELLOW)Ensuring all dinky-dev containers are completely removed...$(NC)"
@@ -142,30 +147,10 @@ dev-clean: dev-setup dev-down ## Stop services and remove containers/volumes
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
 
-dev-reset: dev-clean dev-setup ## Complete reset of development environment
+reset: clean setup ## Complete reset of development environment
 	@echo "$(CYAN)Resetting development environment...$(NC)"
 	@rm -f $(DEV_ENV_FILE) $(COMPOSE_FILE)
 	@echo "$(GREEN)✓ Development environment reset!$(NC)"
-
-dev-core: dev-setup check-docker-compose ## Start only core services (Traefik, Pi-hole)
-	@echo "$(CYAN)Starting core services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d traefik pihole
-	@echo "$(GREEN)✓ Core services started!$(NC)"
-
-dev-monitoring: dev-setup check-docker-compose ## Start only monitoring services
-	@echo "$(CYAN)Starting monitoring services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d prometheus grafana loki tempo pyroscope otel-collector
-	@echo "$(GREEN)✓ Monitoring services started!$(NC)"
-
-dev-apis: dev-setup check-docker-compose ## Start only API services
-	@echo "$(CYAN)Starting API services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d dinky-monitor example-api
-	@echo "$(GREEN)✓ API services started!$(NC)"
-
-dev-sites: dev-setup check-docker-compose ## Start only site services
-	@echo "$(CYAN)Starting site services...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d dinky-dashboard example-site
-	@echo "$(GREEN)✓ Site services started!$(NC)"
 
 # Internal target to create development compose file
 _create-dev-compose:
