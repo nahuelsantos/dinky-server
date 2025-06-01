@@ -4,7 +4,7 @@
 # Note: docker-compose.dev.yml is auto-generated (not in git)
 # All commands automatically create it if missing - perfect for new developers!
 
-.PHONY: help setup up down restart logs status clean reset argus argus-logs argus-stop
+.PHONY: help setup start stop restart logs status clean reset argus argus-logs argus-stop
 
 # Default target
 .DEFAULT_GOAL := help
@@ -39,7 +39,7 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
-	@echo "  make up         # Start all services"
+	@echo "  make start      # Start all services"
 	@echo "  make status     # Check service health"
 	@echo "  make logs       # Follow all logs"
 	@echo "  make argus      # Run LGTM testing"
@@ -63,14 +63,14 @@ setup: check-docker-compose ## Create development configuration files
 	@docker network create traefik_network 2>/dev/null || echo "$(YELLOW)Network traefik_network already exists$(NC)"
 	@echo "$(GREEN)✓ Development environment ready!$(NC)"
 
-up: setup check-docker-compose ## Start all development services
+start: setup check-docker-compose ## Start all development services
 	@echo "$(CYAN)Starting development services...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d
 	@echo "$(GREEN)✓ Development services started!$(NC)"
 	@echo ""
 	@$(MAKE) status
 
-down: setup check-docker-compose ## Stop all development services
+stop: setup check-docker-compose ## Stop all development services
 	@echo "$(CYAN)Stopping development services...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
 	@echo "$(YELLOW)Ensuring all dinky-dev containers are stopped...$(NC)"
@@ -78,7 +78,7 @@ down: setup check-docker-compose ## Stop all development services
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(GREEN)✓ Development services stopped!$(NC)"
 
-restart: down up ## Restart all development services
+restart: stop start ## Restart all development services
 
 logs: setup check-docker-compose ## Show logs from all services
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) logs -f
@@ -110,7 +110,7 @@ status: setup check-docker-compose ## Show status of all services
 	@echo "$(CYAN)make argus-logs  # View Argus logs$(NC)"
 	@echo "$(CYAN)make argus-stop  # Stop Argus container$(NC)"
 
-clean: setup down ## Stop services and remove containers/volumes
+clean: setup stop ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
 	@echo "$(YELLOW)Ensuring all dinky-dev containers are completely removed...$(NC)"
