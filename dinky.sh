@@ -359,16 +359,6 @@ source_deploy_functions() {
         read -p "   Install Mail Server? (y/N): " -n 1 -r; echo
         INSTALL_MAIL=$([[ $REPLY =~ ^[Yy]$ ]] && echo true || echo false)
         
-        # Dinky Monitor
-        echo -e "\n${CYAN}7. Dinky Monitor (Advanced Monitoring API)${NC} - ${GREEN}Recommended${NC}"
-        read -p "   Install Dinky Monitor? (Y/n): " -n 1 -r; echo
-        INSTALL_DINKY_MONITOR=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
-        
-        # Dinky Dashboard
-        echo -e "\n${CYAN}8. Dinky Dashboard (Observability Control Center)${NC} - ${GREEN}Recommended${NC}"
-        read -p "   Install Dinky Dashboard? (Y/n): " -n 1 -r; echo
-        INSTALL_DINKY_DASHBOARD=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
-        
         # Summary
         echo -e "\n${WHITE}Selected components:${NC}"
         $INSTALL_PORTAINER && echo -e "  ${GREEN}✓${NC} Portainer"
@@ -377,8 +367,6 @@ source_deploy_functions() {
         $INSTALL_PIHOLE && echo -e "  ${GREEN}✓${NC} Pi-hole"
         $INSTALL_MONITORING && echo -e "  ${GREEN}✓${NC} Monitoring Stack"
         $INSTALL_MAIL && echo -e "  ${GREEN}✓${NC} Mail Server"
-        $INSTALL_DINKY_MONITOR && echo -e "  ${GREEN}✓${NC} Dinky Monitor"
-        $INSTALL_DINKY_DASHBOARD && echo -e "  ${GREEN}✓${NC} Dinky Dashboard"
         
         echo
         read -p "Proceed with installation? (Y/n): " -n 1 -r; echo
@@ -415,54 +403,6 @@ source_deploy_functions() {
             sleep 10
             success "Core infrastructure deployed"
         fi
-        
-        # Deploy Dinky Monitor (Advanced Monitoring API) - if selected
-        if $INSTALL_DINKY_MONITOR; then
-            step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
-            if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
-                cd "$SCRIPT_DIR/apis/dinky-monitor"
-                
-                # Copy .env if needed
-                if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-                    info "Copying environment file for Dinky Monitor"
-                    cp "$SCRIPT_DIR/.env" ".env"
-                fi
-                
-                if $DOCKER_COMPOSE up -d; then
-                    success "Dinky Monitor deployed successfully!"
-                else
-                    error "Failed to deploy Dinky Monitor"
-                fi
-                
-                cd "$SCRIPT_DIR"
-            else
-                warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
-            fi
-        fi
-
-        # Deploy Dinky Dashboard (Advanced Observability Dashboard) - if selected
-        if $INSTALL_DINKY_DASHBOARD; then
-            step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
-            if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
-                cd "$SCRIPT_DIR/sites/dinky-dashboard"
-                
-                # Copy .env if needed
-                if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-                    info "Copying environment file for Dinky Dashboard"
-                    cp "$SCRIPT_DIR/.env" ".env"
-                fi
-                
-                if $DOCKER_COMPOSE up -d; then
-                    success "Dinky Dashboard deployed successfully!"
-                else
-                    error "Failed to deploy Dinky Dashboard"
-                fi
-                
-                cd "$SCRIPT_DIR"
-            else
-                warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
-            fi
-        fi
     }
 
     # Show deployment status
@@ -489,32 +429,28 @@ source_deploy_functions() {
             echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
         fi
         
-        # Show Dinky Services URLs only if they were selected
-        if $INSTALL_DINKY_MONITOR || $INSTALL_DINKY_DASHBOARD; then
-            echo -e "\n${WHITE}Dinky Services URLs:${NC}"
-            
-            if $INSTALL_DINKY_MONITOR; then
-                echo -e "  ${CYAN}Dinky Monitor (Advanced):${NC} http://$server_ip:3001"
-                echo -e "    ${YELLOW}• System Metrics:${NC} http://$server_ip:3001/system"
-                echo -e "    ${YELLOW}• Docker Stats:${NC} http://$server_ip:3001/docker"
-                echo -e "    ${YELLOW}• Performance Tests:${NC} http://$server_ip:3001/test-metrics-scale"
-            fi
-            
-            if $INSTALL_DINKY_DASHBOARD; then
-                echo -e "  ${CYAN}Dinky Dashboard (Control Center):${NC} http://$server_ip:3002"
-                echo -e "    ${YELLOW}• Real-time Monitoring:${NC} System metrics & LGTM stack testing"
-            fi
+        # Show LGTM Stack Testing information
+        if $INSTALL_MONITORING; then
+            echo -e "\n${WHITE}LGTM Stack Testing:${NC}"
+            echo -e "  ${CYAN}Argus (LGTM Validator):${NC} docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1"
+            echo -e "    ${YELLOW}• Complete LGTM stack integration testing${NC}"
+            echo -e "    ${YELLOW}• Synthetic data generation (metrics, logs, traces)${NC}"
+            echo -e "    ${YELLOW}• Performance and scale testing${NC}"
+            echo -e "    ${YELLOW}• Dashboard: http://$server_ip:3001${NC}"
+            echo -e "\n  ${CYAN}Quick Start:${NC}"
+            echo -e "    ${CYAN}docker run -p 3001:3001 \\${NC}"
+            echo -e "      ${CYAN}-e PROMETHEUS_URL=http://$server_ip:9090 \\${NC}"
+            echo -e "      ${CYAN}-e GRAFANA_URL=http://$server_ip:3000 \\${NC}"
+            echo -e "      ${CYAN}-e LOKI_URL=http://$server_ip:3100 \\${NC}"
+            echo -e "      ${CYAN}-e TEMPO_URL=http://$server_ip:3200 \\${NC}"
+            echo -e "      ${CYAN}ghcr.io/nahuelsantos/argus:v0.0.1${NC}"
         fi
         
         echo -e "\n${WHITE}Next Steps:${NC}"
         $INSTALL_CLOUDFLARED && echo -e "  ${YELLOW}1.${NC} Update TUNNEL_ID in .env"
         $INSTALL_MAIL && echo -e "  ${YELLOW}2.${NC} Configure SMTP relay settings in .env"
-        if $INSTALL_DINKY_DASHBOARD; then
-            echo -e "  ${YELLOW}3.${NC} Visit Dinky Dashboard for comprehensive monitoring"
-            echo -e "  ${YELLOW}4.${NC} Review security settings"
-        else
-            echo -e "  ${YELLOW}3.${NC} Review security settings"
-        fi
+        echo -e "  ${YELLOW}3.${NC} Review security settings"
+        $INSTALL_MONITORING && echo -e "  ${YELLOW}4.${NC} Test your LGTM stack with Argus"
         
         success "Deployment completed successfully!"
     }
@@ -721,14 +657,15 @@ add_individual_service() {
 }
 
 handle_deploy_examples() {
-    header "DEPLOY ALL DINKY & EXAMPLE SERVICES"
+    header "DEPLOY EXAMPLE SERVICES"
     
-    echo -e "${WHITE}This will deploy both the advanced Dinky services and simple examples.${NC}"
+    echo -e "${WHITE}This will deploy example services for learning and testing.${NC}"
     echo -e "${CYAN}Services to deploy:${NC}"
-    echo -e "  ${GREEN}•${NC} Dinky Monitor (Advanced monitoring API with system insights)"
-    echo -e "  ${GREEN}•${NC} Dinky Dashboard (Advanced observability control center)"
     echo -e "  ${GREEN}•${NC} Example API (Simple Go REST API with basic endpoints)"
     echo -e "  ${GREEN}•${NC} Example Site (Simple static HTML site for learning)"
+    echo
+    echo -e "${WHITE}For LGTM Stack Testing:${NC}"
+    echo -e "  ${CYAN}•${NC} Use Argus: docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1"
     echo
     
     read -p "Continue with deployment? (Y/n): " -n 1 -r
@@ -751,69 +688,6 @@ handle_deploy_examples() {
     fi
     
     local deployment_success=true
-    
-    # Deploy Dinky Monitor (Advanced Monitoring API)
-    step_banner "DEPLOYING DINKY MONITOR (Advanced Monitoring)"
-    if [ -d "$SCRIPT_DIR/apis/dinky-monitor" ]; then
-        cd "$SCRIPT_DIR/apis/dinky-monitor"
-        
-        # Copy .env if needed
-        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-            info "Copying environment file for Dinky Monitor"
-            cp "$SCRIPT_DIR/.env" ".env"
-        fi
-        
-        if $DOCKER_COMPOSE up -d; then
-            success "Dinky Monitor deployed successfully!"
-            
-            # Get API port
-            local api_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
-            if [ -n "$api_port" ]; then
-                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
-                echo -e "  ${CYAN}Monitor URL:${NC} http://$server_ip:$api_port"
-                echo -e "  ${CYAN}System Metrics:${NC} http://$server_ip:$api_port/system"
-                echo -e "  ${CYAN}Docker Stats:${NC} http://$server_ip:$api_port/docker"
-            fi
-        else
-            error "Failed to deploy Dinky Monitor"
-            deployment_success=false
-        fi
-        
-        cd "$SCRIPT_DIR"
-    else
-        warning "Dinky Monitor directory not found: $SCRIPT_DIR/apis/dinky-monitor"
-    fi
-
-    # Deploy Dinky Dashboard (Advanced Observability Dashboard)
-    step_banner "DEPLOYING DINKY DASHBOARD (Observability Control Center)"
-    if [ -d "$SCRIPT_DIR/sites/dinky-dashboard" ]; then
-        cd "$SCRIPT_DIR/sites/dinky-dashboard"
-        
-        # Copy .env if needed
-        if [ ! -f ".env" ] && [ -f "$SCRIPT_DIR/.env" ]; then
-            info "Copying environment file for Dinky Dashboard"
-            cp "$SCRIPT_DIR/.env" ".env"
-        fi
-        
-        if $DOCKER_COMPOSE up -d; then
-            success "Dinky Dashboard deployed successfully!"
-            
-            # Get site port
-            local site_port=$(grep -E "^\s*-\s*\"[0-9]+:" docker-compose.yml | head -1 | sed -E 's/.*"([0-9]+):.*/\1/')
-            if [ -n "$site_port" ]; then
-                local server_ip=$(grep "SERVER_IP=" "$SCRIPT_DIR/.env" 2>/dev/null | cut -d'=' -f2 || hostname -I | awk '{print $1}')
-                echo -e "  ${CYAN}Dashboard URL:${NC} http://$server_ip:$site_port"
-                echo -e "  ${CYAN}Real-time Monitoring:${NC} System metrics & container stats"
-            fi
-        else
-            error "Failed to deploy Dinky Dashboard"
-            deployment_success=false
-        fi
-        
-        cd "$SCRIPT_DIR"
-    else
-        warning "Dinky Dashboard directory not found: $SCRIPT_DIR/sites/dinky-dashboard"
-    fi
 
     # Deploy Example API (Simple)
     step_banner "DEPLOYING EXAMPLE API (Simple REST API)"
@@ -880,15 +754,14 @@ handle_deploy_examples() {
     # Summary
     echo -e "\n${WHITE}Deployment Summary:${NC}"
     if [ "$deployment_success" = true ]; then
-        success "All services deployed successfully!"
+        success "All example services deployed successfully!"
         echo -e "\n${WHITE}What you have now:${NC}"
-        echo -e "  ${CYAN}🔥 Advanced:${NC} Dinky Monitor & Dashboard for comprehensive monitoring"
         echo -e "  ${CYAN}📚 Learning:${NC} Example API & Site for understanding the setup"
-        echo -e "\n${WHITE}Quick Start Guide:${NC}"
-        echo -e "  ${CYAN}1.${NC} First-time users: Choose ${GREEN}Full Setup${NC} (option 1)"
-        echo -e "  ${CYAN}2.${NC} Existing systems: Use ${GREEN}Deploy Services Only${NC} (option 3) - Select components"
-        echo -e "  ${CYAN}3.${NC} Try all services: Use ${GREEN}Deploy All Services${NC} (option 5)"
-        echo -e "  ${CYAN}4.${NC} Add more services: Use ${GREEN}Add Individual Service${NC} (option 4)"
+        echo -e "\n${WHITE}Next Steps:${NC}"
+        echo -e "  ${CYAN}1.${NC} Test the Example API endpoints"
+        echo -e "  ${CYAN}2.${NC} Explore the Example Site"
+        echo -e "  ${CYAN}3.${NC} For LGTM testing: docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1"
+        echo -e "  ${CYAN}4.${NC} Add your own services using these as templates"
     else
         warning "Some deployments failed. Check the logs above for details."
         echo -e "\n${WHITE}Troubleshooting:${NC}"

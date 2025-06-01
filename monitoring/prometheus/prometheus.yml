@@ -6,11 +6,11 @@ global:
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: []
+        - targets:
+          - alertmanager:9093
 
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "alert_rules.yml"
 
 scrape_configs:
   - job_name: "prometheus"
@@ -43,10 +43,8 @@ scrape_configs:
 
   - job_name: "pyroscope"
     static_configs:
-      - targets: ["pyroscope:4040"] 
+      - targets: ["pyroscope:4040"]
 
-  - job_name: "dinky-monitor"
+  - job_name: "grafana"
     static_configs:
-      - targets: ["dinky-monitor:3001"]
-    scrape_interval: 5s
-    metrics_path: /metrics 
+      - targets: ["grafana:3000"] 

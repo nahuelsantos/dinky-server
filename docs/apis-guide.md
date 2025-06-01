@@ -378,28 +378,18 @@ The included `example-api` provides a basic REST API demonstration:
 - `GET /hello` - Hello world endpoint  
 - `GET /users` - Sample users list
 
-### **Advanced Example - Dinky Monitor** (port 3001)
-The `dinky-monitor` API provides comprehensive monitoring capabilities:
-- `GET /health` - Service health check
-- `GET /system` - Detailed system metrics
-- `GET /docker` - Container statistics and management
 
-### **🔧 Quick Usage Examples**
+### **LGTM Stack Testing** (external tool)
+For LGTM stack testing, use **Argus**: https://github.com/nahuelsantos/argus
 
-**Simple API:**
 ```bash
-# Basic endpoints (port 3003)
-curl http://dinky:3003/health
-curl http://dinky:3003/hello
-curl http://dinky:3003/users
+docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1
 ```
+# Generate test metrics
+curl http://localhost:3001/generate-metrics
 
-**Advanced Monitoring API:**
-```bash
-# Monitoring endpoints (port 3001)  
-curl http://dinky:3001/health
-curl http://dinky:3001/system
-curl http://dinky:3001/docker
+# Generate test logs
+curl http://localhost:3001/generate-logs
 ```
 
 ## 🎯 Best Practices
@@ -418,3 +408,249 @@ curl http://dinky:3001/docker
 - **Individual management**: APIs can be deployed, updated, or removed independently
 - **Environment inheritance**: APIs inherit environment variables from the main `.env` file
 - **Network integration**: All APIs join the `traefik_network` for reverse proxy access 
+
+# APIs Guide
+
+This guide covers the APIs available in Dinky Server and how to add your own.
+
+## Overview
+
+Dinky Server provides several example APIs to demonstrate different patterns and use cases:
+
+- **Example API** - Simple REST API example
+- **User Service** - User management API example
+
+## LGTM Stack Testing
+For more information, visit: https://github.com/nahuelsantos/argus
+
+## Example API
+
+The Example API demonstrates basic REST API patterns and can be used as a template for building your own APIs.
+
+### Endpoints
+
+- `GET /` - API information
+- `GET /health` - Health check
+- `GET /api/users` - List users
+- `POST /api/users` - Create user
+
+### Usage
+
+```bash
+# Check API health
+curl http://localhost:3003/health
+
+# List users
+curl http://localhost:3003/api/users
+```
+
+## User Service
+
+The User Service provides user management functionality.
+
+### Endpoints
+
+- `GET /` - Service information
+- `GET /health` - Health check
+- `GET /users` - List all users
+- `GET /users/:id` - Get user by ID
+- `POST /users` - Create new user
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Usage
+
+```bash
+# Create a user
+curl -X POST http://localhost:3005/users \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "email": "john@example.com"}'
+
+# Get all users
+curl http://localhost:3005/users
+```
+
+## Development
+
+### Adding New APIs
+
+1. Create a new directory under `apis/`
+2. Add your API code
+3. Create a `docker-compose.yml` file
+4. Update the main `docker-compose.yml` to include your API
+5. Add documentation to this guide
+
+### Best Practices
+
+- Use proper HTTP status codes
+- Implement health checks
+- Add proper error handling
+- Use structured logging
+- Implement rate limiting for production
+- Add authentication/authorization as needed
+
+## API Structure
+
+Each API should follow this structure:
+
+```
+apis/my-api/
+├── docker-compose.yml    # Service definition
+├── Dockerfile           # Custom image (if needed)
+├── src/                 # Source code
+├── README.md           # API documentation
+└── .env               # Environment variables (auto-copied)
+```
+
+## Docker Compose Template
+
+Here's a basic template for API services:
+
+```yaml
+services:
+  my-api:
+    build: .
+    container_name: my-api
+    restart: unless-stopped
+    ports:
+      - "3005:3000"  # External:Internal
+    environment:
+      - NODE_ENV=production
+      - API_PORT=3000
+    networks:
+      - traefik_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.my-api.rule=Host(`api.${DOMAIN_NAME}`)"
+      - "traefik.http.services.my-api.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  traefik_network:
+    external: true
+```
+
+## Monitoring Integration
+
+APIs are automatically integrated with the monitoring stack:
+
+### OpenTelemetry Support
+
+If your API supports OpenTelemetry, add these environment variables:
+
+```yaml
+environment:
+  - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+  - OTEL_SERVICE_NAME=my-api
+  - OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0
+```
+
+### Prometheus Metrics
+
+For Prometheus metrics collection, expose metrics endpoint:
+
+```yaml
+labels:
+  - "prometheus.io/scrape=true"
+  - "prometheus.io/port=3000"
+  - "prometheus.io/path=/metrics"
+```
+
+## Integration with Main Services
+
+### Database Access
+
+APIs can connect to shared databases or create their own:
+
+```yaml
+# Connect to shared PostgreSQL
+environment:
+  - DATABASE_URL=postgresql://user:pass@postgres:5432/shared_db
+
+# Or create dedicated database
+services:
+  api-db:
+    image: postgres:15-alpine
+    # ... database configuration
+```
+
+### Service Discovery
+
+APIs can communicate with each other using container names:
+
+```yaml
+environment:
+  - USER_API_URL=http://user-api:3000
+  - PAYMENT_API_URL=http://payment-api:3000
+```
+
+## Port Management
+
+**Recommended Port Ranges:**
+- **3001-3099**: APIs
+- **8003-8099**: Sites
+- **Avoid**: 3000 (Grafana), 8080 (Traefik), 8081 (Pi-hole), 9000 (Portainer)
+
+## Deployment
+
+APIs are automatically discovered and can be deployed using:
+
+```bash
+sudo ./dinky.sh
+# Choose option 6: "Discover New Services"
+```
+
+Or deploy individually:
+
+```bash
+cd apis/my-api
+docker compose up -d
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**: Ensure unique external ports
+2. **Network issues**: Verify `traefik_network` exists
+3. **Environment variables**: Check `.env` file is copied
+4. **Health checks**: Implement proper health endpoints
+
+### Debugging Commands
+
+```bash
+# Check service status
+docker compose ps
+
+# View logs
+docker compose logs -f my-api
+
+# Test connectivity
+docker exec -it my-api curl localhost:3000/health
+
+# Check network
+docker network ls | grep traefik
+```
+
+## Security Considerations
+
+- Use non-root users in containers
+- Implement proper authentication
+- Validate all inputs
+- Use HTTPS in production
+- Keep dependencies updated
+- Implement rate limiting
+- Use secrets management for sensitive data
+
+## Performance Tips
+
+- Use multi-stage Docker builds
+- Implement caching strategies
+- Use connection pooling for databases
+- Monitor resource usage
+- Implement graceful shutdowns
+- Use health checks for load balancing 

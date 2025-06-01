@@ -4,7 +4,7 @@
 # Note: docker-compose.dev.yml is auto-generated (not in git)
 # All commands automatically create it if missing - perfect for new developers!
 
-.PHONY: help up down restart logs status clean reset
+.PHONY: help setup up down restart logs status clean reset argus argus-logs argus-stop
 
 # Default target
 .DEFAULT_GOAL := help
@@ -34,58 +34,29 @@ check-docker-compose:
 	@echo "$(GREEN)Using: $(DOCKER_COMPOSE)$(NC)"
 
 help: ## Show this help message
-	@echo "$(CYAN)Dinky Server - Local Development$(NC)"
-	@echo "$(CYAN)================================$(NC)"
+	@echo "$(CYAN)Dinky Server Development Commands:$(NC)"
 	@echo ""
-	@echo "$(GREEN)Available Commands:$(NC)"
-	@echo "  $(CYAN)help$(NC)        Show this help message"
-	@echo "  $(CYAN)up$(NC)          Start all services"
-	@echo "  $(CYAN)down$(NC)        Stop all services"
-	@echo "  $(CYAN)restart$(NC)     Restart all services"
-	@echo "  $(CYAN)status$(NC)      Check service status"
-	@echo "  $(CYAN)logs$(NC)        View all logs"
-	@echo "  $(CYAN)logs-<service>$(NC) View logs for specific service"
-	@echo "  $(CYAN)clean$(NC)       Clean everything (containers, volumes, images)"
-	@echo "  $(CYAN)reset$(NC)       Complete reset of environment"
-	@echo "  $(CYAN)setup$(NC)       Initial setup for development environment"
+	@awk 'BEGIN {FS = ":.*##"; printf "\033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "$(YELLOW)Service URLs (after 'make up'):$(NC)"
-	@echo "  Traefik Dashboard: http://localhost:8080"
-	@echo "  Pi-hole Admin:     http://localhost:8081"
-	@echo "  Grafana:          http://localhost:3000"
-	@echo "  Prometheus:       http://localhost:9090"
-	@echo "  Loki:             http://localhost:3100"
-	@echo "  Tempo:            http://localhost:3200"
-	@echo "  Pyroscope:        http://localhost:4040"
-	@echo "  Dinky Monitor:    http://localhost:3001"
-	@echo "  Dinky Dashboard:  http://localhost:3002"
-	@echo "  Example API:      http://localhost:3003"
-	@echo "  Example Site:     http://localhost:3004"
-	@echo ""
-	@echo "$(YELLOW)Quick Start:$(NC)"
-	@echo "  1. $(CYAN)make up$(NC)     - Start all services"
-	@echo "  2. $(CYAN)make status$(NC) - Check everything is running"
-	@echo "  3. $(CYAN)make down$(NC)   - Stop when done"
-	@echo ""
-	@echo "$(GREEN)Note: All files auto-created on first run - perfect for new developers!$(NC)"
+	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make up         # Start all services"
+	@echo "  make status     # Check service health"
+	@echo "  make logs       # Follow all logs"
+	@echo "  make argus      # Run LGTM testing"
+	@echo "  make clean      # Stop and clean everything"
 
-setup: ## Initial setup for development environment
+setup: check-docker-compose ## Create development configuration files
 	@echo "$(CYAN)Setting up development environment...$(NC)"
-	@if [ ! -f "$(DEV_ENV_FILE)" ]; then \
+	@if [ ! -f $(DEV_ENV_FILE) ]; then \
 		echo "$(YELLOW)Creating development environment file...$(NC)"; \
-		cp .env.example $(DEV_ENV_FILE) 2>/dev/null || echo "# Development Environment" > $(DEV_ENV_FILE); \
-		echo "SERVER_IP=localhost" >> $(DEV_ENV_FILE); \
-		echo "TZ=UTC" >> $(DEV_ENV_FILE); \
-		echo "DOMAIN_NAME=localhost" >> $(DEV_ENV_FILE); \
+		echo "TZ=UTC" > $(DEV_ENV_FILE); \
 		echo "PIHOLE_PASSWORD=admin123" >> $(DEV_ENV_FILE); \
 		echo "GRAFANA_PASSWORD=admin123" >> $(DEV_ENV_FILE); \
-		echo "MAIL_DOMAIN=localhost" >> $(DEV_ENV_FILE); \
-		echo "DEFAULT_FROM=test@localhost" >> $(DEV_ENV_FILE); \
-		echo "DEFAULT_TO=admin@localhost" >> $(DEV_ENV_FILE); \
-		echo "$(GREEN)Development environment file created: $(DEV_ENV_FILE)$(NC)"; \
+		echo "ENVIRONMENT=development" >> $(DEV_ENV_FILE); \
+		echo "$(GREEN)Created $(DEV_ENV_FILE)$(NC)"; \
 	fi
-	@if [ ! -f "$(COMPOSE_FILE)" ]; then \
-		echo "$(YELLOW)Creating development compose file (auto-generated, not in git)...$(NC)"; \
+	@if [ ! -f $(COMPOSE_FILE) ]; then \
+		echo "$(YELLOW)Creating development compose file...$(NC)"; \
 		$(MAKE) _create-dev-compose; \
 		echo "$(GREEN)Development compose file created: $(COMPOSE_FILE)$(NC)"; \
 	fi
@@ -94,8 +65,6 @@ setup: ## Initial setup for development environment
 
 up: setup check-docker-compose ## Start all development services
 	@echo "$(CYAN)Starting development services...$(NC)"
-	@echo "$(YELLOW)Building/rebuilding dinky-monitor if needed...$(NC)"
-	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) build dinky-monitor 2>/dev/null || true
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) --env-file $(DEV_ENV_FILE) -p $(PROJECT_NAME) up -d
 	@echo "$(GREEN)✓ Development services started!$(NC)"
 	@echo ""
@@ -130,10 +99,16 @@ status: setup check-docker-compose ## Show status of all services
 	@echo -n "Tempo:      "; curl -s http://localhost:3200/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Pyroscope:  "; curl -s http://localhost:4040 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "OTEL Collector: "; docker ps | grep -q dinky-dev-otel-collector && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not running$(NC)"
-	@echo -n "Dinky Monitor:"; curl -s http://localhost:3001 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
-	@echo -n "Dinky Dashboard:"; curl -s http://localhost:3002 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example API:"; curl -s http://localhost:3003 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example Site:"; curl -s http://localhost:3004 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo ""
+	@echo "$(YELLOW)For LGTM Stack Testing, use Argus:$(NC)"
+	@echo "$(CYAN)docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Quick Commands:$(NC)"
+	@echo "$(CYAN)make argus       # Run Argus for LGTM testing$(NC)"
+	@echo "$(CYAN)make argus-logs  # View Argus logs$(NC)"
+	@echo "$(CYAN)make argus-stop  # Stop Argus container$(NC)"
 
 clean: setup down ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
@@ -141,8 +116,6 @@ clean: setup down ## Stop services and remove containers/volumes
 	@echo "$(YELLOW)Ensuring all dinky-dev containers are completely removed...$(NC)"
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
 	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
-	@echo "$(YELLOW)Removing dinky-monitor images to force rebuild...$(NC)"
-	@docker images -q dinky-monitor:latest dinky-dev-dinky-monitor 2>/dev/null | xargs -r docker rmi -f 2>/dev/null || true
 	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
@@ -281,31 +254,6 @@ _create-dev-compose:
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)
-	@echo "  # Dinky Services" >> $(COMPOSE_FILE)
-	@echo "  dinky-monitor:" >> $(COMPOSE_FILE)
-	@echo "    build:" >> $(COMPOSE_FILE)
-	@echo "      context: ./apis/dinky-monitor" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-dinky-monitor" >> $(COMPOSE_FILE)
-	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
-	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3001:3001\"" >> $(COMPOSE_FILE)
-	@echo "    environment:" >> $(COMPOSE_FILE)
-	@echo "      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318" >> $(COMPOSE_FILE)
-	@echo "      - OTEL_SERVICE_NAME=dinky-monitor" >> $(COMPOSE_FILE)
-	@echo "    networks:" >> $(COMPOSE_FILE)
-	@echo "      - traefik_network" >> $(COMPOSE_FILE)
-	@echo "" >> $(COMPOSE_FILE)
-	@echo "  dinky-dashboard:" >> $(COMPOSE_FILE)
-	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-dinky-dashboard" >> $(COMPOSE_FILE)
-	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
-	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3002:80\"" >> $(COMPOSE_FILE)
-	@echo "    volumes:" >> $(COMPOSE_FILE)
-	@echo "      - ./sites/dinky-dashboard/static:/usr/share/nginx/html:ro" >> $(COMPOSE_FILE)
-	@echo "    networks:" >> $(COMPOSE_FILE)
-	@echo "      - traefik_network" >> $(COMPOSE_FILE)
-	@echo "" >> $(COMPOSE_FILE)
 	@echo "  # Example Services" >> $(COMPOSE_FILE)
 	@echo "  example-api:" >> $(COMPOSE_FILE)
 	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
@@ -340,4 +288,30 @@ _create-dev-compose:
 	@echo "  grafana_data:" >> $(COMPOSE_FILE)
 	@echo "  loki_data:" >> $(COMPOSE_FILE)
 	@echo "  tempo_data:" >> $(COMPOSE_FILE)
-	@echo "  pyroscope_data:" >> $(COMPOSE_FILE) 
+	@echo "  pyroscope_data:" >> $(COMPOSE_FILE)
+
+argus: ## Run Argus for LGTM stack testing
+	@echo "$(CYAN)Starting Argus LGTM Stack Validator...$(NC)"
+	@docker run --rm -d --name argus-testing \
+		-p 3001:3001 \
+		--network traefik_network \
+		-e PROMETHEUS_URL=http://prometheus:9090 \
+		-e GRAFANA_URL=http://grafana:3000 \
+		-e LOKI_URL=http://loki:3100 \
+		-e TEMPO_URL=http://tempo:3200 \
+		ghcr.io/nahuelsantos/argus:v0.0.1 2>/dev/null || true
+	@sleep 3
+	@echo "$(GREEN)✓ Argus started!$(NC)"
+	@echo "$(CYAN)Dashboard: http://localhost:3001$(NC)"
+	@echo "$(CYAN)Health: http://localhost:3001/health$(NC)"
+	@echo "$(YELLOW)Stop with: docker stop argus-testing$(NC)"
+
+argus-logs: ## View Argus logs
+	@echo "$(CYAN)Argus Logs:$(NC)"
+	@docker logs argus-testing 2>/dev/null || echo "$(RED)No Argus container running$(NC)"
+	@echo "$(YELLOW)Start Argus with: make argus$(NC)"
+
+argus-stop: ## Stop Argus container
+	@echo "$(CYAN)Stopping Argus...$(NC)"
+	@docker stop argus-testing 2>/dev/null || true
+	@echo "$(GREEN)✓ Argus stopped$(NC)" 
