@@ -9,8 +9,13 @@ database:
   path: /var/lib/pyroscope/data
 
 retention:
-  # Keep profiles for 7 days
-  profile-retention: 168h
+  # Keep profiles for 30 days (consistent with Prometheus and Loki)
+  profile-retention: 720h
+  
+cleanup:
+  # Enable automatic cleanup of old profiles
+  enable-cleanup: true
+  cleanup-interval: 1h
 
 scrape-configs:
   - job-name: pyroscope

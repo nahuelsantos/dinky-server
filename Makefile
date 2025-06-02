@@ -95,6 +95,7 @@ status: setup check-docker-compose ## Show status of all services
 	@echo -n "Pi-hole:    "; curl -s http://localhost:8081 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Grafana:    "; curl -s http://localhost:3000 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Prometheus: "; curl -s http://localhost:9090 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Alertmanager: "; curl -s http://localhost:9093 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Loki:       "; curl -s http://localhost:3100/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Tempo:      "; curl -s http://localhost:3200/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Pyroscope:  "; curl -s http://localhost:4040 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
@@ -177,15 +178,35 @@ _create-dev-compose:
 	@echo "      - \"9090:9090\"" >> $(COMPOSE_FILE)
 	@echo "    volumes:" >> $(COMPOSE_FILE)
 	@echo "      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/prometheus/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro" >> $(COMPOSE_FILE)
 	@echo "      - prometheus_data:/prometheus" >> $(COMPOSE_FILE)
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)
 	@echo "    command:" >> $(COMPOSE_FILE)
 	@echo "      - '--config.file=/etc/prometheus/prometheus.yml'" >> $(COMPOSE_FILE)
 	@echo "      - '--storage.tsdb.path=/prometheus'" >> $(COMPOSE_FILE)
+	@echo "      - '--storage.tsdb.retention.time=30d'" >> $(COMPOSE_FILE)
+	@echo "      - '--storage.tsdb.retention.size=10GB'" >> $(COMPOSE_FILE)
 	@echo "      - '--web.console.libraries=/etc/prometheus/console_libraries'" >> $(COMPOSE_FILE)
 	@echo "      - '--web.console.templates=/etc/prometheus/consoles'" >> $(COMPOSE_FILE)
 	@echo "      - '--web.enable-lifecycle'" >> $(COMPOSE_FILE)
+	@echo "      - '--web.enable-admin-api'" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
+	@echo "  alertmanager:" >> $(COMPOSE_FILE)
+	@echo "    image: prom/alertmanager:v0.27.0" >> $(COMPOSE_FILE)
+	@echo "    container_name: dinky-dev-alertmanager" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"9093:9093\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" >> $(COMPOSE_FILE)
+	@echo "      - alertmanager_data:/alertmanager" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "    command:" >> $(COMPOSE_FILE)
+	@echo "      - '--config.file=/etc/alertmanager/alertmanager.yml'" >> $(COMPOSE_FILE)
+	@echo "      - '--storage.path=/alertmanager'" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  grafana:" >> $(COMPOSE_FILE)
 	@echo "    image: grafana/grafana:latest" >> $(COMPOSE_FILE)
@@ -285,6 +306,7 @@ _create-dev-compose:
 	@echo "  pihole_etc:" >> $(COMPOSE_FILE)
 	@echo "  pihole_dnsmasq:" >> $(COMPOSE_FILE)
 	@echo "  prometheus_data:" >> $(COMPOSE_FILE)
+	@echo "  alertmanager_data:" >> $(COMPOSE_FILE)
 	@echo "  grafana_data:" >> $(COMPOSE_FILE)
 	@echo "  loki_data:" >> $(COMPOSE_FILE)
 	@echo "  tempo_data:" >> $(COMPOSE_FILE)

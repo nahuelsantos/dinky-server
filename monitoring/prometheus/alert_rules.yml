@@ -1,0 +1,195 @@
+groups:
+  # Infrastructure Health Alerts
+  - name: infrastructure
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 2 minutes on {{ $labels.instance }}"
+
+      # Critical CPU Usage  
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is above 95% for more than 5 minutes on {{ $labels.instance }}"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 80% for more than 2 minutes on {{ $labels.instance }}"
+
+      # Critical Memory Usage
+      - alert: CriticalMemoryUsage  
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is above 95% for more than 5 minutes on {{ $labels.instance }}"
+
+      # Low Disk Space
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space detected"
+          description: "Disk usage is above 80% on {{ $labels.device }} ({{ $labels.mountpoint }}) on {{ $labels.instance }}"
+
+      # Critical Disk Space
+      - alert: CriticalDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space detected"
+          description: "Disk usage is above 95% on {{ $labels.device }} ({{ $labels.mountpoint }}) on {{ $labels.instance }}"
+
+  # Container Health Alerts
+  - name: containers
+    rules:
+      # Container Down
+      - alert: ContainerDown
+        expr: up{job="docker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container monitoring is down"
+          description: "cAdvisor container monitoring is not responding on {{ $labels.instance }}"
+
+      # Container High CPU
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is above 80% for more than 2 minutes"
+
+      # Container High Memory
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 80% of its limit for more than 2 minutes"
+
+      # Container Restart Loop
+      - alert: ContainerRestartLoop
+        expr: increase(container_start_time_seconds[1h]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restart loop detected"
+          description: "Container {{ $labels.name }} has restarted more than 5 times in the last hour"
+
+  # Service Health Alerts  
+  - name: services
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute"
+
+      # Grafana Down
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard service is not responding"
+
+      # Prometheus Down (self-monitoring)
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring service is not responding"
+
+      # Loki Down
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki log aggregation is down"
+          description: "Loki log aggregation service is not responding"
+
+  # Network and Load Alerts
+  - name: network
+    rules:
+      # High Network Traffic
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) + rate(node_network_transmit_bytes_total[5m]) > 100 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High network traffic detected"
+          description: "Network traffic is above 100MB/s for more than 5 minutes on {{ $labels.instance }}"
+
+      # High Load Average
+      - alert: HighLoadAverage
+        expr: node_load15 > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High system load detected"
+          description: "15-minute load average is above 2 for more than 5 minutes on {{ $labels.instance }}"
+
+  # Traefik Specific Alerts
+  - name: traefik
+    rules:
+      # Traefik Down
+      - alert: TraefikDown
+        expr: up{job="traefik"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Traefik reverse proxy is down"
+          description: "Traefik reverse proxy service is not responding - all web services may be inaccessible"
+
+      # High Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(traefik_service_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is above 1 second for service {{ $labels.service }}" 

@@ -154,13 +154,37 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=10GB
       - --web.console.libraries=/etc/prometheus/console_libraries
       - --web.console.templates=/etc/prometheus/consoles
       - --web.enable-lifecycle
+      - --web.enable-admin-api
     networks:
       - traefik_network
     depends_on:
       - traefik
+
+  # Alertmanager - Alert management and routing
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: dinky-alertmanager
+    restart: always
+    ports:
+      - "${SERVER_IP:-localhost}:9093:9093"
+    volumes:
+      - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.external-url=http://localhost:9093
+      - --cluster.listen-address=
+    networks:
+      - traefik_network
+      - mail-internal
+    depends_on:
+      - mail-server
 
   # Loki - Log aggregation
   loki:
@@ -311,6 +335,7 @@ volumes:
   pihole_dnsmasq:
   portainer_data:
   prometheus_data:
+  alertmanager_data:
   loki_data:
   tempo_data:
   pyroscope_data:

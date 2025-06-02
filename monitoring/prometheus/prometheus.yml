@@ -2,6 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   scrape_timeout: 10s
+  external_labels:
+    cluster: 'dinky-server'
+    replica: 'primary'
 
 alerting:
   alertmanagers:
@@ -11,6 +14,7 @@ alerting:
 
 rule_files:
   - "alert_rules.yml"
+  - "recording_rules.yml"
 
 scrape_configs:
   - job_name: "prometheus"

@@ -1,0 +1,55 @@
+groups:
+  # Instance-level recording rules for performance
+  - name: instance_rules
+    interval: 30s
+    rules:
+      # CPU Usage percentage (pre-calculated for dashboards)
+      - record: instance:cpu_usage_percent
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      # Memory usage percentage
+      - record: instance:memory_usage_percent
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+
+      # Disk usage percentage by device
+      - record: instance:disk_usage_percent
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100
+
+      # Network traffic rate (bytes/sec)
+      - record: instance:network_receive_bytes_rate
+        expr: rate(node_network_receive_bytes_total[5m])
+
+      - record: instance:network_transmit_bytes_rate
+        expr: rate(node_network_transmit_bytes_total[5m])
+
+  # Container-level recording rules
+  - name: container_rules
+    interval: 30s
+    rules:
+      # Container CPU usage percentage
+      - record: container:cpu_usage_percent
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100
+
+      # Container memory usage percentage of limit
+      - record: container:memory_usage_percent_of_limit
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100
+
+      # Container restart rate (restarts per hour)
+      - record: container:restart_rate_1h
+        expr: increase(container_start_time_seconds[1h])
+
+  # Service health summary rules
+  - name: service_health
+    interval: 15s
+    rules:
+      # Total services up
+      - record: dinky:services_up_total
+        expr: count(up == 1)
+
+      # Total services down
+      - record: dinky:services_down_total
+        expr: count(up == 0)
+
+      # Service uptime percentage
+      - record: dinky:service_uptime_percent
+        expr: (dinky:services_up_total / (dinky:services_up_total + dinky:services_down_total)) * 100 

@@ -19,7 +19,7 @@ That's it! The interactive menu will guide you through everything.
 - 🔄 **Traefik** - Reverse proxy with automatic SSL
 - 🛡️ **Pi-hole** - Network-wide ad blocking
 - ☁️ **Cloudflared** - Secure tunnel (no port forwarding needed)
-- 📧 **Mail Server** - SMTP relay with REST API
+- 📧 **Mail Server** - SMTP relay for internal services
 
 **Monitoring Stack (LGTM):**
 - 📊 **Grafana** - Beautiful dashboards
@@ -107,6 +107,7 @@ After deployment, visit:
 - **Grafana**: http://[SERVER_IP]:3000
 - **Portainer**: http://[SERVER_IP]:9000
 - **Prometheus**: http://[SERVER_IP]:9090
+- **Alertmanager**: http://[SERVER_IP]:9093
 - **Loki**: http://[SERVER_IP]:3100
 - **Tempo**: http://[SERVER_IP]:3200
 - **Pyroscope**: http://[SERVER_IP]:4040
@@ -145,6 +146,7 @@ The included Example API (port 3003) provides simple REST API demonstration:
 9000 - Portainer
 3000 - Grafana
 9090 - Prometheus
+9093 - Alertmanager
 3100 - Loki
 3200 - Tempo
 4040 - Pyroscope
@@ -157,6 +159,18 @@ The included Example API (port 3003) provides simple REST API demonstration:
 4317 - OTEL Collector (gRPC)
 4318 - OTEL Collector (HTTP)
 8888 - OTEL Collector Metrics
+```
+
+**LGTM Monitoring Stack:**
+```
+3000 - Grafana (dashboards and visualization)
+9090 - Prometheus (metrics collection and alerting)
+9093 - Alertmanager (alert management and routing)
+3100 - Loki (log aggregation and search)
+3200 - Tempo (distributed request tracing)
+4040 - Pyroscope (continuous performance profiling)
+8082 - cAdvisor (container resource monitoring)
+9100 - Node Exporter (system metrics collection)
 ```
 
 **Core Infrastructure:**
@@ -184,3 +198,24 @@ The included Example API (port 3003) provides simple REST API demonstration:
 ```
 3001 - Argus (docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1)
 ```
+
+## Monitoring & Observability
+
+Dinky Server includes a comprehensive LGTM (Loki, Grafana, Tempo, Metrics) stack:
+
+### Components
+- **Grafana** (Port 3000): Dashboards and visualization
+- **Prometheus** (Port 9090): Metrics collection and storage  
+- **Loki** (Port 3100): Log aggregation and search
+- **Tempo** (Port 3200): Distributed tracing
+- **Pyroscope** (Port 4040): Continuous profiling
+- **cAdvisor** (Port 8082): Container metrics
+- **Node Exporter** (Port 9100): System metrics
+
+### Integration
+- Prometheus scrapes metrics from all services
+- Grafana provides unified dashboards for metrics, logs, and traces
+- OpenTelemetry Collector processes and routes telemetry data
+- Alerting rules monitor system health and performance
+
+📖 **Documentation**: See [Data Retention Policy](docs/retention-policy.md) for storage and cleanup configuration.

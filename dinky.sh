@@ -354,10 +354,9 @@ source_deploy_functions() {
         read -p "   Install Monitoring? (Y/n): " -n 1 -r; echo
         INSTALL_MONITORING=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
-        # Mail server
-        echo -e "\n${CYAN}6. Mail Server (SMTP Relay + API)${NC} - ${YELLOW}Optional${NC}"
-        read -p "   Install Mail Server? (y/N): " -n 1 -r; echo
-        INSTALL_MAIL=$([[ $REPLY =~ ^[Yy]$ ]] && echo true || echo false)
+        # Mail server - Now mandatory
+        echo -e "\n${CYAN}6. Mail Server (SMTP Relay)${NC} - ${GREEN}Included${NC}"
+        INSTALL_MAIL=true
         
         # Summary
         echo -e "\n${WHITE}Selected components:${NC}"
@@ -389,7 +388,7 @@ source_deploy_functions() {
         $INSTALL_TRAEFIK && compose_services="$compose_services traefik"
         $INSTALL_CLOUDFLARED && compose_services="$compose_services cloudflared"
         $INSTALL_PIHOLE && compose_services="$compose_services pihole"
-        $INSTALL_MAIL && compose_services="$compose_services mail-server mail-api"
+        $INSTALL_MAIL && compose_services="$compose_services mail-server"
         
         if $INSTALL_MONITORING; then
             info "Setting up monitoring stack..."
@@ -1128,7 +1127,7 @@ handle_help() {
     echo -e "  ${CYAN}Pi-hole:${NC} Network-wide ad blocking"
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
     echo -e "  ${CYAN}Cloudflared:${NC} Secure tunnel for external access"
-    echo -e "  ${CYAN}Mail Server:${NC} SMTP relay with REST API"
+    echo -e "  ${CYAN}Mail Server:${NC} SMTP relay for internal services"
     echo -e "  ${CYAN}Dinky Monitor:${NC} Advanced monitoring API with system insights"
     echo -e "  ${CYAN}Dinky Dashboard:${NC} Advanced observability control center"
     echo -e "  ${CYAN}Example API:${NC} Simple Go REST API for learning"
