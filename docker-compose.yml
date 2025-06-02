@@ -2,52 +2,33 @@ services:
   portainer:
     container_name: dinky-portainer
     image: portainer/portainer-ce:2.30.1
-    restart: always
-    ports:
       - "9000:9000"  # Portainer UI (internal access only)
       - "8000:8000" #Edge agent
-    volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
-    networks:
-      - traefik_network #Not needed for portainer, added if needed
 
   traefik:
     container_name: dinky-traefik
     image: traefik:v3.4.1
-    restart: always
-    command:
       - --configFile=/etc/traefik/traefik.yml
-    ports:
       - "8080:8080"  # Traefik dashboard (internal access only)
       - "80:80"  # HTTP (internal access only, cloudflared tunnels traffic)
-    volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./infrastructure/traefik/dynamic_conf.yml:/etc/traefik/dynamic_conf.yml
-    networks:
-      - traefik_network
 
   cloudflared:
     container_name: dinky-cloudflared
     image: cloudflare/cloudflared:2025.5.0
-    restart: always
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
       - ./infrastructure/cloudflared/config.yml:/etc/cloudflared/config.yml
       - cloudflared-data:/etc/cloudflared # Persist credentials
     env_file:
       - .env
-    networks:
-      - traefik_network
-    depends_on:
       - traefik
       
   pihole:
     container_name: dinky-pihole
     image: pihole/pihole:2025.04.0
-    restart: always
-    ports:
       - "53:53/tcp"
       - "53:53/udp"
       - "8081:80/tcp"  # Web interface
@@ -60,11 +41,8 @@ services:
       DNSMASQ_LISTENING: 'all'
       DNS1: '1.1.1.1'  # Cloudflare DNS
       DNS2: '8.8.8.8'  # Google DNS
-    volumes:
       - pihole_data:/etc/pihole
       - pihole_dnsmasq:/etc/dnsmasq.d
-    networks:
-      - traefik_network
     cap_add:
       - NET_ADMIN
     dns:
@@ -79,13 +57,8 @@ services:
       dockerfile: Dockerfile
     hostname: ${MAIL_HOSTNAME:-mail.dinky.local}
     restart: unless-stopped
-    networks:
-      - traefik_network
-      - mail-internal
-    ports:
       - "25:25"   # SMTP (now accessible from other containers)
       - "587:587" # SMTP submission (internal access only)
-    volumes:
       - mail-data:/var/mail
       - mail-logs:/var/log/mail
     environment:
@@ -105,54 +78,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  mail-api:
-    image: ghcr.io/nahuelsantos/mail-api:latest
-    container_name: dinky-mail-api
-    restart: unless-stopped
-    networks:
-      - traefik_network
-      - mail-internal
-    depends_on:
-      - mail-server
-    environment:
-      - SMTP_HOST=mail-server
-      - SMTP_PORT=25
-      - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
-      - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-dinky.local}
-      - PORT=3000
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    # Internal access only, no public exposure via Traefik
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mail-api.rule=Host(`mail-api.local`)"
-      - "traefik.http.routers.mail-api.service=mail-api"
-      - "traefik.http.services.mail-api.loadbalancer.server.port=3000"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # LGTM Stack Components
 
   # Prometheus - Metrics collection and storage
   prometheus:
     image: prom/prometheus:v3.4.0
     container_name: dinky-prometheus
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:9090:9090"
-    volumes:
       - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=30d
       - --storage.tsdb.retention.size=10GB
@@ -160,18 +94,17 @@ services:
       - --web.console.templates=/etc/prometheus/consoles
       - --web.enable-lifecycle
       - --web.enable-admin-api
-    networks:
-      - traefik_network
-    depends_on:
       - traefik
 
   # Alertmanager - Alert management and routing
   alertmanager:
-    image: prom/alertmanager:v0.27.0
+    image: prom/alertmanager:v0.28.1
     container_name: dinky-alertmanager
     restart: always
     ports:
       - "${SERVER_IP:-localhost}:9093:9093"
+    environment:
+      - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
     volumes:
       - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
@@ -190,67 +123,40 @@ services:
   loki:
     image: grafana/loki:3.5
     container_name: dinky-loki
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:3100:3100"
-    volumes:
       - ./monitoring/loki:/etc/loki
       - loki_data:/loki
-    command: -config.file=/etc/loki/loki-config.yml
-    networks:
-      - traefik_network
 
   # Promtail - Log collector for Loki
   promtail:
     image: grafana/promtail:3.5
     container_name: dinky-promtail
-    restart: always
-    volumes:
       - ./monitoring/promtail:/etc/promtail
       - /var/log:/var/log
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command: -config.file=/etc/promtail/promtail-config.yml
-    networks:
-      - traefik_network
-    depends_on:
       - loki
 
   # Tempo - Distributed tracing
   tempo:
     image: grafana/tempo:2.7.2
     container_name: dinky-tempo
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:3200:3200"  # Tempo receiver
-    volumes:
       - ./monitoring/tempo:/etc/tempo
       - tempo_data:/var/tempo
-    command: -config.file=/etc/tempo/tempo-config.yml
-    networks:
-      - traefik_network
 
   # Pyroscope - Continuous profiling
   pyroscope:
     image: grafana/pyroscope:1.13.4
     container_name: dinky-pyroscope
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:4040:4040"
-    volumes:
       - ./monitoring/pyroscope:/etc/pyroscope
       - pyroscope_data:/var/lib/pyroscope
-    command: server -config=/etc/pyroscope/pyroscope-config.yml
-    networks:
-      - traefik_network
 
   # Grafana - Visualization
   grafana:
     image: grafana/grafana:12.0.1
     container_name: dinky-grafana
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:3000:3000"
-    volumes:
       - ./monitoring/grafana:/etc/grafana
       - grafana_data:/var/lib/grafana
     environment:
@@ -258,9 +164,6 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
-    networks:
-      - traefik_network
-    depends_on:
       - prometheus
       - loki
       - tempo
@@ -272,17 +175,10 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.127.0
     container_name: dinky-otel-collector
-    restart: always
-    ports:
       - "${SERVER_IP:-localhost}:4317:4317"  # OTLP gRPC
       - "${SERVER_IP:-localhost}:4318:4318"  # OTLP HTTP
       - "${SERVER_IP:-localhost}:8888:8888"  # Metrics endpoint
-    volumes:
       - ./monitoring/otel-collector:/etc/otel-collector
-    command: --config=/etc/otel-collector/otel-collector-config.yml
-    networks:
-      - traefik_network
-    depends_on:
       - prometheus
       - loki
       - tempo
@@ -293,19 +189,13 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
     container_name: dinky-cadvisor
-    restart: always
     privileged: true
-    volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    ports:
       - "${SERVER_IP:-localhost}:8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
-    networks:
-      - traefik_network
-    command:
       - '--docker_only=true'
       - '--storage_duration=1m0s'
       - '--housekeeping_interval=10s'
@@ -313,39 +203,28 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.9.1
     container_name: dinky-node-exporter
-    restart: always
-    volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
       - "${SERVER_IP:-localhost}:9100:9100"
-    networks:
-      - traefik_network
 
-volumes:
   cloudflared-data:
   grafana_data:
   pihole_data:
   pihole_dnsmasq:
   portainer_data:
   prometheus_data:
-  alertmanager_data:
   loki_data:
   tempo_data:
   pyroscope_data:
   mail-data:
   mail-logs:
 
-networks:
-  traefik_network:
     external: true
-  mail-internal:
     driver: bridge
 
 x-common-variables: &common-variables

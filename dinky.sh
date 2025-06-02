@@ -393,7 +393,7 @@ source_deploy_functions() {
         if $INSTALL_MONITORING; then
             info "Setting up monitoring stack..."
             [ -f "$SCRIPT_DIR/monitoring/setup-monitoring.sh" ] && bash "$SCRIPT_DIR/monitoring/setup-monitoring.sh"
-            compose_services="$compose_services prometheus loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter"
+            compose_services="$compose_services prometheus alertmanager loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter"
         fi
         
         if [ -n "$compose_services" ]; then
@@ -426,6 +426,7 @@ source_deploy_functions() {
             local grafana_password=$(grep "GRAFANA_PASSWORD=" "$SCRIPT_DIR/.env" | cut -d'=' -f2 2>/dev/null)
             echo -e "  ${CYAN}Grafana:${NC} http://$server_ip:3000 (admin/$grafana_password)"
             echo -e "  ${CYAN}Prometheus:${NC} http://$server_ip:9090"
+            echo -e "  ${CYAN}Alertmanager:${NC} http://$server_ip:9093"
         fi
         
         # Show LGTM Stack Testing information
