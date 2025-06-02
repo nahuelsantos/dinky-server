@@ -1,5 +1,7 @@
 # Dinky Server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive self-hosted server setup with monitoring, security, and service management - all through a single interactive script.
 
 ## 🚀 Quick Start
