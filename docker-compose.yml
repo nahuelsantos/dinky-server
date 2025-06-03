@@ -21,7 +21,7 @@ services:
     ports:
       - "8080:8080"  # Traefik dashboard (internal access only)
       - "80:80"  # HTTP (internal access only, cloudflared tunnels traffic)
-      - "${SERVER_IP:-127.0.0.1}:8082:8082"  # Metrics endpoint
+      - "8082:8082"  # Metrics endpoint
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -114,7 +114,7 @@ services:
     container_name: dinky-prometheus
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:9090:9090"
+      - "9090:9090"
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
@@ -138,7 +138,7 @@ services:
     container_name: dinky-alertmanager
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:9093:9093"
+      - "9093:9093"
     environment:
       - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
     volumes:
@@ -161,7 +161,7 @@ services:
     container_name: dinky-loki
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:3100:3100"
+      - "3100:3100"
     volumes:
       - ./monitoring/loki:/etc/loki
       - loki_data:/loki
@@ -190,7 +190,7 @@ services:
     container_name: dinky-tempo
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:3200:3200"  # Tempo receiver
+      - 3200:3200"  # Tempo receiver
     volumes:
       - ./monitoring/tempo:/etc/tempo
       - tempo_data:/var/tempo
@@ -204,7 +204,7 @@ services:
     container_name: dinky-pyroscope
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:4040:4040"
+      - 4040:4040"
     volumes:
       - ./monitoring/pyroscope:/etc/pyroscope
       - pyroscope_data:/var/lib/pyroscope
@@ -218,7 +218,7 @@ services:
     container_name: dinky-grafana
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:3000:3000"
+      - 3000:3000"
     volumes:
       - ./monitoring/grafana:/etc/grafana
       - grafana_data:/var/lib/grafana
@@ -243,10 +243,10 @@ services:
     container_name: dinky-otel-collector
     restart: always
     ports:
-      - "${SERVER_IP:-127.0.0.1}:4317:4317"  # OTLP gRPC
-      - "${SERVER_IP:-127.0.0.1}:4318:4318"  # OTLP HTTP
-      - "${SERVER_IP:-127.0.0.1}:8888:8888"  # Metrics endpoint
-      - "${SERVER_IP:-127.0.0.1}:8889:8889"  # Prometheus metrics endpoint
+      - 4317:4317"  # OTLP gRPC
+      - 4318:4318"  # OTLP HTTP
+      - 8888:8888"  # Metrics endpoint
+      - 8889:8889"  # Prometheus metrics endpoint
     volumes:
       - ./monitoring/otel-collector:/etc/otel-collector
     command: --config=/etc/otel-collector/otel-collector-config.yml
@@ -272,7 +272,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "${SERVER_IP:-127.0.0.1}:8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
+      - 8082:8080"  # cAdvisor web interface (avoid conflict with Traefik on 8080)
     networks:
       - traefik_network
     command:
@@ -294,7 +294,7 @@ services:
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "${SERVER_IP:-127.0.0.1}:9100:9100"
+      - 9100:9100"
     networks:
       - traefik_network
 
