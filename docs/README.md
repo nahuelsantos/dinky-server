@@ -97,7 +97,7 @@ When adding documentation:
 - **4318** - OTEL Collector (HTTP) 
 - **8888** - OTEL Collector Internal Metrics
 - **8889** - OTEL Collector Prometheus Metrics
-- **8084** - Traefik Prometheus Metrics
+- **8080** - Traefik Dashboard & Metrics (at /metrics path)
 - **1777** - OTEL Collector pprof endpoint
 - **13133** - OTEL Collector health check
 - **55679** - OTEL Collector zpages
@@ -123,13 +123,13 @@ When adding documentation:
 - **3001-3099** - Recommended for APIs (avoiding 3003)
 
 **For User Sites:**  
-- **8003-8099** - Recommended for Sites (avoiding 8080-8084, 8088-8089)
+- **8003-8099** - Recommended for Sites (avoiding 8080-8082, 8088-8089)
 
 **Avoid Using:**
 - **1-1024** - System reserved ports
 - **3000-3299** - LGTM stack and core services
 - **4000-4400** - Telemetry and profiling  
-- **8080-8089** - Traefik and monitoring
+- **8080-8082, 8088-8089** - Traefik and monitoring
 - **9000-9199** - Prometheus ecosystem
 
 ## 🔒 Security Considerations

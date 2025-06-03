@@ -21,7 +21,6 @@ services:
     ports:
       - "8080:8080"  # Traefik dashboard (internal access only)
       - "80:80"  # HTTP (internal access only, cloudflared tunnels traffic)
-      - "8084:8084"  # Metrics endpoint
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infrastructure/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
