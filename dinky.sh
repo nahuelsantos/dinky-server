@@ -350,13 +350,14 @@ source_deploy_functions() {
         INSTALL_PIHOLE=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Monitoring
-        echo -e "\n${CYAN}5. Monitoring Stack (LGTM)${NC} - ${GREEN}Recommended${NC}"
+        echo -e "\n${CYAN}5. Monitoring Stack (LGTMA)${NC} - ${GREEN}Recommended${NC}"
         read -p "   Install Monitoring? (Y/n): " -n 1 -r; echo
         INSTALL_MONITORING=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Mail server - Now mandatory
-        echo -e "\n${CYAN}6. Mail Server (SMTP Relay)${NC} - ${GREEN}Included${NC}"
-        INSTALL_MAIL=true
+        echo -e "\n${CYAN}6. Mail Server (SMTP Relay)${NC} - ${GREEN}Recommended${NC}"
+        read -p "   Install Mail Server? (Y/n): " -n 1 -r; echo
+        INSTALL_MAIL=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
         # Summary
         echo -e "\n${WHITE}Selected components:${NC}"
