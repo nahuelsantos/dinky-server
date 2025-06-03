@@ -6,6 +6,8 @@ api:
 entryPoints:
   web:
     address: :80
+  metrics:
+    address: :8082
   #websecure:
     #address: :443
 
@@ -21,7 +23,6 @@ metrics:
   prometheus:
     addEntryPointsLabels: true
     addServicesLabels: true
-    entryPoint: web
 
 log:
   level: DEBUG
