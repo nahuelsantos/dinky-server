@@ -245,6 +245,7 @@ services:
       - "${SERVER_IP:-127.0.0.1}:4317:4317"  # OTLP gRPC
       - "${SERVER_IP:-127.0.0.1}:4318:4318"  # OTLP HTTP
       - "${SERVER_IP:-127.0.0.1}:8888:8888"  # Metrics endpoint
+      - "${SERVER_IP:-127.0.0.1}:8889:8889"  # Prometheus metrics endpoint
     volumes:
       - ./monitoring/otel-collector:/etc/otel-collector
     command: --config=/etc/otel-collector/otel-collector-config.yml
