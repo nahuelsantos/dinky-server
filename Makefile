@@ -202,7 +202,7 @@ _create-dev-compose:
 	@echo "    environment:" >> $(COMPOSE_FILE)
 	@echo "      DEFAULT_TO: \$${DEFAULT_TO:-admin@dinky.local}" >> $(COMPOSE_FILE)
 	@echo "    volumes:" >> $(COMPOSE_FILE)
-	@echo "      - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" >> $(COMPOSE_FILE)
 	@echo "      - alertmanager_data:/alertmanager" >> $(COMPOSE_FILE)
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)

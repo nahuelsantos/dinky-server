@@ -141,7 +141,7 @@ services:
     environment:
       - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
     volumes:
-      - ./monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml

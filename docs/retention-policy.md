@@ -51,7 +51,7 @@ This document outlines the data retention policies configured across all monitor
 - **Loki**: `monitoring/loki/loki-config.yml`
 - **Tempo**: `monitoring/tempo/tempo-config.yml`
 - **Pyroscope**: `monitoring/pyroscope/pyroscope-config.yml`
-- **Alertmanager**: `monitoring/prometheus/alertmanager.yml`
+- **Alertmanager**: `monitoring/alertmanager/alertmanager.yml`
 
 > **Note**: To enable alerts, add Alertmanager service to `docker-compose.yml` and include `alertmanager_data` volume.
 
