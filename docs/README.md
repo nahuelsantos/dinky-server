@@ -75,4 +75,76 @@ When adding documentation:
 - **Traefik Documentation** - https://doc.traefik.io/traefik/
 - **Pi-hole Documentation** - https://docs.pi-hole.net/
 - **Grafana Documentation** - https://grafana.com/docs/
-- **Prometheus Documentation** - https://prometheus.io/docs/ 
+- **Prometheus Documentation** - https://prometheus.io/docs/
+
+## 🔌 Complete Port Reference
+
+### Web UI Services
+- **8080** - Traefik Dashboard  
+- **8081** - Pi-hole Admin Interface
+- **9000** - Portainer Container Management
+- **3000** - Grafana Dashboards
+- **9090** - Prometheus Metrics UI
+- **9093** - Alertmanager Web Interface
+- **3100** - Loki (no UI, API only)
+- **3200** - Tempo (no UI, API only) 
+- **4040** - Pyroscope Profiling UI
+- **8082** - cAdvisor Container Metrics
+- **9100** - Node Exporter (metrics endpoint)
+
+### Monitoring & Telemetry Endpoints
+- **4317** - OTEL Collector (gRPC)
+- **4318** - OTEL Collector (HTTP) 
+- **8888** - OTEL Collector Internal Metrics
+- **8889** - OTEL Collector Prometheus Metrics
+- **8084** - Traefik Prometheus Metrics
+- **1777** - OTEL Collector pprof endpoint
+- **13133** - OTEL Collector health check
+- **55679** - OTEL Collector zpages
+
+### Core Infrastructure  
+- **25** - SMTP (Mail Server)
+- **53** - DNS (Pi-hole) 
+- **80** - HTTP (Traefik, internal)
+- **443** - HTTPS (Traefik, internal)
+- **587** - SMTP Submission (Mail Server)
+- **8000** - Portainer Edge Agent
+
+### Example Services
+- **3003** - Example API (Simple REST API)
+- **3004** - Example Site (Simple Static Site)
+
+### LGTM Testing
+- **3001** - Argus LGTM Stack Tester
+
+### Reserved Port Ranges
+
+**For User APIs:**
+- **3001-3099** - Recommended for APIs (avoiding 3003)
+
+**For User Sites:**  
+- **8003-8099** - Recommended for Sites (avoiding 8080-8084, 8088-8089)
+
+**Avoid Using:**
+- **1-1024** - System reserved ports
+- **3000-3299** - LGTM stack and core services
+- **4000-4400** - Telemetry and profiling  
+- **8080-8089** - Traefik and monitoring
+- **9000-9199** - Prometheus ecosystem
+
+## 🔒 Security Considerations
+
+All external services are bound to `${SERVER_IP}` (not 0.0.0.0) for security:
+- Only accessible from local network or configured tunnels
+- Cloudflared provides secure external access without port forwarding
+- Internal container communication uses Docker networks
+
+## 📊 Monitoring Integration
+
+All services automatically export metrics to Prometheus:
+- Container metrics via cAdvisor
+- System metrics via Node Exporter  
+- Application metrics via OTEL Collector
+- Custom metrics via your applications
+
+For detailed monitoring setup, see the main [README.md](../README.md#monitoring--observability). 

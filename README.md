@@ -116,6 +116,8 @@ After deployment, visit:
 - **OTEL Collector (gRPC)**: http://[SERVER_IP]:4317
 - **OTEL Collector (HTTP)**: http://[SERVER_IP]:4318
 - **OTEL Collector Metrics**: http://[SERVER_IP]:8888
+- **OTEL Collector Prometheus Metrics**: http://[SERVER_IP]:8889
+- **Traefik Metrics**: http://[SERVER_IP]:8084
 - **cAdvisor**: http://[SERVER_IP]:8082
 - **Node Exporter**: http://[SERVER_IP]:9100
 
@@ -161,6 +163,8 @@ The included Example API (port 3003) provides simple REST API demonstration:
 4317 - OTEL Collector (gRPC)
 4318 - OTEL Collector (HTTP)
 8888 - OTEL Collector Metrics
+8889 - OTEL Collector Prometheus Metrics
+8084 - Traefik Metrics
 ```
 
 **LGTM Monitoring Stack:**
@@ -192,8 +196,8 @@ The included Example API (port 3003) provides simple REST API demonstration:
 
 **Available for Your Services:**
 ```
-3001-3099 - Recommended for APIs  
-8003-8099 - Recommended for Sites
+3001-3099 - Recommended for APIs (excluding 3003)
+8003-8099 - Recommended for Sites (excluding 8080-8084, 8088-8089)
 ```
 
 **For LGTM Stack Testing:**
