@@ -36,8 +36,9 @@ services:
     volumes:
       - ./infrastructure/cloudflared/config.yml:/etc/cloudflared/config.yml
       - cloudflared-data:/etc/cloudflared # Persist credentials
-    env_file:
-      - .env
+    environment:
+      - TUNNEL_ID=${TUNNEL_ID:-your-tunnel-id-here}
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-your-tunnel-token-here}
     networks:
       - traefik_network
     depends_on:
@@ -51,15 +52,13 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "8081:80/tcp"  # Web interface
-    env_file:
-      - .env
     environment:
-      TZ: Europe/Madrid
-      WEBPASSWORD: '${PIHOLE_PASSWORD}'
-      ServerIP: '${SERVER_IP:-127.0.0.1}'
-      DNSMASQ_LISTENING: 'all'
-      DNS1: '1.1.1.1'  # Cloudflare DNS
-      DNS2: '8.8.8.8'  # Google DNS
+      - TZ=${TZ:-Europe/Madrid}
+      - WEBPASSWORD=${PIHOLE_PASSWORD:-admin123}
+      - ServerIP=${SERVER_IP:-127.0.0.1}
+      - DNSMASQ_LISTENING=all
+      - DNS1=1.1.1.1
+      - DNS2=8.8.8.8
     volumes:
       - pihole_data:/etc/pihole
       - pihole_dnsmasq:/etc/dnsmasq.d
@@ -89,10 +88,11 @@ services:
       - mail-data:/var/mail
       - mail-logs:/var/log/mail
     environment:
-      - TZ=Europe/Madrid
+      - TZ=${TZ:-Europe/Madrid}
       - MAIL_DOMAIN=${MAIL_DOMAIN:-dinky.local}
       - MAIL_HOSTNAME=${MAIL_HOSTNAME:-mail.dinky.local}
       - DEFAULT_FROM=${DEFAULT_FROM:-noreply@dinky.local}
+      - DEFAULT_TO=${DEFAULT_TO:-admin@dinky.local}
       - SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-smtp.gmail.com}
       - SMTP_RELAY_PORT=${SMTP_RELAY_PORT:-587}
       - SMTP_RELAY_USERNAME=${SMTP_RELAY_USERNAME:-your-gmail-username@gmail.com}
@@ -139,7 +139,7 @@ services:
     ports:
       - "9093:9093"
     environment:
-      - DEFAULT_TO=${DEFAULT_TO:-admin@example.com}
+      - DEFAULT_TO=${DEFAULT_TO:-admin@dinky.local}
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
@@ -222,7 +222,7 @@ services:
       - ./monitoring/grafana:/etc/grafana
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
       - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
@@ -233,8 +233,6 @@ services:
       - loki
       - tempo
       - pyroscope
-    env_file:
-      - .env
 
   # OpenTelemetry Collector - Telemetry collection and processing
   otel-collector:
@@ -304,11 +302,16 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - ENVIRONMENT=${DOMAIN_NAME:-docker}
-      - PROMETHEUS_URL=${DOMAIN_NAME:-http://prometheus:9090}
-      - GRAFANA_URL=${DOMAIN_NAME:-http://grafana:3000}
-      - LOKI_URL=${DOMAIN_NAME:-http://loki:3100}
-      - TEMPO_URL=${DOMAIN_NAME:-http://tempo:3200}
+      - ARGUS_SERVER_IP=${ARGUS_SERVER_IP:-127.0.0.1}
+      - ARGUS_ENVIRONMENT=${ARGUS_ENVIRONMENT:-development}
+      - ARGUS_VERSION=${ARGUS_VERSION:-v0.0.10}
+      - ARGUS_GRAFANA_URL=${ARGUS_GRAFANA_URL:-http://localhost:3000}
+      - ARGUS_PROMETHEUS_URL=${ARGUS_PROMETHEUS_URL:-http://localhost:9090}
+      - ARGUS_LOKI_URL=${ARGUS_LOKI_URL:-http://localhost:3100}
+      - ARGUS_TEMPO_URL=${ARGUS_TEMPO_URL:-http://localhost:3200}
+      - ARGUS_ALERTMANAGER_URL=${ARGUS_ALERTMANAGER_URL:-http://localhost:9093}
+      - ARGUS_GRAFANA_USERNAME=${ARGUS_GRAFANA_USERNAME:-admin}
+      - ARGUS_GRAFANA_PASSWORD=${ARGUS_GRAFANA_PASSWORD:-admin}
     depends_on:
       - prometheus
       - grafana

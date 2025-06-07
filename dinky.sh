@@ -1152,7 +1152,7 @@ handle_help() {
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
     echo -e "  ${CYAN}Cloudflared:${NC} Secure tunnel for external access"
     echo -e "  ${CYAN}Mail Server:${NC} SMTP relay for internal services"
-    echo -e "  ${CYAN}Dinky Monitor:${NC} Advanced monitoring API with system insights"
+    echo -e "  ${CYAN}Argus (LGTM Validator):${NC} Comprehensive LGTM stack testing and validation"
     echo -e "  ${CYAN}Dinky Dashboard:${NC} Advanced observability control center"
     echo -e "  ${CYAN}Example API:${NC} Simple Go REST API for learning"
     echo -e "  ${CYAN}Example Site:${NC} Simple static HTML site for learning"
@@ -1172,7 +1172,7 @@ handle_help() {
     echo -e "\n${WHITE}Port Reference:${NC}"
     echo -e "  ${CYAN}Web UIs:${NC} 8080 (Traefik), 8081 (Pi-hole), 9000 (Portainer)"
     echo -e "  ${CYAN}Monitoring:${NC} 3000 (Grafana), 9090 (Prometheus), 4040 (Pyroscope)"
-    echo -e "  ${CYAN}Dinky Services:${NC} 3001 (Monitor), 3002 (Dashboard)"
+    echo -e "  ${CYAN}Dinky Services:${NC} 3001 (Argus - LGTM Validator), 3002 (Dashboard)"
     echo -e "  ${CYAN}Examples:${NC} 8080 (API), 8081 (Site) in production"
     echo -e "  ${CYAN}Available:${NC} 3003-3099 (APIs), 8003-8099 (Sites)"
     

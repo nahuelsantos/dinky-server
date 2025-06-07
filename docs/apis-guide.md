@@ -270,7 +270,7 @@ docker compose restart my-api
 - `9100` - Node Exporter
 
 **Example Services:**
-- `3001` - Dinky Monitor (Advanced monitoring API)
+- `3001` - Argus (LGTM Stack Validator)
 - `3002` - Dinky Dashboard (Advanced observability dashboard)  
 - `3003` - Example API (Simple REST API)
 - `3004` - Example Site (Simple static site)
