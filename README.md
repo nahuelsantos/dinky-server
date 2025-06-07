@@ -23,12 +23,13 @@ That's it! The interactive menu will guide you through everything.
 - ☁️ **Cloudflared** - Secure tunnel (no port forwarding needed)
 - 📧 **Mail Server** - SMTP relay for internal services
 
-**Monitoring Stack (LGTM):**
+**Monitoring Stack (LGTMA):**
 - 📊 **Grafana** - Beautiful dashboards
 - 📈 **Prometheus** - Metrics collection
 - 📝 **Loki** - Log aggregation  
 - 🔍 **Tempo** - Distributed tracing
 - 🔥 **Pyroscope** - Performance profiling
+- 👁️ **Argus** - LGTM stack validator and testing tool
 
 **Security Features:**
 - 🔥 UFW firewall + Fail2ban
@@ -39,17 +40,26 @@ That's it! The interactive menu will guide you through everything.
 
 ## 👁️ LGTM Stack Testing
 
-For testing your LGTM monitoring stack, use **[Argus](https://github.com/nahuelsantos/argus)**:
+**[Argus](https://github.com/nahuelsantos/argus)** is integrated into Dinky Server for comprehensive LGTM stack testing:
 
 ```bash
-# Quick test your LGTM stack
-docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1
+# Argus is automatically included when you install monitoring stack
+sudo ./dinky.sh  # Select "Monitoring Stack" → "Install Argus" 
 
-# Or use the local development command
-make argus
+# For development (Argus included automatically)
+make start  # Argus available at http://localhost:3001
+
+# Or run standalone for testing
+docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:latest
 ```
 
-**Argus** (external tool): https://github.com/nahuelsantos/argus
+**Argus Features:**
+- Complete LGTM stack integration testing
+- Synthetic data generation (metrics, logs, traces)  
+- Performance and scale testing
+- Dashboard validation and health checks
+
+📖 **Source Code**: https://github.com/nahuelsantos/argus
 
 ## 🎯 Menu Options
 
@@ -119,6 +129,7 @@ After deployment, visit:
 - **OTEL Collector Prometheus Metrics**: http://[SERVER_IP]:8889
 - **cAdvisor**: http://[SERVER_IP]:8082
 - **Node Exporter**: http://[SERVER_IP]:9100
+- **Argus** (LGTM Validator): http://[SERVER_IP]:3001
 
 *(SERVER_IP is auto-detected and shown in the script)*
 
@@ -155,6 +166,7 @@ The included Example API (port 3003) provides simple REST API demonstration:
 4040 - Pyroscope
 8082 - cAdvisor
 9100 - Node Exporter
+3001 - Argus (LGTM Stack Validator)
 ```
 
 **Monitoring Endpoints:**
@@ -166,7 +178,7 @@ The included Example API (port 3003) provides simple REST API demonstration:
 8080 - Traefik Metrics (at /metrics path)
 ```
 
-**LGTM Monitoring Stack:**
+**LGTMA Monitoring Stack:**
 ```
 3000 - Grafana (dashboards and visualization)
 9090 - Prometheus (metrics collection and alerting)
@@ -176,6 +188,7 @@ The included Example API (port 3003) provides simple REST API demonstration:
 4040 - Pyroscope (continuous performance profiling)
 8082 - cAdvisor (container resource monitoring)
 9100 - Node Exporter (system metrics collection)
+3001 - Argus (LGTM stack testing and validation)
 ```
 
 **Core Infrastructure:**
@@ -195,18 +208,18 @@ The included Example API (port 3003) provides simple REST API demonstration:
 
 **Available for Your Services:**
 ```
-3001-3099 - Recommended for APIs (excluding 3003)
+3002-3099 - Recommended for APIs (excluding 3001, 3003)
 8003-8099 - Recommended for Sites (excluding 8080-8082, 8088-8089)
 ```
 
 **For LGTM Stack Testing:**
 ```
-3001 - Argus (docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1)
+3001 - Argus (integrated with monitoring stack)
 ```
 
 ## Monitoring & Observability
 
-Dinky Server includes a comprehensive LGTM (Loki, Grafana, Tempo, Metrics) stack:
+Dinky Server includes a comprehensive LGTMA (Loki, Grafana, Tempo, Metrics, Argus) stack:
 
 ### Components
 - **Grafana** (Port 3000): Dashboards and visualization
@@ -214,6 +227,7 @@ Dinky Server includes a comprehensive LGTM (Loki, Grafana, Tempo, Metrics) stack
 - **Loki** (Port 3100): Log aggregation and search
 - **Tempo** (Port 3200): Distributed tracing
 - **Pyroscope** (Port 4040): Continuous profiling
+- **Argus** (Port 3001): LGTM stack testing and validation
 - **cAdvisor** (Port 8082): Container metrics
 - **Node Exporter** (Port 9100): System metrics
 
@@ -222,5 +236,6 @@ Dinky Server includes a comprehensive LGTM (Loki, Grafana, Tempo, Metrics) stack
 - Grafana provides unified dashboards for metrics, logs, and traces
 - OpenTelemetry Collector processes and routes telemetry data
 - Alerting rules monitor system health and performance
+- **Argus validates the entire stack with synthetic testing and monitoring**
 
 📖 **Documentation**: See [Data Retention Policy](docs/retention-policy.md) for storage and cleanup configuration.

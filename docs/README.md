@@ -17,6 +17,7 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 ### **🛠️ Advanced Topics**
 - **[Infrastructure Components](../infrastructure/)** - Network and security setup
 - **[Monitoring Stack](../monitoring/)** - Observability and metrics
+- **[LGTM Testing with Argus](https://github.com/nahuelsantos/argus)** - Comprehensive stack validation
 - **[Service Configuration](../services/)** - Individual service setup
 
 ## 🎯 Quick Navigation
@@ -91,6 +92,7 @@ When adding documentation:
 - **4040** - Pyroscope Profiling UI
 - **8082** - cAdvisor Container Metrics
 - **9100** - Node Exporter (metrics endpoint)
+- **3001** - Argus LGTM Stack Validator
 
 ### Monitoring & Telemetry Endpoints
 - **4317** - OTEL Collector (gRPC)
@@ -115,19 +117,19 @@ When adding documentation:
 - **3004** - Example Site (Simple Static Site)
 
 ### LGTM Testing
-- **3001** - Argus LGTM Stack Tester
+- **3001** - Argus LGTM Stack Validator ([Source Code](https://github.com/nahuelsantos/argus))
 
 ### Reserved Port Ranges
 
 **For User APIs:**
-- **3001-3099** - Recommended for APIs (avoiding 3003)
+- **3002-3099** - Recommended for APIs (avoiding 3001, 3003)
 
 **For User Sites:**  
 - **8003-8099** - Recommended for Sites (avoiding 8080-8082, 8088-8089)
 
 **Avoid Using:**
 - **1-1024** - System reserved ports
-- **3000-3299** - LGTM stack and core services
+- **3000-3299** - LGTMA stack and core services
 - **4000-4400** - Telemetry and profiling  
 - **8080-8082, 8088-8089** - Traefik and monitoring
 - **9000-9199** - Prometheus ecosystem
