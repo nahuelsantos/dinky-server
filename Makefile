@@ -19,7 +19,7 @@ NC := \033[0m
 # Development configuration
 DEV_ENV_FILE := .env.dev
 COMPOSE_FILE := docker-compose.dev.yml
-PROJECT_NAME := dinky-dev
+PROJECT_NAME := dev
 
 # Auto-detect Docker Compose command
 DOCKER_COMPOSE := $(shell if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then echo "docker compose"; elif command -v docker-compose >/dev/null 2>&1; then echo "docker-compose"; else echo ""; fi)
@@ -73,9 +73,9 @@ start: setup check-docker-compose ## Start all development services
 stop: setup check-docker-compose ## Stop all development services
 	@echo "$(CYAN)Stopping development services...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down
-	@echo "$(YELLOW)Ensuring all dinky-dev containers are stopped...$(NC)"
-	@docker ps -q --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
-	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
+	@echo "$(YELLOW)Ensuring all dev containers are stopped...$(NC)"
+	@docker ps -q --filter name=dev- | xargs -r docker stop -t 10 2>/dev/null || true
+	@docker ps -aq --filter name=dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(GREEN)✓ Development services stopped!$(NC)"
 
 restart: stop start ## Restart all development services
@@ -99,8 +99,9 @@ status: setup check-docker-compose ## Show status of all services
 	@echo -n "Loki:       "; curl -s http://localhost:3100/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Tempo:      "; curl -s http://localhost:3200/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Pyroscope:  "; curl -s http://localhost:4040 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
-	@echo -n "OTEL Collector: "; docker ps | grep -q dinky-dev-otel-collector && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not running$(NC)"
+	@echo -n "OTEL Collector: "; docker ps | grep -q dev-otel-collector && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not running$(NC)"
 	@echo -n "Argus:      "; curl -s http://localhost:3001/health >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+	@echo -n "Blackbox Exporter: "; curl -s http://localhost:9115/metrics >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example API:"; curl -s http://localhost:3003 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example Site:"; curl -s http://localhost:3004 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo ""
@@ -115,9 +116,9 @@ status: setup check-docker-compose ## Show status of all services
 clean: setup stop ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
 	@$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) -p $(PROJECT_NAME) down -v --remove-orphans
-	@echo "$(YELLOW)Ensuring all dinky-dev containers are completely removed...$(NC)"
-	@docker ps -aq --filter name=dinky-dev- | xargs -r docker stop -t 10 2>/dev/null || true
-	@docker ps -aq --filter name=dinky-dev- | xargs -r docker rm -f 2>/dev/null || true
+	@echo "$(YELLOW)Ensuring all dev containers are completely removed...$(NC)"
+	@docker ps -aq --filter name=dev- | xargs -r docker stop -t 10 2>/dev/null || true
+	@docker ps -aq --filter name=dev- | xargs -r docker rm -f 2>/dev/null || true
 	@echo "$(YELLOW)Cleaning Docker system...$(NC)"
 	@docker system prune -f
 	@echo "$(GREEN)✓ Development environment cleaned!$(NC)"
@@ -134,7 +135,7 @@ _create-dev-compose:
 	@echo "  # Core Infrastructure" >> $(COMPOSE_FILE)
 	@echo "  traefik:" >> $(COMPOSE_FILE)
 	@echo "    image: traefik:v3.0" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-traefik" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-traefik" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"8080:8080\"  # Dashboard" >> $(COMPOSE_FILE)
@@ -154,7 +155,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  pihole:" >> $(COMPOSE_FILE)
 	@echo "    image: pihole/pihole:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-pihole" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-pihole" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"8081:80\"    # Web interface" >> $(COMPOSE_FILE)
@@ -173,7 +174,7 @@ _create-dev-compose:
 	@echo "  # Monitoring Stack" >> $(COMPOSE_FILE)
 	@echo "  prometheus:" >> $(COMPOSE_FILE)
 	@echo "    image: prom/prometheus:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-prometheus" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-prometheus" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"9090:9090\"" >> $(COMPOSE_FILE)
@@ -196,7 +197,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  alertmanager:" >> $(COMPOSE_FILE)
 	@echo "    image: prom/alertmanager:v0.28.1" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-alertmanager" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-alertmanager" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"9093:9093\"" >> $(COMPOSE_FILE)
@@ -213,7 +214,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  grafana:" >> $(COMPOSE_FILE)
 	@echo "    image: grafana/grafana:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-grafana" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-grafana" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3000:3000\"" >> $(COMPOSE_FILE)
@@ -227,7 +228,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  loki:" >> $(COMPOSE_FILE)
 	@echo "    image: grafana/loki:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-loki" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-loki" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3100:3100\"" >> $(COMPOSE_FILE)
@@ -240,7 +241,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  tempo:" >> $(COMPOSE_FILE)
 	@echo "    image: grafana/tempo:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-tempo" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-tempo" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3200:3200\"" >> $(COMPOSE_FILE)
@@ -253,7 +254,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  otel-collector:" >> $(COMPOSE_FILE)
 	@echo "    image: otel/opentelemetry-collector-contrib:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-otel-collector" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-otel-collector" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"4317:4317\"  # OTLP gRPC" >> $(COMPOSE_FILE)
@@ -267,7 +268,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  pyroscope:" >> $(COMPOSE_FILE)
 	@echo "    image: grafana/pyroscope:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-pyroscope" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-pyroscope" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"4040:4040\"" >> $(COMPOSE_FILE)
@@ -278,10 +279,24 @@ _create-dev-compose:
 	@echo "    networks:" >> $(COMPOSE_FILE)
 	@echo "      - traefik_network" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)
+	@echo "  # Blackbox Exporter - HTTP/HTTPS probing" >> $(COMPOSE_FILE)
+	@echo "  blackbox-exporter:" >> $(COMPOSE_FILE)
+	@echo "    image: prom/blackbox-exporter:v0.25.0" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-blackbox-exporter" >> $(COMPOSE_FILE)
+	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
+	@echo "    ports:" >> $(COMPOSE_FILE)
+	@echo "      - \"9115:9115\"" >> $(COMPOSE_FILE)
+	@echo "    volumes:" >> $(COMPOSE_FILE)
+	@echo "      - ./monitoring/blackbox:/etc/blackbox_exporter" >> $(COMPOSE_FILE)
+	@echo "    networks:" >> $(COMPOSE_FILE)
+	@echo "      - traefik_network" >> $(COMPOSE_FILE)
+	@echo "    command:" >> $(COMPOSE_FILE)
+	@echo "      - '--config.file=/etc/blackbox_exporter/config.yml'" >> $(COMPOSE_FILE)
+	@echo "" >> $(COMPOSE_FILE)
 	@echo "  # LGTM Stack Validator" >> $(COMPOSE_FILE)
 	@echo "  argus:" >> $(COMPOSE_FILE)
 	@echo "    image: ghcr.io/nahuelsantos/argus:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-argus" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-argus" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3001:3001\"" >> $(COMPOSE_FILE)
@@ -302,7 +317,7 @@ _create-dev-compose:
 	@echo "  # Example Services" >> $(COMPOSE_FILE)
 	@echo "  example-api:" >> $(COMPOSE_FILE)
 	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-example-api" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-example-api" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3003:80\"" >> $(COMPOSE_FILE)
@@ -313,7 +328,7 @@ _create-dev-compose:
 	@echo "" >> $(COMPOSE_FILE)
 	@echo "  example-site:" >> $(COMPOSE_FILE)
 	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
-	@echo "    container_name: dinky-dev-example-site" >> $(COMPOSE_FILE)
+	@echo "    container_name: dev-example-site" >> $(COMPOSE_FILE)
 	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
 	@echo "    ports:" >> $(COMPOSE_FILE)
 	@echo "      - \"3004:80\"" >> $(COMPOSE_FILE)

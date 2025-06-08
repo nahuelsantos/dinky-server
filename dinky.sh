@@ -26,7 +26,7 @@ NC='\033[0m' # No Color
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="/var/log/dinky.log"
-BACKUP_DIR="/opt/dinky-backups/$(date +%Y%m%d_%H%M%S)"
+BACKUP_DIR="/opt/server-backups/$(date +%Y%m%d_%H%M%S)"
 
 # Global variables
 DOCKER_COMPOSE=""
@@ -405,7 +405,7 @@ source_deploy_functions() {
         if $INSTALL_MONITORING; then
             info "Setting up monitoring stack..."
             [ -f "$SCRIPT_DIR/monitoring/setup-monitoring.sh" ] && bash "$SCRIPT_DIR/monitoring/setup-monitoring.sh"
-            compose_services="$compose_services prometheus alertmanager loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter"
+            compose_services="$compose_services prometheus alertmanager loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter blackbox-exporter"
             
             # Add Argus if selected
             $INSTALL_ARGUS && compose_services="$compose_services argus"
@@ -493,7 +493,7 @@ handle_full_setup() {
     
     # System setup
     check_system_requirements || return 1
-    mkdir -p "/opt/dinky-server" "/var/log"
+    mkdir -p "/opt/server" "/var/log"
     touch "$LOG_FILE" && chmod 644 "$LOG_FILE"
     install_dependencies
     setup_environment
@@ -521,7 +521,7 @@ handle_system_setup() {
     local security_level=${REPLY:-2}
     
     check_system_requirements || return 1
-    mkdir -p "/opt/dinky-server" "/var/log"
+    mkdir -p "/opt/server" "/var/log"
     touch "$LOG_FILE" && chmod 644 "$LOG_FILE"
     install_dependencies
     setup_environment

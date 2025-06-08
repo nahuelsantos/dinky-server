@@ -5,7 +5,7 @@ set -e
 SERVER_IP=${SERVER_IP:-localhost}
 
 # Create required directories
-mkdir -p monitoring/{prometheus,loki,promtail,tempo,pyroscope,grafana,otel-collector}
+mkdir -p monitoring/{prometheus,loki,promtail,tempo,pyroscope,grafana,otel-collector,blackbox}
 mkdir -p monitoring/grafana/{dashboards,provisioning}
 mkdir -p monitoring/grafana/provisioning/{datasources,dashboards}
 
@@ -59,6 +59,19 @@ if ! grep -q "cadvisor:" docker-compose.yml; then
       - "${SERVER_IP}:9100:9100"
     networks:
       - traefik_network
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox-exporter
+    restart: always
+    ports:
+      - "${SERVER_IP}:9115:9115"
+    volumes:
+      - ./monitoring/blackbox:/etc/blackbox_exporter
+    networks:
+      - traefik_network
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
 EOF
     
     # Find the line number where volumes: section starts (after services but before volumes)
@@ -78,7 +91,7 @@ EOF
     # Clean up temp file
     rm /tmp/monitoring-services.yml
     
-    echo "✓ Added cadvisor and node-exporter services"
+    echo "✓ Added cadvisor, node-exporter, and blackbox-exporter services"
 else
     echo "✓ Monitoring services already present in docker-compose.yml"
 fi
@@ -95,6 +108,7 @@ echo "- Pyroscope: http://${SERVER_IP}:4040"
 echo "- Loki: http://${SERVER_IP}:3100"
 echo "- cAdvisor: http://${SERVER_IP}:8082"
 echo "- Node Exporter: http://${SERVER_IP}:9100"
+echo "- Blackbox Exporter: http://${SERVER_IP}:9115"
 echo ""
 echo "Remember to set your Grafana admin password in the .env file."
 

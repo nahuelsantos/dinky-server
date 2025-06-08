@@ -76,7 +76,7 @@ curl -X POST "http://localhost:3100/loki/api/v1/delete?query={job=\"example\"}&s
 make stop
 
 # Remove all data volumes (WARNING: This deletes ALL monitoring data)
-docker volume rm dinky-dev-prometheus_data dinky-dev-loki_data dinky-dev-tempo_data dinky-dev-pyroscope_data
+docker volume rm dev-prometheus_data dev-loki_data dev-tempo_data dev-pyroscope_data
 
 # Restart services
 make start

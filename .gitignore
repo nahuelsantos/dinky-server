@@ -33,7 +33,7 @@ tmp/
 
 # Backup directories
 **/backups/
-/opt/dinky-backups/
+/opt/server-backups/
 
 # Sensitive configuration files
 *credentials*

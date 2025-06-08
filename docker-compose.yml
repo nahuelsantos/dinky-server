@@ -1,6 +1,6 @@
 services:
   portainer:
-    container_name: dinky-portainer
+    container_name: portainer
     image: portainer/portainer-ce:2.30.1
     restart: always
     ports:
@@ -13,7 +13,7 @@ services:
       - traefik_network #Not needed for portainer, added if needed
 
   traefik:
-    container_name: dinky-traefik
+    container_name: traefik
     image: traefik:v3.4.1
     restart: always
     command:
@@ -29,7 +29,7 @@ services:
       - traefik_network
 
   cloudflared:
-    container_name: dinky-cloudflared
+    container_name: cloudflared
     image: cloudflare/cloudflared:2025.5.0
     restart: always
     command: tunnel --config /etc/cloudflared/config.yml run
@@ -45,7 +45,7 @@ services:
       - traefik
       
   pihole:
-    container_name: dinky-pihole
+    container_name: pihole
     image: pihole/pihole:2025.04.0
     restart: always
     ports:
@@ -72,7 +72,7 @@ services:
 
   # Mail Services
   mail-server:
-    container_name: dinky-mail-server
+    container_name: mail-server
     build:
       context: ./services/mail-server
       dockerfile: Dockerfile
@@ -110,7 +110,7 @@ services:
   # Prometheus - Metrics collection and storage
   prometheus:
     image: prom/prometheus:v3.4.0
-    container_name: dinky-prometheus
+    container_name: prometheus
     restart: always
     ports:
       - "9090:9090"
@@ -135,7 +135,7 @@ services:
 # Alertmanager - Alert management and routing
   alertmanager:
     image: prom/alertmanager:v0.28.1
-    container_name: dinky-alertmanager
+    container_name: alertmanager
     restart: always
     ports:
       - "9093:9093"
@@ -158,7 +158,7 @@ services:
   # Loki - Log aggregation
   loki:
     image: grafana/loki:3.5
-    container_name: dinky-loki
+    container_name: loki
     restart: always
     ports:
       - "3100:3100"
@@ -172,7 +172,7 @@ services:
   # Promtail - Log collector for Loki
   promtail:
     image: grafana/promtail:3.5
-    container_name: dinky-promtail
+    container_name: promtail
     restart: always
     volumes:
       - ./monitoring/promtail:/etc/promtail
@@ -187,7 +187,7 @@ services:
   # Tempo - Distributed tracing
   tempo:
     image: grafana/tempo:2.7.2
-    container_name: dinky-tempo
+    container_name: tempo
     restart: always
     ports:
       - "3200:3200"  # Tempo receiver
@@ -201,7 +201,7 @@ services:
   # Pyroscope - Continuous profiling
   pyroscope:
     image: grafana/pyroscope:1.13.4
-    container_name: dinky-pyroscope
+    container_name: pyroscope
     restart: always
     ports:
       - "4040:4040"
@@ -215,7 +215,7 @@ services:
   # Grafana - Visualization
   grafana:
     image: grafana/grafana:12.0.1
-    container_name: dinky-grafana
+    container_name: grafana
     restart: always
     ports:
       - "3000:3000"
@@ -238,7 +238,7 @@ services:
   # OpenTelemetry Collector - Telemetry collection and processing
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.127.0
-    container_name: dinky-otel-collector
+    container_name: otel-collector
     restart: always
     ports:
       - "4317:4317"  # OTLP gRPC
@@ -260,7 +260,7 @@ services:
   # Container Metrics (added by monitoring setup)
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
-    container_name: dinky-cadvisor
+    container_name: cadvisor
     restart: always
     privileged: true
     volumes:
@@ -280,7 +280,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:v1.9.1
-    container_name: dinky-node-exporter
+    container_name: node-exporter
     restart: always
     volumes:
       - /proc:/host/proc:ro
@@ -299,7 +299,7 @@ services:
   # Blackbox Exporter - HTTP/HTTPS probing for static sites
   blackbox-exporter:
     image: prom/blackbox-exporter:v0.26.0
-    container_name: dinky-blackbox-exporter
+    container_name: blackbox-exporter
     restart: always
     ports:
       - "9115:9115"
