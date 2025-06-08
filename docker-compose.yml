@@ -112,6 +112,7 @@ services:
     image: prom/prometheus:v3.4.0
     container_name: prometheus
     restart: always
+    user: "65534:992"  # nobody:docker - gives access to docker socket
     ports:
       - "9090:9090"
     volumes:
