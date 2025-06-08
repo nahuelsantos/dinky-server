@@ -192,4 +192,47 @@ groups:
           severity: warning
         annotations:
           summary: "High response time detected"
-          description: "95th percentile response time is above 1 second for service {{ $labels.service }}" 
+          description: "95th percentile response time is above 1 second for service {{ $labels.service }}"
+
+  # HTTP Probe Alerts for websites
+  - name: http_probes
+    rules:
+      # Website Down
+      - alert: WebsiteDown
+        expr: probe_success{job=~".*-http"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Website is down"
+          description: "Website {{ $labels.instance }} has been down for more than 1 minute"
+
+      # Website High Response Time
+      - alert: WebsiteSlowResponse
+        expr: probe_duration_seconds{job=~".*-http"} > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Website slow response time"
+          description: "Website {{ $labels.instance }} response time is above 2 seconds for more than 2 minutes (current: {{ $value }}s)"
+
+      # Website SSL Certificate Expiring
+      - alert: WebsiteSSLCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry{job=~".*-http"} - time() < 86400 * 7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in less than 7 days"
+
+      # Website HTTP Status Code Error
+      - alert: WebsiteHTTPError
+        expr: probe_http_status_code{job=~".*-http"} >= 400
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Website HTTP error"
+          description: "Website {{ $labels.instance }} returned HTTP {{ $value }} for more than 2 minutes" 
