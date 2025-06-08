@@ -113,3 +113,6 @@ cover/
 # IPython
 profile_default/
 ipython_config.py
+# Ignore everything in sites/ except example-site/
+sites/*
+!sites/example-site/

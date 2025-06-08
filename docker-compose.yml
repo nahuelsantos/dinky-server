@@ -117,6 +117,7 @@ services:
     volumes:
       - ./monitoring/prometheus:/etc/prometheus
       - prometheus_data:/prometheus
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -294,6 +295,20 @@ services:
       - "9100:9100"
     networks:
       - traefik_network
+
+  # Blackbox Exporter - HTTP/HTTPS probing for static sites
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.26.0
+    container_name: dinky-blackbox-exporter
+    restart: always
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./monitoring/blackbox:/etc/blackbox_exporter
+    networks:
+      - traefik_network
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
 
 # Argus - LGTM Stack Validator
   argus:

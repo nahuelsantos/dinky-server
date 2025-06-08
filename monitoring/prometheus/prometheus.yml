@@ -57,3 +57,74 @@ scrape_configs:
   - job_name: "argus"
     static_configs:
       - targets: ["argus:3001"]
+
+  # Docker Service Discovery for containers with monitoring labels
+  - job_name: 'docker-services'
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # Only scrape containers with prometheus.scrape=true label
+      - source_labels: [__meta_docker_container_label_prometheus_scrape]
+        action: keep
+        regex: true
+      # Use custom job name from label if present
+      - source_labels: [__meta_docker_container_label_prometheus_job]
+        target_label: job
+        regex: (.+)
+      # Use container name as instance if no custom job
+      - source_labels: [__meta_docker_container_name]
+        target_label: instance
+      # Use custom metrics path if specified, default to /metrics
+      - source_labels: [__meta_docker_container_label_prometheus_path]
+        target_label: __metrics_path__
+        regex: (.+)
+        replacement: ${1}
+      # Set default metrics path if not specified
+      - target_label: __metrics_path__
+        replacement: /metrics
+      # Use custom port if specified
+      - source_labels: [__meta_docker_container_label_prometheus_port]
+        target_label: __address__
+        regex: (.+)
+        replacement: ${1}
+
+  # Blackbox exporter for HTTP probing
+  - job_name: 'blackbox-exporter'
+    static_configs:
+      - targets: ['blackbox-exporter:9115']
+
+  # HTTP probes via Docker discovery for static sites
+  - job_name: 'docker-http-probes'
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    relabel_configs:
+      # Only probe containers with prometheus.probe=http label
+      - source_labels: [__meta_docker_container_label_prometheus_probe]
+        action: keep
+        regex: http
+      # Get the port from label or use default
+      - source_labels: [__meta_docker_container_label_prometheus_port]
+        target_label: __param_target
+        regex: (.+)
+        replacement: http://${__meta_docker_container_name}:${1}
+      # If no port specified, use container name only
+      - source_labels: [__meta_docker_container_name]
+        target_label: __param_target
+        regex: (.+)
+        replacement: http://${1}
+      # Use the target URL as instance name
+      - source_labels: [__param_target]
+        target_label: instance
+      # Point to blackbox exporter
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      # Set job name from container label
+      - source_labels: [__meta_docker_container_label_prometheus_job]
+        target_label: job
+        regex: (.+)
+        replacement: ${1}-http
