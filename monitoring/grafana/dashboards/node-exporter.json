@@ -113,13 +113,13 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "CPU Usage",
+          "expr": "avg(node_load1)",
+          "legendFormat": "CPU Load (1m avg)",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "CPU Usage",
+      "title": "CPU Load",
       "type": "timeseries"
     },
     {
@@ -207,8 +207,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * (1 - ((node_memory_MemAvailable_bytes) / (node_memory_MemTotal_bytes)))",
-          "legendFormat": "Memory Usage",
+          "expr": "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100",
+          "legendFormat": "Memory Usage %",
           "range": true,
           "refId": "A"
         }
@@ -301,8 +301,8 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"} * 100",
-          "legendFormat": "Disk Usage (/)",
+          "expr": "(node_filesystem_size_bytes{mountpoint=\"/\"} - node_filesystem_avail_bytes{mountpoint=\"/\"}) / node_filesystem_size_bytes{mountpoint=\"/\"} * 100",
+          "legendFormat": "Disk Usage % (/)",
           "range": true,
           "refId": "A"
         }
@@ -432,8 +432,10 @@
   "schemaVersion": 38,
   "style": "dark",
   "tags": [
-    "node",
-    "system"
+    "server",
+    "hardware",
+    "system",
+    "infrastructure"
   ],
   "templating": {
     "list": []
@@ -457,8 +459,8 @@
     ]
   },
   "timezone": "",
-  "title": "Node Exporter Dashboard",
-  "uid": "node-exporter",
+  "title": "Server Hardware Health",
+  "uid": "server-hardware-health",
   "version": 1,
   "weekStart": ""
 } 
