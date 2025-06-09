@@ -107,10 +107,10 @@ scrape_configs:
       - source_labels: [__meta_docker_container_label_prometheus_probe]
         action: keep
         regex: http
-      # Build target URL with port from label
+      # Build target URL with port from label (remove leading slash from container name)
       - source_labels: [__meta_docker_container_name, __meta_docker_container_label_prometheus_port]
         target_label: __param_target
-        regex: ([^;]+);(.+)
+        regex: /([^;]+);(.+)
         replacement: http://${1}:${2}
       # Use the target URL as instance name
       - source_labels: [__param_target]
