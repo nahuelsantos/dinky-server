@@ -309,37 +309,6 @@ services:
     command:
       - '--config.file=/etc/blackbox_exporter/config.yml'
 
-# Argus - LGTM Stack Validator
-  argus:
-    image: ghcr.io/nahuelsantos/argus:latest
-    container_name: argus
-    ports:
-      - "3001:3001"
-    environment:
-      - ARGUS_SERVER_IP=${ARGUS_SERVER_IP:-127.0.0.1}
-      - ARGUS_ENVIRONMENT=${ARGUS_ENVIRONMENT:-development}
-      - ARGUS_VERSION=${ARGUS_VERSION:-v0.0.10}
-      - ARGUS_GRAFANA_URL=${ARGUS_GRAFANA_URL:-http://localhost:3000}
-      - ARGUS_PROMETHEUS_URL=${ARGUS_PROMETHEUS_URL:-http://localhost:9090}
-      - ARGUS_LOKI_URL=${ARGUS_LOKI_URL:-http://localhost:3100}
-      - ARGUS_TEMPO_URL=${ARGUS_TEMPO_URL:-http://localhost:3200}
-      - ARGUS_ALERTMANAGER_URL=${ARGUS_ALERTMANAGER_URL:-http://localhost:9093}
-      - ARGUS_GRAFANA_USERNAME=${ARGUS_GRAFANA_USERNAME:-admin}
-      - ARGUS_GRAFANA_PASSWORD=${ARGUS_GRAFANA_PASSWORD:-admin}
-    depends_on:
-      - prometheus
-      - grafana
-      - loki
-      - tempo
-    networks:
-      - traefik_network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
   cloudflared-data:
   grafana_data:
