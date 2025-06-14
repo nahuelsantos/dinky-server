@@ -17,7 +17,6 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 ### **🛠️ Advanced Topics**
 - **[Infrastructure Components](../infrastructure/)** - Network and security setup
 - **[Monitoring Stack](../monitoring/)** - Observability and metrics
-- **[LGTM Testing with Argus](https://github.com/nahuelsantos/argus)** - Comprehensive stack validation
 - **[Service Configuration](../services/)** - Individual service setup
 
 ## 🎯 Quick Navigation
@@ -92,7 +91,6 @@ When adding documentation:
 - **4040** - Pyroscope Profiling UI
 - **8082** - cAdvisor Container Metrics
 - **9100** - Node Exporter (metrics endpoint)
-- **3001** - Argus LGTM Stack Validator
 
 ### Monitoring & Telemetry Endpoints
 - **4317** - OTEL Collector (gRPC)
@@ -116,8 +114,7 @@ When adding documentation:
 - **3003** - Example API (Simple REST API)
 - **3004** - Example Site (Simple Static Site)
 
-### LGTM Testing
-- **3001** - Argus LGTM Stack Validator ([Source Code](https://github.com/nahuelsantos/argus))
+
 
 ### Reserved Port Ranges
 

@@ -54,10 +54,6 @@ scrape_configs:
     static_configs:
       - targets: ["grafana:3000"] 
 
-  - job_name: "argus"
-    static_configs:
-      - targets: ["argus:3001"]
-
   # Docker Service Discovery for containers with monitoring labels
   - job_name: 'docker-services'
     docker_sd_configs:

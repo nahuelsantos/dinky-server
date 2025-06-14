@@ -4,7 +4,7 @@
 # Note: docker-compose.dev.yml is auto-generated (not in git)
 # All commands automatically create it if missing - perfect for new developers!
 
-.PHONY: help setup start stop restart logs status clean reset argus argus-logs argus-stop
+.PHONY: help setup start stop restart logs status clean reset
 
 # Default target
 .DEFAULT_GOAL := help
@@ -39,10 +39,10 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
-	@echo "  make start      # Start all services (includes LGTMA + Argus)"
+	@echo "  make start      # Start all services (includes LGTMA stack)"
 	@echo "  make status     # Check service health"
 	@echo "  make logs       # Follow all logs"
-	@echo "  make argus      # Run standalone LGTM testing"
+
 	@echo "  make clean      # Stop and clean everything"
 
 setup: check-docker-compose ## Create development configuration files
@@ -100,18 +100,13 @@ status: setup check-docker-compose ## Show status of all services
 	@echo -n "Tempo:      "; curl -s http://localhost:3200/ready >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Pyroscope:  "; curl -s http://localhost:4040 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "OTEL Collector: "; docker ps | grep -q dev-otel-collector && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not running$(NC)"
-	@echo -n "Argus:      "; curl -s http://localhost:3001/health >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
+
 	@echo -n "Blackbox Exporter: "; curl -s http://localhost:9115/metrics >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example API:"; curl -s http://localhost:3003 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo -n "Example Site:"; curl -s http://localhost:3004 >/dev/null 2>&1 && echo "$(GREEN)✓ Running$(NC)" || echo "$(RED)✗ Not responding$(NC)"
 	@echo ""
-	@echo "$(YELLOW)LGTM Stack Testing (Argus included automatically):$(NC)"
-	@echo "$(CYAN)http://localhost:3001  # Argus Dashboard (starts with LGTMA stack)$(NC)"
-	@echo ""
-	@echo "$(YELLOW)Quick Commands:$(NC)"
-	@echo "$(CYAN)make argus       # Run standalone Argus container for testing$(NC)"
-	@echo "$(CYAN)make argus-logs  # View Argus logs$(NC)"
-	@echo "$(CYAN)make argus-stop  # Stop standalone Argus container$(NC)"
+	@echo "$(YELLOW)LGTM Stack Testing:$(NC)"
+	@echo "$(CYAN)Use external tools or manual testing for LGTM validation$(NC)"
 
 clean: setup stop ## Stop services and remove containers/volumes
 	@echo "$(CYAN)Cleaning development environment...$(NC)"
@@ -293,27 +288,8 @@ _create-dev-compose:
 	@echo "    command:" >> $(COMPOSE_FILE)
 	@echo "      - '--config.file=/etc/blackbox_exporter/config.yml'" >> $(COMPOSE_FILE)
 	@echo "" >> $(COMPOSE_FILE)
-	@echo "  # LGTM Stack Validator" >> $(COMPOSE_FILE)
-	@echo "  argus:" >> $(COMPOSE_FILE)
-	@echo "    image: ghcr.io/nahuelsantos/argus:latest" >> $(COMPOSE_FILE)
-	@echo "    container_name: dev-argus" >> $(COMPOSE_FILE)
-	@echo "    restart: unless-stopped" >> $(COMPOSE_FILE)
-	@echo "    ports:" >> $(COMPOSE_FILE)
-	@echo "      - \"3001:3001\"" >> $(COMPOSE_FILE)
-	@echo "    environment:" >> $(COMPOSE_FILE)
-	@echo "      - PROMETHEUS_URL=http://prometheus:9090" >> $(COMPOSE_FILE)
-	@echo "      - GRAFANA_URL=http://grafana:3000" >> $(COMPOSE_FILE)
-	@echo "      - LOKI_URL=http://loki:3100" >> $(COMPOSE_FILE)
-	@echo "      - TEMPO_URL=http://tempo:3200" >> $(COMPOSE_FILE)
-	@echo "      - ENVIRONMENT=development" >> $(COMPOSE_FILE)
-	@echo "    networks:" >> $(COMPOSE_FILE)
-	@echo "      - traefik_network" >> $(COMPOSE_FILE)
-	@echo "    depends_on:" >> $(COMPOSE_FILE)
-	@echo "      - prometheus" >> $(COMPOSE_FILE)
-	@echo "      - grafana" >> $(COMPOSE_FILE)
-	@echo "      - loki" >> $(COMPOSE_FILE)
-	@echo "      - tempo" >> $(COMPOSE_FILE)
-	@echo "" >> $(COMPOSE_FILE)
+
+
 	@echo "  # Example Services" >> $(COMPOSE_FILE)
 	@echo "  example-api:" >> $(COMPOSE_FILE)
 	@echo "    image: nginx:alpine" >> $(COMPOSE_FILE)
@@ -351,28 +327,4 @@ _create-dev-compose:
 	@echo "  tempo_data:" >> $(COMPOSE_FILE)
 	@echo "  pyroscope_data:" >> $(COMPOSE_FILE)
 
-argus: ## Run standalone Argus container for testing (already included in development stack)
-	@echo "$(CYAN)Starting Argus LGTM Stack Validator...$(NC)"
-	@docker run --rm -d --name argus-testing \
-		-p 3001:3001 \
-		--network traefik_network \
-		-e PROMETHEUS_URL=http://prometheus:9090 \
-		-e GRAFANA_URL=http://grafana:3000 \
-		-e LOKI_URL=http://loki:3100 \
-		-e TEMPO_URL=http://tempo:3200 \
-		ghcr.io/nahuelsantos/argus:v0.0.1 2>/dev/null || true
-	@sleep 3
-	@echo "$(GREEN)✓ Argus started!$(NC)"
-	@echo "$(CYAN)Dashboard: http://localhost:3001$(NC)"
-	@echo "$(CYAN)Health: http://localhost:3001/health$(NC)"
-	@echo "$(YELLOW)Stop with: docker stop argus-testing$(NC)"
-
-argus-logs: ## View Argus logs
-	@echo "$(CYAN)Argus Logs:$(NC)"
-	@docker logs argus-testing 2>/dev/null || echo "$(RED)No Argus container running$(NC)"
-	@echo "$(YELLOW)Start Argus with: make argus$(NC)"
-
-argus-stop: ## Stop Argus container
-	@echo "$(CYAN)Stopping Argus...$(NC)"
-	@docker stop argus-testing 2>/dev/null || true
-	@echo "$(GREEN)✓ Argus stopped$(NC)" 
+ 

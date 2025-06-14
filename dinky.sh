@@ -354,16 +354,6 @@ source_deploy_functions() {
         read -p "   Install Monitoring? (Y/n): " -n 1 -r; echo
         INSTALL_MONITORING=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
         
-        # Argus (only show if monitoring is selected)
-        if $INSTALL_MONITORING; then
-            echo -e "\n${CYAN}   → Argus (LGTM Stack Validator)${NC} - ${YELLOW}Optional${NC}"
-            echo -e "      ${YELLOW}Complete LGTM stack integration testing & synthetic data generation${NC}"
-            read -p "   Install Argus? (Y/n): " -n 1 -r; echo
-            INSTALL_ARGUS=$([[ ! $REPLY =~ ^[Nn]$ ]] && echo true || echo false)
-        else
-            INSTALL_ARGUS=false
-        fi
-        
         # Mail server - Now mandatory
         echo -e "\n${CYAN}6. Mail Server (SMTP Relay)${NC} - ${GREEN}Recommended${NC}"
         read -p "   Install Mail Server? (Y/n): " -n 1 -r; echo
@@ -376,7 +366,7 @@ source_deploy_functions() {
         $INSTALL_CLOUDFLARED && echo -e "  ${GREEN}✓${NC} Cloudflared"
         $INSTALL_PIHOLE && echo -e "  ${GREEN}✓${NC} Pi-hole"
         $INSTALL_MONITORING && echo -e "  ${GREEN}✓${NC} Monitoring Stack"
-        $INSTALL_ARGUS && echo -e "  ${GREEN}✓${NC}   → Argus (LGTM Validator)"
+
         $INSTALL_MAIL && echo -e "  ${GREEN}✓${NC} Mail Server"
         
         echo
@@ -407,8 +397,7 @@ source_deploy_functions() {
             [ -f "$SCRIPT_DIR/monitoring/setup-monitoring.sh" ] && bash "$SCRIPT_DIR/monitoring/setup-monitoring.sh"
             compose_services="$compose_services prometheus alertmanager loki promtail tempo pyroscope grafana otel-collector cadvisor node-exporter blackbox-exporter"
             
-            # Add Argus if selected
-            $INSTALL_ARGUS && compose_services="$compose_services argus"
+
         fi
         
         if [ -n "$compose_services" ]; then
@@ -444,36 +433,10 @@ source_deploy_functions() {
             echo -e "  ${CYAN}Alertmanager:${NC} http://$server_ip:9093"
         fi
         
-        # Show Argus information only if installed
-        if $INSTALL_ARGUS; then
-            echo -e "\n${WHITE}LGTM Stack Testing:${NC}"
-            echo -e "  ${CYAN}Argus (LGTM Validator):${NC} http://$server_ip:3001"
-            echo -e "    ${YELLOW}• Complete LGTM stack integration testing${NC}"
-            echo -e "    ${YELLOW}• Synthetic data generation (metrics, logs, traces)${NC}"
-            echo -e "    ${YELLOW}• Performance and scale testing${NC}"
-        elif $INSTALL_MONITORING; then
-            echo -e "\n${WHITE}LGTM Stack Testing (Manual):${NC}"
-            echo -e "  ${CYAN}Argus (LGTM Validator):${NC} docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:latest"
-            echo -e "    ${YELLOW}• Complete LGTM stack integration testing${NC}"
-            echo -e "    ${YELLOW}• Dashboard: http://$server_ip:3001${NC}"
-            echo -e "\n  ${CYAN}Quick Start:${NC}"
-            echo -e "    ${CYAN}docker run -p 3001:3001 \\${NC}"
-            echo -e "      ${CYAN}-e PROMETHEUS_URL=http://$server_ip:9090 \\${NC}"
-            echo -e "      ${CYAN}-e GRAFANA_URL=http://$server_ip:3000 \\${NC}"
-            echo -e "      ${CYAN}-e LOKI_URL=http://$server_ip:3100 \\${NC}"
-            echo -e "      ${CYAN}-e TEMPO_URL=http://$server_ip:3200 \\${NC}"
-            echo -e "      ${CYAN}ghcr.io/nahuelsantos/argus:latest${NC}"
-        fi
-        
         echo -e "\n${WHITE}Next Steps:${NC}"
         $INSTALL_CLOUDFLARED && echo -e "  ${YELLOW}1.${NC} Update TUNNEL_ID in .env"
         $INSTALL_MAIL && echo -e "  ${YELLOW}2.${NC} Configure SMTP relay settings in .env"
         echo -e "  ${YELLOW}3.${NC} Review security settings"
-        if $INSTALL_ARGUS; then
-            echo -e "  ${YELLOW}4.${NC} Test your LGTM stack with Argus at http://$server_ip:3001"
-        elif $INSTALL_MONITORING; then
-            echo -e "  ${YELLOW}4.${NC} Test your LGTM stack with Argus (see manual instructions above)"
-        fi
         
         success "Deployment completed successfully!"
     }
@@ -688,7 +651,7 @@ handle_deploy_examples() {
     echo -e "  ${GREEN}•${NC} Example Site (Simple static HTML site for learning)"
     echo
     echo -e "${WHITE}For LGTM Stack Testing:${NC}"
-    echo -e "  ${CYAN}•${NC} Use Argus: docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1"
+
     echo
     
     read -p "Continue with deployment? (Y/n): " -n 1 -r
@@ -783,7 +746,7 @@ handle_deploy_examples() {
         echo -e "\n${WHITE}Next Steps:${NC}"
         echo -e "  ${CYAN}1.${NC} Test the Example API endpoints"
         echo -e "  ${CYAN}2.${NC} Explore the Example Site"
-        echo -e "  ${CYAN}3.${NC} For LGTM testing: docker run -p 3001:3001 ghcr.io/nahuelsantos/argus:v0.0.1"
+    
         echo -e "  ${CYAN}4.${NC} Add your own services using these as templates"
     else
         warning "Some deployments failed. Check the logs above for details."
@@ -1152,7 +1115,7 @@ handle_help() {
     echo -e "  ${CYAN}Monitoring:${NC} Full LGTM stack (Grafana, Prometheus, Loki, Tempo)"
     echo -e "  ${CYAN}Cloudflared:${NC} Secure tunnel for external access"
     echo -e "  ${CYAN}Mail Server:${NC} SMTP relay for internal services"
-    echo -e "  ${CYAN}Argus (LGTM Validator):${NC} Comprehensive LGTM stack testing and validation"
+
     echo -e "  ${CYAN}Dinky Dashboard:${NC} Advanced observability control center"
     echo -e "  ${CYAN}Example API:${NC} Simple Go REST API for learning"
     echo -e "  ${CYAN}Example Site:${NC} Simple static HTML site for learning"
@@ -1172,7 +1135,7 @@ handle_help() {
     echo -e "\n${WHITE}Port Reference:${NC}"
     echo -e "  ${CYAN}Web UIs:${NC} 8080 (Traefik), 8081 (Pi-hole), 9000 (Portainer)"
     echo -e "  ${CYAN}Monitoring:${NC} 3000 (Grafana), 9090 (Prometheus), 4040 (Pyroscope)"
-    echo -e "  ${CYAN}Dinky Services:${NC} 3001 (Argus - LGTM Validator), 3002 (Dashboard)"
+    echo -e "  ${CYAN}Dinky Services:${NC} 3002 (Dashboard)"
     echo -e "  ${CYAN}Examples:${NC} 8080 (API), 8081 (Site) in production"
     echo -e "  ${CYAN}Available:${NC} 3003-3099 (APIs), 8003-8099 (Sites)"
     
