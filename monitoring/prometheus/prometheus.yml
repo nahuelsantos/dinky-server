@@ -84,10 +84,10 @@ scrape_configs:
       - target_label: __metrics_path__
         replacement: /metrics
       # Use custom port if specified
-      - source_labels: [__meta_docker_container_label_prometheus_port]
+      - source_labels: [__meta_docker_container_name, __meta_docker_container_label_prometheus_port]
         target_label: __address__
-        regex: (.+)
-        replacement: ${1}
+        regex: /([^;]+);(.+)
+        replacement: ${1}:${2}
 
   # Blackbox exporter for HTTP probing
   - job_name: 'blackbox-exporter'

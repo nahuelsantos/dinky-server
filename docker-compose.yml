@@ -155,7 +155,6 @@ services:
     depends_on:
       - mail-server
 
-
   # Loki - Log aggregation
   loki:
     image: grafana/loki:3.5
@@ -256,7 +255,6 @@ services:
       - loki
       - tempo
       - pyroscope
-
 
   # Container Metrics (added by monitoring setup)
   cadvisor:
