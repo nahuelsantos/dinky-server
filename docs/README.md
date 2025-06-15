@@ -95,6 +95,7 @@ When adding documentation:
 ### Monitoring & Telemetry Endpoints
 - **4317** - OTEL Collector (gRPC)
 - **4318** - OTEL Collector (HTTP) 
+- **4316** - Tempo OTLP (external)
 - **8888** - OTEL Collector Internal Metrics
 - **8889** - OTEL Collector Prometheus Metrics
 - **8080** - Traefik Dashboard & Metrics (at /metrics path)
@@ -140,10 +141,17 @@ All external services are bound to `${SERVER_IP}` (not 0.0.0.0) for security:
 
 ## 📊 Monitoring Integration
 
-All services automatically export metrics to Prometheus:
+**All services automatically get monitoring:**
 - Container metrics via cAdvisor
 - System metrics via Node Exporter  
 - Application metrics via OTEL Collector
-- Custom metrics via your applications
 
-For detailed monitoring setup, see the main [README.md](../README.md#monitoring--observability). 
+**For your apps, use:**
+```yaml
+environment:
+  - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+```
+
+**Telemetry flow:** Your App → otel-collector:4318 → tempo/prometheus/loki
+
+For detailed setup, see the main [README.md](../README.md#monitoring--observability). 

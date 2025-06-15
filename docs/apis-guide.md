@@ -262,8 +262,9 @@ docker compose restart my-api
 - `3100` - Loki
 - `3200` - Tempo
 - `4040` - Pyroscope
-- `4317` - OTEL Collector (OTLP gRPC)
-- `4318` - OTEL Collector (OTLP HTTP)
+- `4317` - OTEL Collector (OTLP gRPC) - **Use this for apps**
+- `4318` - OTEL Collector (OTLP HTTP) - **Use this for apps**
+- `4316` - Tempo OTLP (external) - **Direct access, use otel-collector instead**
 - `8082` - cAdvisor
 - `8888` - OTEL Collector metrics
 - `9090` - Prometheus

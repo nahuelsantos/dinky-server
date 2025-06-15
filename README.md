@@ -105,6 +105,7 @@ After deployment, visit:
 - **Pyroscope**: http://[SERVER_IP]:4040
 - **OTEL Collector (gRPC)**: http://[SERVER_IP]:4317
 - **OTEL Collector (HTTP)**: http://[SERVER_IP]:4318
+- **Tempo (OTLP)**: http://[SERVER_IP]:4316
 - **OTEL Collector Metrics**: http://[SERVER_IP]:8888
 - **OTEL Collector Prometheus Metrics**: http://[SERVER_IP]:8889
 - **cAdvisor**: http://[SERVER_IP]:8082
@@ -151,8 +152,9 @@ The included Example API (port 3003) provides simple REST API demonstration:
 
 **Monitoring Endpoints:**
 ```
-4317 - OTEL Collector (gRPC)
+4317 - OTEL Collector (gRPC) 
 4318 - OTEL Collector (HTTP)
+4316 - Tempo OTLP (external)
 8888 - OTEL Collector Metrics
 8889 - OTEL Collector Prometheus Metrics
 8080 - Traefik Metrics (at /metrics path)
