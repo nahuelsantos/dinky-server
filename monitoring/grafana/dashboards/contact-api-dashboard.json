@@ -144,11 +144,11 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(prometheus_http_requests_total{job=\"contact-api\"}[5m])",
+          "expr": "rate(promhttp_metric_handler_requests_total{job=\"contact-api\"}[5m])",
           "refId": "A"
         }
       ],
-      "title": "Request Rate (req/sec)",
+      "title": "Metrics Scrape Rate",
       "type": "stat"
     },
     {
@@ -159,26 +159,9 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 1
-              },
-              {
-                "color": "red",
-                "value": 5
-              }
-            ]
-          },
-          "unit": "percent"
+          "unit": "bytes"
         },
         "overrides": []
       },
@@ -190,8 +173,8 @@
       },
       "id": 3,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
+        "colorMode": "value",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
@@ -210,11 +193,11 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(prometheus_http_requests_total{job=\"contact-api\",code=~\"5..\"}[5m]) / rate(prometheus_http_requests_total{job=\"contact-api\"}[5m]) * 100",
+          "expr": "go_memstats_alloc_bytes{job=\"contact-api\"}",
           "refId": "A"
         }
       ],
-      "title": "Error Rate (%)",
+      "title": "Memory Allocated",
       "type": "stat"
     },
     {
@@ -225,26 +208,9 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "yellow",
-                "value": 0.5
-              },
-              {
-                "color": "red",
-                "value": 2
-              }
-            ]
-          },
-          "unit": "s"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -276,99 +242,12 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "prometheus_http_request_duration_seconds{job=\"contact-api\",quantile=\"0.5\"}",
+          "expr": "go_goroutines{job=\"contact-api\"}",
           "refId": "A"
         }
       ],
-      "title": "Response Time (p50)",
+      "title": "Active Goroutines",
       "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "rps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 6
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "rate(prometheus_http_requests_total{job=\"contact-api\"}[5m])",
-          "legendFormat": "{{handler}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Request Rate Over Time",
-      "type": "timeseries"
     },
     {
       "datasource": {
@@ -427,6 +306,102 @@
       "gridPos": {
         "h": 8,
         "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "go_memstats_alloc_bytes{job=\"contact-api\"}",
+          "legendFormat": "Allocated Memory",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "go_memstats_sys_bytes{job=\"contact-api\"}",
+          "legendFormat": "System Memory",
+          "refId": "B"
+        }
+      ],
+      "title": "Go Memory Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
         "x": 12,
         "y": 6
       },
@@ -449,12 +424,117 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "container_memory_usage_bytes{name=\"contact-api\"}",
-          "legendFormat": "Memory Used",
+          "expr": "go_goroutines{job=\"contact-api\"}",
+          "legendFormat": "Goroutines",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(go_gc_duration_seconds_count{job=\"contact-api\"}[5m]) * 60",
+          "legendFormat": "GC Rate (per min)",
+          "refId": "B"
         }
       ],
-      "title": "Memory Usage",
+      "title": "Go Runtime Stats",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "container_memory_usage_bytes{name=\"contact-api\"}",
+          "legendFormat": "Container Memory Used",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "container_spec_memory_limit_bytes{name=\"contact-api\"}",
+          "legendFormat": "Container Memory Limit",
+          "refId": "B"
+        }
+      ],
+      "title": "Container Resource Usage",
       "type": "timeseries"
     }
   ],
@@ -477,6 +557,6 @@
   "timezone": "",
   "title": "Contact API Dashboard",
   "uid": "contact-api",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 } 
