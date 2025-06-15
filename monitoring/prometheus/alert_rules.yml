@@ -250,6 +250,39 @@ groups:
           summary: "CV website is down"
           description: "Your professional CV website (cv.nahuelsantos.com) has been down for 30 seconds - this impacts your professional presence"
 
+      # CV Container Down Alert
+      - alert: CVContainerDown
+        expr: probe_success{job="nahuelsantos-cv-http-internal"} == 0
+        for: 1m
+        labels:
+          severity: warning
+          service: cv-container
+        annotations:
+          summary: "CV Container is not responding"
+          description: "CV container internal health check is failing - container may be down or unresponsive"
+
+      # CV Container High Memory Usage
+      - alert: CVHighMemoryUsage
+        expr: (container_memory_usage_bytes{name="cv"} / container_spec_memory_limit_bytes{name="cv"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: cv-container
+        annotations:
+          summary: "CV Container high memory usage"
+          description: "CV container memory usage is {{ $value }}% of limit"
+
+      # CV Container High CPU Usage
+      - alert: CVHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{name="cv"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: cv-container
+        annotations:
+          summary: "CV Container high CPU usage"
+          description: "CV container CPU usage is {{ $value }}%"
+
       # Website Slow Response (unified threshold)
       - alert: WebsiteSlowResponse
         expr: probe_duration_seconds{job="website-probes"} > 2
