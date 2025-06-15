@@ -235,4 +235,62 @@ groups:
           severity: warning
         annotations:
           summary: "Website HTTP error"
-          description: "Website {{ $labels.instance }} returned HTTP {{ $value }} for more than 2 minutes" 
+          description: "Website {{ $labels.instance }} returned HTTP {{ $value }} for more than 2 minutes"
+
+  # Dinky Services - Your specific services monitoring
+  - name: dinky_services
+    rules:
+      # Contact API specific alerts
+      - alert: ContactAPIDown
+        expr: up{job="contact-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: contact-api
+        annotations:
+          summary: "Contact API service is down"
+          description: "Contact API has been down for more than 2 minutes - contact forms will not work on nahuelsantos.com and loopingbyte.com"
+
+      # Contact API high error rate
+      - alert: ContactAPIHighErrorRate
+        expr: rate(gin_request_total{job="contact-api",code=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: contact-api
+        annotations:
+          summary: "Contact API high error rate"
+          description: "Contact API error rate is above 10% for 5 minutes (current: {{ $value | humanizePercentage }})"
+
+      # Website downtime (external monitoring)
+      - alert: WebsiteExternalDown
+        expr: probe_success{job="website-probes"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: website
+        annotations:
+          summary: "Website {{ $labels.instance }} is down"
+          description: "Website {{ $labels.instance }} has been unreachable from external monitoring for more than 1 minute"
+
+      # Website slow response (external monitoring)
+      - alert: WebsiteExternalSlow
+        expr: probe_duration_seconds{job="website-probes"} > 3
+        for: 3m
+        labels:
+          severity: warning
+          service: website
+        annotations:
+          summary: "Website {{ $labels.instance }} slow response"
+          description: "Website {{ $labels.instance }} response time is above 3 seconds for 3 minutes (current: {{ $value }}s)"
+
+      # CV site specific alert (since it's your main professional site)
+      - alert: CVSiteDown
+        expr: probe_success{job="website-probes",instance="https://cv.nahuelsantos.com"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: cv-site
+        annotations:
+          summary: "CV website is down"
+          description: "Your professional CV website (cv.nahuelsantos.com) has been down for 30 seconds - this impacts your professional presence" 
