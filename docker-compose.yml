@@ -314,6 +314,20 @@ services:
     command:
       - '--config.file=/etc/blackbox_exporter/config.yml'
 
+  # Nginx Prometheus Exporter - Convert nginx status to Prometheus metrics
+  nginx-prometheus-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.2
+    container_name: nginx-prometheus-exporter
+    restart: always
+    ports:
+      - "9113:9113"
+    networks:
+      - traefik_network
+    command:
+      - '-nginx.scrape-uri=http://cv:80/nginx_status'
+      - '-web.listen-address=:9113'
+      - '-web.telemetry-path=/metrics'
+
 volumes:
   cloudflared-data:
   grafana_data:
