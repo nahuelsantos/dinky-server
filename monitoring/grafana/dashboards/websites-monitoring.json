@@ -90,7 +90,7 @@
         ]
       },
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 24,
         "x": 0,
         "y": 0
@@ -114,7 +114,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_success{job=~\".*-http.*|website-probes\"}",
+          "expr": "probe_success{job=\"website-probes\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -127,7 +127,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_duration_seconds{job=~\".*-http\"}",
+          "expr": "probe_duration_seconds{job=\"website-probes\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -140,7 +140,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_http_status_code{job=~\".*-http\"}",
+          "expr": "probe_http_status_code{job=\"website-probes\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -148,7 +148,7 @@
           "refId": "C"
         }
       ],
-      "title": "Website Status Overview",
+      "title": "External Websites Status",
       "transformations": [
         {
           "id": "merge",
@@ -160,22 +160,19 @@
             "excludeByName": {
               "Time": true,
               "__name__": true,
-              "instance": false,
-              "job": false
+              "job": true
             },
             "indexByName": {
-              "Value #A": 2,
-              "Value #B": 3,
-              "Value #C": 4,
-              "instance": 0,
-              "job": 1
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "instance": 0
             },
             "renameByName": {
               "Value #A": "Status",
               "Value #B": "Response Time (s)",
               "Value #C": "HTTP Code",
-              "instance": "Website",
-              "job": "Service"
+              "instance": "Website"
             }
           }
         }
@@ -244,7 +241,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 6
       },
       "id": 2,
       "options": {
@@ -266,13 +263,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_duration_seconds{job=~\".*-http\"}",
+          "expr": "probe_duration_seconds{job=\"website-probes\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Response Time",
+      "title": "Website Response Time",
       "type": "timeseries"
     },
     {
@@ -292,7 +289,7 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -315,19 +312,29 @@
               "mode": "off"
             }
           },
-          "mappings": [],
-          "max": 1,
-          "min": 0,
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "text": "DOWN"
+                },
+                "1": {
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "green",
+                "value": 0.5
               }
             ]
           },
@@ -339,7 +346,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 6
       },
       "id": 3,
       "options": {
@@ -361,13 +368,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_success{job=~\".*-http\"}",
+          "expr": "probe_success{job=\"website-probes\"}",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Uptime Status (1=UP, 0=DOWN)",
+      "title": "Website Availability",
       "type": "timeseries"
     },
     {
@@ -381,6 +388,8 @@
             "mode": "thresholds"
           },
           "mappings": [],
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -390,29 +399,31 @@
               },
               {
                 "color": "yellow",
-                "value": 95
+                "value": 0.95
               },
               {
                 "color": "green",
-                "value": 99
+                "value": 0.99
               }
             ]
           },
-          "unit": "percent"
+          "unit": "percentunit"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 8,
         "x": 0,
-        "y": 12
+        "y": 14
       },
       "id": 4,
       "options": {
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -427,13 +438,13 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "avg_over_time(probe_success{job=~\".*-http\"}[24h]) * 100",
-          "legendFormat": "{{instance}}",
+          "expr": "avg_over_time(probe_success{instance=\"https://nahuelsantos.com\"}[24h])",
+          "legendFormat": "nahuelsantos.com",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "24h Uptime Percentage",
+      "title": "nahuelsantos.com - 24h Uptime",
       "type": "gauge"
     },
     {
@@ -444,75 +455,52 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "yellow",
+                "value": 0.95
+              },
+              {
+                "color": "green",
+                "value": 0.99
               }
             ]
           },
-          "unit": "percent"
+          "unit": "percentunit"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
+        "w": 8,
+        "x": 8,
+        "y": 14
       },
       "id": 5,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
+      "pluginVersion": "12.0.1",
       "targets": [
         {
           "datasource": {
@@ -520,14 +508,14 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\"cv|loopingbyte\"}[5m]) * 100",
-          "legendFormat": "{{name}} CPU",
+          "expr": "avg_over_time(probe_success{instance=\"https://cv.nahuelsantos.com\"}[24h])",
+          "legendFormat": "cv.nahuelsantos.com",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Container CPU Usage",
-      "type": "timeseries"
+      "title": "cv.nahuelsantos.com - 24h Uptime",
+      "type": "gauge"
     },
     {
       "datasource": {
@@ -537,75 +525,52 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
+          "max": 1,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 80
+                "color": "yellow",
+                "value": 0.95
+              },
+              {
+                "color": "green",
+                "value": 0.99
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "percentunit"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 20
+        "w": 8,
+        "x": 16,
+        "y": 14
       },
       "id": 6,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
       },
+      "pluginVersion": "12.0.1",
       "targets": [
         {
           "datasource": {
@@ -613,161 +578,20 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "container_memory_usage_bytes{name=~\"cv|loopingbyte\"}",
-          "legendFormat": "{{name}} Memory",
+          "expr": "avg_over_time(probe_success{instance=\"https://loopingbyte.com\"}[24h])",
+          "legendFormat": "loopingbyte.com",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Container Memory Usage",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 20
-      },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "rate(container_network_receive_bytes_total{name=~\"cv|loopingbyte\"}[5m])",
-          "legendFormat": "{{name}} RX",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "editorMode": "code",
-          "expr": "rate(container_network_transmit_bytes_total{name=~\"cv|loopingbyte\"}[5m])",
-          "legendFormat": "{{name}} TX",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Container Network I/O",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "P8E80F9AEF21F6940"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 28
-      },
-      "id": 8,
-      "options": {
-        "dedupStrategy": "none",
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "showCommonLabels": false,
-        "showLabels": false,
-        "showTime": false,
-        "sortOrder": "Descending",
-        "wrapLogMessage": false
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "P8E80F9AEF21F6940"
-          },
-          "editorMode": "code",
-          "expr": "{container=~\"cv|loopingbyte\"}",
-          "queryType": "",
-          "refId": "A"
-        }
-      ],
-      "title": "Website Container Logs",
-      "type": "logs"
+      "title": "loopingbyte.com - 24h Uptime",
+      "type": "gauge"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
-  "tags": ["websites", "monitoring", "http"],
+  "tags": ["websites", "monitoring", "external"],
   "templating": {
     "list": []
   },
@@ -779,6 +603,6 @@
   "timezone": "",
   "title": "Website Monitoring Dashboard",
   "uid": "website-monitoring",
-  "version": 0,
+  "version": 1,
   "weekStart": ""
 } 
