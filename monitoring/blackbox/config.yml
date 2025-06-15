@@ -7,13 +7,15 @@ modules:
       valid_status_codes: []  # Defaults to 2xx
       method: GET
       headers:
-        Host: vhost.example.com
         Accept-Language: en-US
+        User-Agent: "Blackbox-Exporter/Dinky-Server"
       no_follow_redirects: false
       fail_if_ssl: false
       fail_if_not_ssl: false
-      preferred_ip_protocol: "ip4" # defaults to "ip6"
-      ip_protocol_fallback: false  # no fallback to "ip6"
+      preferred_ip_protocol: "ip4"
+      ip_protocol_fallback: true  # Allow fallback to IPv6
+      tls_config:
+        insecure_skip_verify: false
       
   http_post_2xx:
     prober: http

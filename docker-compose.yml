@@ -184,13 +184,14 @@ services:
     depends_on:
       - loki
 
-  # Tempo - Distributed tracing
+  # Tempo - Distributed tracing (receives from otel-collector)
   tempo:
     image: grafana/tempo:2.7.2
     container_name: tempo
     restart: always
     ports:
-      - "3200:3200"  # Tempo receiver
+      - "3200:3200"  # Tempo HTTP API
+      - "4316:4317"   # OTLP gRPC (different port to avoid conflict)
     volumes:
       - ./monitoring/tempo:/etc/tempo
       - tempo_data:/var/tempo
@@ -221,12 +222,14 @@ services:
       - "3000:3000"
     volumes:
       - ./monitoring/grafana:/etc/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-pyroscope-datasource
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=grafana-pyroscope-datasource
     networks:
       - traefik_network
     depends_on:
@@ -280,6 +283,7 @@ services:
   node-exporter:
     image: prom/node-exporter:v1.9.1
     container_name: node-exporter
+    hostname: dinky-server
     restart: always
     volumes:
       - /proc:/host/proc:ro

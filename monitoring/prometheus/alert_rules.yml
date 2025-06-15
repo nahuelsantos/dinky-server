@@ -65,8 +65,8 @@ groups:
   # Container Health Alerts
   - name: containers
     rules:
-      # Container Down
-      - alert: ContainerDown
+      # Container Monitoring Down (cAdvisor)
+      - alert: ContainerMonitoringDown
         expr: up{job="docker"} == 0
         for: 1m
         labels:
@@ -105,19 +105,9 @@ groups:
           summary: "Container restart loop detected"
           description: "Container {{ $labels.name }} has restarted more than 5 times in the last hour"
 
-  # Service Health Alerts  
-  - name: services
+  # Core Services Health - Only critical infrastructure services
+  - name: core_services
     rules:
-      # Service Down
-      - alert: ServiceDown
-        expr: up == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Service is down"
-          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute"
-
       # Grafana Down
       - alert: GrafanaDown
         expr: up{job="grafana"} == 0
@@ -148,6 +138,16 @@ groups:
           summary: "Loki log aggregation is down"
           description: "Loki log aggregation service is not responding"
 
+      # Traefik Down
+      - alert: TraefikDown
+        expr: up{job="traefik"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Traefik reverse proxy is down"
+          description: "Traefik reverse proxy service is not responding - all web services may be inaccessible"
+
   # Network and Load Alerts
   - name: network
     rules:
@@ -171,21 +171,8 @@ groups:
           summary: "High system load detected"
           description: "15-minute load average is above 2 for more than 5 minutes on {{ $labels.instance }}"
 
-  # Traefik Specific Alerts
-  - name: traefik
-    rules:
-      # Traefik Down
-      - alert: TraefikDown
-        expr: up{job="traefik"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Traefik reverse proxy is down"
-          description: "Traefik reverse proxy service is not responding - all web services may be inaccessible"
-
-      # High Response Time
-      - alert: HighResponseTime
+      # Traefik High Response Time
+      - alert: TraefikHighResponseTime
         expr: histogram_quantile(0.95, rate(traefik_service_request_duration_seconds_bucket[5m])) > 1
         for: 2m
         labels:
@@ -194,53 +181,10 @@ groups:
           summary: "High response time detected"
           description: "95th percentile response time is above 1 second for service {{ $labels.service }}"
 
-  # HTTP Probe Alerts for websites
-  - name: http_probes
-    rules:
-      # Website Down
-      - alert: WebsiteDown
-        expr: probe_success{job=~".*-http"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Website is down"
-          description: "Website {{ $labels.instance }} has been down for more than 1 minute"
-
-      # Website High Response Time
-      - alert: WebsiteSlowResponse
-        expr: probe_duration_seconds{job=~".*-http"} > 2
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Website slow response time"
-          description: "Website {{ $labels.instance }} response time is above 2 seconds for more than 2 minutes (current: {{ $value }}s)"
-
-      # Website SSL Certificate Expiring
-      - alert: WebsiteSSLCertExpiringSoon
-        expr: probe_ssl_earliest_cert_expiry{job=~".*-http"} - time() < 86400 * 7
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "SSL certificate expiring soon"
-          description: "SSL certificate for {{ $labels.instance }} expires in less than 7 days"
-
-      # Website HTTP Status Code Error
-      - alert: WebsiteHTTPError
-        expr: probe_http_status_code{job=~".*-http"} >= 400
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Website HTTP error"
-          description: "Website {{ $labels.instance }} returned HTTP {{ $value }} for more than 2 minutes"
-
-  # Dinky Services - Your specific services monitoring
+  # Website and Service Monitoring - Your business services
   - name: dinky_services
     rules:
-      # Contact API specific alerts
+      # Contact API Down
       - alert: ContactAPIDown
         expr: up{job="contact-api"} == 0
         for: 2m
@@ -251,19 +195,8 @@ groups:
           summary: "Contact API service is down"
           description: "Contact API has been down for more than 2 minutes - contact forms will not work on nahuelsantos.com and loopingbyte.com"
 
-      # Contact API high error rate
-      - alert: ContactAPIHighErrorRate
-        expr: rate(gin_request_total{job="contact-api",code=~"5.."}[5m]) > 0.1
-        for: 5m
-        labels:
-          severity: warning
-          service: contact-api
-        annotations:
-          summary: "Contact API high error rate"
-          description: "Contact API error rate is above 10% for 5 minutes (current: {{ $value | humanizePercentage }})"
-
-      # Website downtime (external monitoring)
-      - alert: WebsiteExternalDown
+      # External Website Down (covers all your public sites)
+      - alert: WebsiteDown
         expr: probe_success{job="website-probes"} == 0
         for: 1m
         labels:
@@ -271,20 +204,9 @@ groups:
           service: website
         annotations:
           summary: "Website {{ $labels.instance }} is down"
-          description: "Website {{ $labels.instance }} has been unreachable from external monitoring for more than 1 minute"
+          description: "Website {{ $labels.instance }} has been unreachable for more than 1 minute"
 
-      # Website slow response (external monitoring)
-      - alert: WebsiteExternalSlow
-        expr: probe_duration_seconds{job="website-probes"} > 3
-        for: 3m
-        labels:
-          severity: warning
-          service: website
-        annotations:
-          summary: "Website {{ $labels.instance }} slow response"
-          description: "Website {{ $labels.instance }} response time is above 3 seconds for 3 minutes (current: {{ $value }}s)"
-
-      # CV site specific alert (since it's your main professional site)
+      # CV Site Special Alert (faster response for professional site)
       - alert: CVSiteDown
         expr: probe_success{job="website-probes",instance="https://cv.nahuelsantos.com"} == 0
         for: 30s
@@ -293,4 +215,48 @@ groups:
           service: cv-site
         annotations:
           summary: "CV website is down"
-          description: "Your professional CV website (cv.nahuelsantos.com) has been down for 30 seconds - this impacts your professional presence" 
+          description: "Your professional CV website (cv.nahuelsantos.com) has been down for 30 seconds - this impacts your professional presence"
+
+      # Website Slow Response (unified threshold)
+      - alert: WebsiteSlowResponse
+        expr: probe_duration_seconds{job="website-probes"} > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: website
+        annotations:
+          summary: "Website {{ $labels.instance }} slow response"
+          description: "Website {{ $labels.instance }} response time is above 2 seconds for 2 minutes (current: {{ $value }}s)"
+
+      # Website HTTP Error
+      - alert: WebsiteHTTPError
+        expr: probe_http_status_code{job="website-probes"} >= 400
+        for: 2m
+        labels:
+          severity: warning
+          service: website
+        annotations:
+          summary: "Website HTTP error"
+          description: "Website {{ $labels.instance }} returned HTTP {{ $value }} for more than 2 minutes"
+
+      # SSL Certificate Expiring
+      - alert: WebsiteSSLCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry{job="website-probes"} - time() < 86400 * 7
+        for: 5m
+        labels:
+          severity: warning
+          service: website
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in less than 7 days"
+
+      # Internal Container Health (for containers behind Traefik)
+      - alert: InternalContainerUnreachable
+        expr: probe_success{job=~".*-http-internal"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          service: container
+        annotations:
+          summary: "Internal container unreachable"
+          description: "Container {{ $labels.instance }} is not responding to internal health checks for 3 minutes" 

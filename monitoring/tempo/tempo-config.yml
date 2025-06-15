@@ -10,9 +10,9 @@ distributor:
     otlp:
       protocols:
         grpc:
-          endpoint: 0.0.0.0:4317
+          endpoint: 0.0.0.0:4317  # Internal port (mapped to 4316 externally)
         http:
-          endpoint: 0.0.0.0:4318
+          endpoint: 0.0.0.0:4318  # Not exposed externally - only through otel-collector
     zipkin:
       endpoint: 0.0.0.0:9411
 

@@ -12,9 +12,10 @@ scrape_configs:
   - job_name: system
     static_configs:
       - targets:
-          - localhost
+          - localhost  # This is correct for local file reading
         labels:
           job: varlogs
+          host: dinky-server
           __path__: /var/log/*log
 
   - job_name: docker
