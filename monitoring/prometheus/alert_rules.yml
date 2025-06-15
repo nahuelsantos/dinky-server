@@ -195,6 +195,39 @@ groups:
           summary: "Contact API service is down"
           description: "Contact API has been down for more than 2 minutes - contact forms will not work on nahuelsantos.com and loopingbyte.com"
 
+      # Contact API High Response Time
+      - alert: ContactAPIHighResponseTime
+        expr: histogram_quantile(0.95, rate(gin_request_duration_seconds_bucket{job="contact-api"}[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: contact-api
+        annotations:
+          summary: "Contact API high response time"
+          description: "Contact API 95th percentile response time is {{ $value }}s (above 2s threshold)"
+
+      # Contact API High Error Rate
+      - alert: ContactAPIHighErrorRate
+        expr: rate(gin_requests_total{job="contact-api",status=~"5.."}[5m]) / rate(gin_requests_total{job="contact-api"}[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: contact-api
+        annotations:
+          summary: "Contact API high error rate"
+          description: "Contact API error rate is {{ $value }}% over the last 5 minutes (above 5% threshold)"
+
+      # Contact API Memory Usage High
+      - alert: ContactAPIHighMemory
+        expr: (container_memory_usage_bytes{name="contact-api"} / container_spec_memory_limit_bytes{name="contact-api"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: contact-api
+        annotations:
+          summary: "Contact API high memory usage"
+          description: "Contact API memory usage is {{ $value }}% of its limit"
+
       # External Website Down (covers all your public sites)
       - alert: WebsiteDown
         expr: probe_success{job="website-probes"} == 0
