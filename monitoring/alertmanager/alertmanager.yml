@@ -35,18 +35,6 @@ receivers:
       - to: 'admin@dinky.local'
         headers:
           Subject: '🚨 CRITICAL DINKY ALERT: {{ .GroupLabels.alertname }}'
-        body: |
-          🚨 **CRITICAL ALERT** 🚨
-          
-          **Alert:** {{ .GroupLabels.alertname }}
-          **Severity:** {{ .CommonLabels.severity }}
-          **Service:** {{ .CommonLabels.service }}
-          
-          {{ range .Alerts }}
-          **Summary:** {{ .Annotations.summary }}
-          **Description:** {{ .Annotations.description }}
-          **Started:** {{ .StartsAt.Format "2006-01-02 15:04:05" }}
-          {{ end }}
     # Discord webhook (uncomment and configure when ready)
     # webhook_configs:
     #   - url: '${DISCORD_WEBHOOK_URL}'
