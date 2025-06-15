@@ -163,16 +163,39 @@
               "job": true
             },
             "indexByName": {
+              "instance": 0,
               "Value #A": 1,
               "Value #B": 2,
-              "Value #C": 3,
-              "instance": 0
+              "Value #C": 3
             },
             "renameByName": {
+              "instance": "Website",
               "Value #A": "Status",
               "Value #B": "Response Time (s)",
-              "Value #C": "HTTP Code",
-              "instance": "Website"
+              "Value #C": "HTTP Code"
+            }
+          }
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "HTTP Code": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Response Time (s)": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Status": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Website": {
+                "aggregations": [],
+                "operation": "groupby"
+              }
             }
           }
         }
