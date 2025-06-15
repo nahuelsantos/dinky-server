@@ -114,7 +114,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "probe_success{job=~\".*-http\"}",
+          "expr": "probe_success{job=~\".*-http.*|website-probes\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -729,7 +729,7 @@
     {
       "datasource": {
         "type": "loki",
-        "uid": "loki"
+        "uid": "P8E80F9AEF21F6940"
       },
       "gridPos": {
         "h": 8,
@@ -752,7 +752,7 @@
         {
           "datasource": {
             "type": "loki",
-            "uid": "loki"
+            "uid": "P8E80F9AEF21F6940"
           },
           "editorMode": "code",
           "expr": "{container=~\"cv|loopingbyte\"}",
