@@ -174,10 +174,12 @@ services:
     image: grafana/promtail:3.5
     container_name: promtail
     restart: always
+    user: "0:0"  # Run as root to access Docker socket
     volumes:
       - ./monitoring/promtail:/etc/promtail
-      - /var/log:/var/log
+      - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - traefik_network
