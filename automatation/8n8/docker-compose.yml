@@ -16,7 +16,7 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
       - NODE_ENV=production
-      - WEBHOOK_URL=https://nexus.yourdomain.com/
+      - WEBHOOK_URL=https://nexus.loopingbyte.com/
       - GENERIC_TIMEZONE=Europe/Madrid
     volumes:
       - n8n_data:/home/node/.n8n
