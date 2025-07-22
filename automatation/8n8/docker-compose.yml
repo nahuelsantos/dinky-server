@@ -3,7 +3,8 @@ services:
     container_name: 8n8
     image: docker.n8n.io/n8nio/n8n
     restart: always
-    # No ports section - access only via Traefik
+    ports:
+      - "5678:5678" 
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(`nexus.loopingbyte.com`)"
@@ -13,7 +14,7 @@ services:
     environment:
       - N8N_HOST=nexus.loopingbyte.com
       - N8N_PORT=5678
-      - N8N_PROTOCOL=https
+      - N8N_PROTOCOL=http
       - NODE_ENV=production
       - WEBHOOK_URL=https://nexus.loopingbyte.com/
       - GENERIC_TIMEZONE=Europe/Madrid
