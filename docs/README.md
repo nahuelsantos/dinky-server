@@ -17,6 +17,7 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 ### **🛠️ Advanced Topics**
 - **[Infrastructure Components](../infrastructure/)** - Network and security setup
 - **[Monitoring Stack](../monitoring/)** - Observability and metrics
+- **[LGTM Stack Testing](lgtm-testing-guide.md)** - Complete testing guide
 - **[Service Configuration](../services/)** - Individual service setup
 
 ## 🎯 Quick Navigation
@@ -40,6 +41,7 @@ Welcome to the Dinky Server documentation! This directory contains comprehensive
 
 ### **Common Tasks**
 - **Deploy new service** → [APIs Guide](apis-guide.md) or [Sites Guide](sites-guide.md)
+- **Test monitoring stack** → [LGTM Testing Guide](lgtm-testing-guide.md)
 - **Security setup** → [Main README - Security Features](../README.md#-what-you-get)
 - **Troubleshooting** → [Main README - Troubleshooting](../README.md#-troubleshooting)
 - **Local development** → [Main README - Development](../README.md#-local-development)
