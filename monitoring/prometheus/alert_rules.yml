@@ -231,24 +231,24 @@ groups:
       # External Website Down (covers all your public sites)
       - alert: WebsiteDown
         expr: probe_success{job="website-probes"} == 0
-        for: 1m
+        for: 15m
         labels:
           severity: critical
           service: website
         annotations:
           summary: "Website {{ $labels.instance }} is down"
-          description: "Website {{ $labels.instance }} has been unreachable for more than 1 minute"
+          description: "Website {{ $labels.instance }} has been unreachable for more than 15 minutes"
 
       # CV Site Special Alert (faster response for professional site)
       - alert: CVSiteDown
         expr: probe_success{job="website-probes",instance="https://cv.nahuelsantos.com"} == 0
-        for: 30s
+        for: 15m
         labels:
           severity: critical
           service: cv-site
         annotations:
           summary: "CV website is down"
-          description: "Your professional CV website (cv.nahuelsantos.com) has been down for 30 seconds - this impacts your professional presence"
+          description: "Your professional CV website (cv.nahuelsantos.com) has been down for more than 15 minutes"
 
       # CV Container Down Alert
       - alert: CVContainerDown
@@ -286,13 +286,13 @@ groups:
       # Website Slow Response (unified threshold)
       - alert: WebsiteSlowResponse
         expr: probe_duration_seconds{job="website-probes"} > 2
-        for: 2m
+        for: 1h
         labels:
           severity: warning
           service: website
         annotations:
           summary: "Website {{ $labels.instance }} slow response"
-          description: "Website {{ $labels.instance }} response time is above 2 seconds for 2 minutes (current: {{ $value }}s)"
+          description: "Website {{ $labels.instance }} response time is above 2 seconds for more than 1 hour (current: {{ $value }}s)"
 
       # Website HTTP Error
       - alert: WebsiteHTTPError
@@ -319,13 +319,13 @@ groups:
       # Loopingbyte Website Down
       - alert: LoopingbyteWebsiteDown
         expr: probe_success{job="website-probes",instance="https://loopingbyte.com"} == 0
-        for: 1m
+        for: 15m
         labels:
           severity: critical
           service: loopingbyte-website
         annotations:
           summary: "Loopingbyte website is down"
-          description: "Loopingbyte.com has been unreachable for more than 1 minute - your indie game studio website is offline"
+          description: "Loopingbyte.com has been unreachable for more than 15 minutes"
 
       # Loopingbyte Container Down
       - alert: LoopingbyteContainerDown
@@ -363,13 +363,13 @@ groups:
       # Loopingbyte Slow Response
       - alert: LoopingbyteSlowResponse
         expr: probe_duration_seconds{job="website-probes",instance="https://loopingbyte.com"} > 3
-        for: 3m
+        for: 1h
         labels:
           severity: warning
           service: loopingbyte-website
         annotations:
           summary: "Loopingbyte website slow response"
-          description: "Loopingbyte.com response time is above 3 seconds for 3 minutes (current: {{ $value }}s)"
+          description: "Loopingbyte.com response time is above 3 seconds for more than 1 hour (current: {{ $value }}s)"
 
       # Internal Container Health (for containers behind Traefik)
       - alert: InternalContainerUnreachable

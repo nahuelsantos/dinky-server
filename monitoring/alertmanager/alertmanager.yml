@@ -21,7 +21,7 @@ route:
     - match_re:
         service: (website|cv-site|contact-api)
       receiver: 'service-alerts'
-      repeat_interval: 15m
+      repeat_interval: 1h
 
 receivers:
   - name: 'default-alerts'
@@ -35,14 +35,6 @@ receivers:
       - to: 'admin@dinky.local'
         headers:
           Subject: '🚨 CRITICAL DINKY ALERT: {{ .GroupLabels.alertname }}'
-    # Discord webhook (uncomment and configure when ready)
-    # webhook_configs:
-    #   - url: '${DISCORD_WEBHOOK_URL}'
-    #     send_resolved: true
-    #     title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
-    #     text: |
-    #       **{{ .CommonLabels.service | toUpper }} ALERT**
-    #       {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
 
   - name: 'service-alerts'
     email_configs:
