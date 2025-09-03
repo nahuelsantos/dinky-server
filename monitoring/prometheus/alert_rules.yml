@@ -231,24 +231,24 @@ groups:
       # External Website Down (covers all your public sites)
       - alert: WebsiteDown
         expr: probe_success{job="website-probes"} == 0
-        for: 15m
+        for: 1h
         labels:
           severity: critical
           service: website
         annotations:
           summary: "Website {{ $labels.instance }} is down"
-          description: "Website {{ $labels.instance }} has been unreachable for more than 15 minutes"
+          description: "Website {{ $labels.instance }} has been unreachable for more than 1 hour"
 
       # CV Site Special Alert (faster response for professional site)
       - alert: CVSiteDown
         expr: probe_success{job="website-probes",instance="https://cv.nahuelsantos.com"} == 0
-        for: 15m
+        for: 1h
         labels:
           severity: critical
           service: cv-site
         annotations:
           summary: "CV website is down"
-          description: "Your professional CV website (cv.nahuelsantos.com) has been down for more than 15 minutes"
+          description: "Your professional CV website (cv.nahuelsantos.com) has been down for more than 1 hour"
 
       # CV Container Down Alert
       - alert: CVContainerDown
@@ -319,13 +319,13 @@ groups:
       # Loopingbyte Website Down
       - alert: LoopingbyteWebsiteDown
         expr: probe_success{job="website-probes",instance="https://loopingbyte.com"} == 0
-        for: 15m
+        for: 1h
         labels:
           severity: critical
           service: loopingbyte-website
         annotations:
           summary: "Loopingbyte website is down"
-          description: "Loopingbyte.com has been unreachable for more than 15 minutes"
+          description: "Loopingbyte.com has been unreachable for more than 1 hour"
 
       # Loopingbyte Container Down
       - alert: LoopingbyteContainerDown

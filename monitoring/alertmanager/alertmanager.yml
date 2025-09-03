@@ -7,19 +7,19 @@ global:
 route:
   group_by: ['alertname']
   group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
+  group_interval: 5m
+  repeat_interval: 24h
   receiver: 'default-alerts'
   routes:
-    # Critical alerts go to both email and Discord immediately
+    # Critical alerts - now also 1 hour repeat
     - match:
         severity: critical
       receiver: 'critical-alerts'
       group_wait: 0s
-      repeat_interval: 30m
-    # Website and service alerts
+      repeat_interval: 1h
+    # General service alerts
     - match_re:
-        service: (website|cv-site|contact-api)
+        service: (website|cv-site|contact-api|loopingbyte-website)
       receiver: 'service-alerts'
       repeat_interval: 1h
 
