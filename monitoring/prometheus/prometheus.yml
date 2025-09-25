@@ -144,6 +144,7 @@ scrape_configs:
         - https://nahuelsantos.com
         - https://cv.nahuelsantos.com  
         - https://loopingbyte.com
+        - https://playthis.today
     metrics_path: /probe
     params:
       module: [http_2xx]
