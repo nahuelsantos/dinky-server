@@ -87,8 +87,8 @@ groups:
 
       # Container High Memory
       - alert: ContainerHighMemory
-        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 80
-        for: 2m
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) * 100 > 90
+        for: 5m
         labels:
           severity: warning
         annotations:
@@ -219,8 +219,8 @@ groups:
 
       # Contact API Memory Usage High
       - alert: ContactAPIHighMemory
-        expr: (container_memory_usage_bytes{name="contact-api"} / container_spec_memory_limit_bytes{name="contact-api"}) * 100 > 80
-        for: 5m
+        expr: (container_memory_usage_bytes{name="contact-api"} / container_spec_memory_limit_bytes{name="contact-api"}) * 100 > 90
+        for: 10m
         labels:
           severity: warning
           service: contact-api
@@ -263,8 +263,8 @@ groups:
 
       # CV Container High Memory Usage
       - alert: CVHighMemoryUsage
-        expr: (container_memory_usage_bytes{name="cv"} / container_spec_memory_limit_bytes{name="cv"}) * 100 > 80
-        for: 5m
+        expr: (container_memory_usage_bytes{name="cv"} / container_spec_memory_limit_bytes{name="cv"}) * 100 > 90
+        for: 10m
         labels:
           severity: warning
           service: cv-container
@@ -340,8 +340,8 @@ groups:
 
       # Loopingbyte High Memory Usage
       - alert: LoopingbyteHighMemoryUsage
-        expr: (container_memory_usage_bytes{name="loopingbyte"} / container_spec_memory_limit_bytes{name="loopingbyte"}) * 100 > 80
-        for: 5m
+        expr: (container_memory_usage_bytes{name="loopingbyte"} / container_spec_memory_limit_bytes{name="loopingbyte"}) * 100 > 90
+        for: 10m
         labels:
           severity: warning
           service: loopingbyte-container
