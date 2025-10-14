@@ -79,7 +79,7 @@ dinky-server/
 ├── sites/                      # 🔍 Auto-discovered sites  
 │   └── example-site/           # Simple static site example
 ├── tools/                      # 🛠️ Admin & development tools
-│   └── dbgate/                 # Database management UI
+│   └── adminer/                # Database management UI
 ├── infrastructure/             # Network & security
 ├── monitoring/                 # LGTM stack config
 └── services/                   # Core services
@@ -105,7 +105,7 @@ After deployment, visit:
 - **Loki**: http://[SERVER_IP]:3100
 - **Tempo**: http://[SERVER_IP]:3200
 - **Pyroscope**: http://[SERVER_IP]:4040
-- **DbGate** (DB Admin): http://[SERVER_IP]:3500
+- **Adminer** (DB Admin): http://[SERVER_IP]:3500
 - **OTEL Collector (gRPC)**: http://[SERVER_IP]:4317
 - **OTEL Collector (HTTP)**: http://[SERVER_IP]:4318
 - **Tempo (OTLP)**: http://[SERVER_IP]:4316
@@ -147,7 +147,7 @@ The included Example API (port 3003) provides simple REST API demonstration:
 9093 - Alertmanager
 3100 - Loki
 3200 - Tempo
-3500 - DbGate (Database Admin)
+3500 - Adminer (Database Admin)
 4040 - Pyroscope
 8082 - cAdvisor
 9100 - Node Exporter
@@ -229,6 +229,6 @@ Detailed guides for specific tasks:
 
 - **[APIs Guide](docs/apis-guide.md)** - Build and deploy API services
 - **[Sites Guide](docs/sites-guide.md)** - Create and manage websites  
-- **[Tools Guide](docs/tools-guide.md)** - Admin and development tools (DbGate, etc.)
+- **[Tools Guide](docs/tools-guide.md)** - Admin and development tools (Adminer, etc.)
 - **[LGTM Testing](docs/lgtm-testing-guide.md)** - Test monitoring stack
 - **[Retention Policy](docs/retention-policy.md)** - Storage and cleanup configuration

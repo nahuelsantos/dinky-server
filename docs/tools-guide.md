@@ -8,28 +8,29 @@ The `tools/` directory contains utilities separate from production services, use
 
 ## Available Tools
 
-### DbGate - Database Management
+### Adminer - Database Management
 
-**Location**: `tools/dbgate/`  
+**Location**: `tools/adminer/`  
 **Port**: 3500  
-**Purpose**: Web-based SQLite database administration
+**Purpose**: Lightweight database administration (SQLite, MySQL, PostgreSQL)
 
 **Quick Start:**
 ```bash
-cd tools/dbgate
+cd tools/adminer
 docker-compose up -d
 ```
 
 Access at: http://192.168.1.129:3500
 
 **Features:**
-- SQL editor with autocomplete
-- Visual query builder
-- Schema explorer
-- Import/Export (CSV, JSON, Excel)
-- Data visualization
+- Simple, lightweight interface
+- SQL query editor
+- Table browsing and editing
+- Export data (SQL, CSV)
+- Multi-database support
+- **ARM64/Raspberry Pi compatible**
 
-**Full Documentation**: See `tools/dbgate/README.md`
+**Full Documentation**: See `tools/adminer/README.md`
 
 ## Port Allocations
 
@@ -37,7 +38,7 @@ Tools use ports **3500-3599**:
 
 | Port | Tool    |
 |------|---------|
-| 3500 | DbGate  |
+| 3500 | Adminer |
 
 ## Common Operations
 
