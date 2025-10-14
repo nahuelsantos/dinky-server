@@ -6,10 +6,8 @@ services:
     ports:
       - "3500:3000"
     volumes:
-      # Mount the-game development database (adjust path as needed)
-      - /Users/nahuelsantos/Workspace/nahuelsantos/the-game/data:/the-game:ro
-      # Add other database paths as needed
-      # - /path/to/other/db:/other-db:ro
+      # Mount the-game production database (using named volume)
+      - the-game-data:/the-game:ro
       # DbGate configuration and connection data
       - dbgate-data:/root/.dbgate
     environment:
@@ -26,6 +24,9 @@ services:
 volumes:
   dbgate-data:
     driver: local
+  the-game-data:
+    external: true
+    name: the-game_the-game-data
 
 networks:
   tools-network:

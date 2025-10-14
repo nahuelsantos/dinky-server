@@ -13,6 +13,12 @@ docker-compose up -d
 
 ### Connect to The Game Database
 
+**Important**: First verify the volume is accessible:
+```bash
+docker exec dbgate ls -la /the-game
+```
+
+Then in DbGate:
 1. Click **"New Connection"** → Select **"SQLite"**
 2. Database File: `/the-game/game.db`
 3. Click **"Test Connection"** → **"Save"**
@@ -67,19 +73,29 @@ ORDER BY score DESC;
 
 - **Port**: 3500
 - **Volume**: `dbgate-data` (stores connections and settings)
-- **Database Access**: Read-only by default (`:ro`)
+- **Database Access**: Connects to The Game's Docker volume (read-only)
 
-### Mounting Additional Databases
+### How It Works
 
-Edit `docker-compose.yml`:
+DbGate accesses The Game database through Docker's named volume:
 
 ```yaml
 volumes:
-  - /Users/nahuelsantos/Workspace/nahuelsantos/the-game/data:/the-game:ro
-  - /path/to/your/database:/db-name:ro  # Add your databases here
+  - the-game-data:/the-game:ro  # Read-only access to The Game's volume
 ```
 
-Then restart: `docker-compose down && docker-compose up -d`
+The volume name must match The Game's volume. To verify:
+```bash
+docker volume ls | grep the-game
+```
+
+If the volume has a different name (e.g., `the-game_the-game-data`), update `docker-compose.yml`:
+```yaml
+volumes:
+  the-game-data:
+    external: true
+    name: the-game_the-game-data  # Update this to match actual volume name
+```
 
 ## Security Notes
 
