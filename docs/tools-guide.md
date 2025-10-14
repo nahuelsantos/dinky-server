@@ -12,7 +12,7 @@ The `tools/` directory contains utilities separate from production services, use
 
 **Location**: `tools/adminer/`  
 **Port**: 3500  
-**Purpose**: Lightweight database administration (SQLite, MySQL, PostgreSQL)
+**Purpose**: Lightweight database administration (MySQL, PostgreSQL)
 
 **Quick Start:**
 ```bash
@@ -32,13 +32,41 @@ Access at: http://192.168.1.129:3500
 
 **Full Documentation**: See `tools/adminer/README.md`
 
+### SQLite Web - SQLite Database Management
+
+**Location**: `tools/sqlite-web/`  
+**URL**: http://dinky:3500
+**Purpose**: Lightweight database administration for SQLite databases.
+
+**Quick Start:**
+```bash
+cd tools/sqlite-web
+docker-compose up -d
+```
+
+Access at: http://dinky:3500
+
+**Features:**
+- Simple, lightweight interface
+- SQL query editor
+- Table browsing and editing
+- Export data (SQL, CSV)
+- **ARM64/Raspberry Pi compatible**
+
+**Connecting to SQLite:**
+The database is configured in the `docker-compose.yml` file. By default, it connects to The Game's database.
+
+**Full Documentation**: See `tools/sqlite-web/README.md`
+
 ## Port Allocations
 
-Tools use ports **3500-3599**:
+Tools use ports **3500-3599** for direct access:
 
 | Port | Tool    |
 |------|---------|
-| 3500 | Adminer |
+| 3500 | Adminer, SQLite Web |
+
+Some tools are exposed via Traefik and do not have a dedicated host port. Refer to their documentation for the URL.
 
 ## Common Operations
 
