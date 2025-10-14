@@ -7,10 +7,4 @@ services:
       - "3500:8080"
     volumes:
       - ../../the-game/data:/db
-    networks:
-      - proxy
     restart: unless-stopped
-
-networks:
-  proxy:
-    external: true
