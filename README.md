@@ -223,6 +223,16 @@ Dinky Server includes a comprehensive LGTM (Loki, Grafana, Tempo, Metrics) stack
 - OpenTelemetry Collector processes and routes telemetry data
 - Alerting rules monitor system health and performance
 
+## Private images on ghcr.io
+
+Some site stacks (for example `sites/kinetic`) pull container images from **GitHub Container Registry**. If the source repository is **private**, log in on the server before `docker compose pull`:
+
+```bash
+echo YOUR_GITHUB_TOKEN | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+Use a personal access token with the **`read:packages`** scope. See [sites/kinetic/README.md](sites/kinetic/README.md) for the Kinetic.ai deployment notes.
+
 ## 📚 Documentation
 
 Detailed guides for specific tasks:
