@@ -13,4 +13,10 @@ ingress:
     service: http://traefik:80
   - hostname: www.example-2.com
     service: http://traefik:80
+  - hostname: app.staysy.co
+    service: http://traefik:80
+  - hostname: staycy.co
+    service: http://traefik:80
+  - hostname: www.staycy.co
+    service: http://traefik:80
   - service: http_status:404 #Default
